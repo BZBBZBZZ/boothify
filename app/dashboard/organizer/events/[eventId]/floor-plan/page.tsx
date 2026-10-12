@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
+import { ensureEventFloorPlanInitialized } from "@/app/lib/event-defaults";
 
 type Booth = {
   id: string;
@@ -54,13 +56,8 @@ function FloorPlanContent() {
   // Load from localStorage on mount
   useEffect(() => {
     try {
-      const storedEventBooths = localStorage.getItem(`boothify_event_${eventId}_booths`);
-      if (storedEventBooths) {
-        setBooths(JSON.parse(storedEventBooths));
-      } else {
-        const stored = localStorage.getItem("boothify_floor_plan");
-        if (stored) setBooths(JSON.parse(stored));
-      }
+      const initialized = ensureEventFloorPlanInitialized(eventId);
+      setBooths(initialized.booths);
       const storedBg = localStorage.getItem(`boothify_floor_plan_bg_${eventId}`) || localStorage.getItem("boothify_floor_plan_bg");
       if (storedBg) setBlueprintBg(storedBg);
     } catch { /* ignore */ }
@@ -206,9 +203,31 @@ function FloorPlanContent() {
 
   return (
     <div className="animate-fade-in" id="floor-plan-builder">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">Interactive Floor Plan Builder</h1>
-        <p className="text-sm text-muted-foreground">Drag & drop booth untuk mengatur tata letak acara</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold mb-1">Interactive Floor Plan Builder</h1>
+          <p className="text-sm text-muted-foreground">
+            Rancang tata letak booth acara Anda. Hasil rancangan ini langsung otomatis terbit di halaman Sewa Booth Tenant dan Panduan Digital Pengunjung.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href={`/events/${eventId}`}
+            target="_blank"
+            className="btn btn-secondary btn-sm text-xs"
+            id="btn-preview-tenant-view"
+          >
+            👁️ Lihat Tampilan Tenant ↗
+          </Link>
+          <Link
+            href={`/events/${eventId}/guide`}
+            target="_blank"
+            className="btn btn-secondary btn-sm text-xs"
+            id="btn-preview-guide-view"
+          >
+            📱 Lihat Panduan Pengunjung ↗
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
