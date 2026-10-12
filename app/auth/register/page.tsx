@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../components/AuthContext";
 
 type Role = "tenant" | "organizer" | null;
 
-export default function RegisterPage() {
+function RegisterFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { register, user } = useAuth();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [role, setRole] = useState<Role>(null);
@@ -23,6 +24,14 @@ export default function RegisterPage() {
     description: "",
     phone: "",
   });
+
+  // Read role from query param
+  useEffect(() => {
+    const roleParam = searchParams.get("role");
+    if (roleParam === "organizer" || roleParam === "tenant") {
+      setRole(roleParam);
+    }
+  }, [searchParams]);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -295,5 +304,13 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Memuat pendaftaran...</div>}>
+      <RegisterFormContent />
+    </Suspense>
   );
 }

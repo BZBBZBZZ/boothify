@@ -359,10 +359,10 @@ export default function HomePage() {
               Bergabung dengan ribuan penyelenggara event dan pelaku usaha yang sudah merasakan kemudahan Boothify.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/auth/register" className="btn btn-primary btn-lg animate-pulse-glow" id="cta-register">
+              <Link href="/auth/register?role=organizer" className="btn btn-primary btn-lg animate-pulse-glow" id="cta-register">
                 Daftar Sebagai Organizer
               </Link>
-              <Link href="/auth/register" className="btn btn-secondary btn-lg" id="cta-tenant">
+              <Link href="/auth/register?role=tenant" className="btn btn-secondary btn-lg" id="cta-tenant">
                 Daftar Sebagai Tenant
               </Link>
             </div>

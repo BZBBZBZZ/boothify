@@ -52,6 +52,9 @@ export default function EventDetailPage() {
   const [selectedBooths, setSelectedBooths] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"info" | "booths" | "tenants">("info");
   const [takenBooths, setTakenBooths] = useState<string[]>(INITIAL_TAKEN_BOOTHS);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactForm, setContactForm] = useState({ name: "", email: "", phone: "", message: "" });
+  const [contactSent, setContactSent] = useState(false);
 
   useEffect(() => {
     try {
@@ -216,7 +219,14 @@ export default function EventDetailPage() {
                       <p className="text-xs text-muted-foreground">Verified Organizer</p>
                     </div>
                   </div>
-                  <Link href="/auth/login" className="btn btn-secondary btn-sm w-full">Hubungi Organizer</Link>
+                  <button
+                    type="button"
+                    onClick={() => setShowContactModal(true)}
+                    className="btn btn-secondary btn-sm w-full"
+                    id="btn-contact-organizer"
+                  >
+                    Hubungi Organizer
+                  </button>
                 </div>
                 <div className="card-base p-6">
                   <h2 className="text-lg font-semibold mb-4">Ketersediaan Booth</h2>
@@ -363,6 +373,129 @@ export default function EventDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Modal Hubungi Organizer */}
+        {showContactModal && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+            <div className="card-base max-w-lg w-full p-6 relative border border-border/80 shadow-2xl">
+              <button
+                type="button"
+                onClick={() => { setShowContactModal(false); setContactSent(false); }}
+                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground text-xl p-1"
+                id="close-contact-modal"
+                aria-label="Tutup modal"
+              >
+                ✕
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center text-white font-bold">
+                  GE
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">{EVENT_DATA.organizer}</h3>
+                  <p className="text-xs text-muted-foreground">Penyelenggara {EVENT_DATA.title}</p>
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground mb-5">
+                Ada pertanyaan seputar pemilihan booth, fasilitas listrik, atau syarat &amp; ketentuan event? Hubungi tim organizer secara langsung:
+              </p>
+
+              {/* Quick Contact Buttons */}
+              <div className="grid grid-cols-2 gap-3 mb-5">
+                <a
+                  href="https://wa.me/6281234567890?text=Halo%20Organizer%20Green%20Fashion%20Expo%202026%2C%20saya%20tertarik%20bertanya%20seputar%20sewa%20booth"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2.5 border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 text-emerald-400"
+                  id="contact-whatsapp"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                  Chat WhatsApp
+                </a>
+                <a
+                  href="mailto:organizer@greenevents.id?subject=Tanya%20Sewa%20Booth%20Green%20Fashion%20Expo%202026"
+                  className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2.5 hover:bg-white/5"
+                  id="contact-email"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                  Kirim Email
+                </a>
+              </div>
+
+              <div className="border-t border-border pt-4">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Kirim Pesan Langsung</h4>
+                {contactSent ? (
+                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-center animate-fade-in" id="contact-success-msg">
+                    <p className="text-sm font-semibold text-emerald-400 mb-1">✓ Pesan Berhasil Terkirim!</p>
+                    <p className="text-xs text-muted-foreground">Organizer akan membalas pertanyaan Anda via WhatsApp atau Email dalam 1x24 jam kerja.</p>
+                    <button
+                      type="button"
+                      onClick={() => { setContactSent(false); setShowContactModal(false); }}
+                      className="btn btn-secondary btn-sm mt-3"
+                    >
+                      Selesai
+                    </button>
+                  </div>
+                ) : (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      setContactSent(true);
+                    }}
+                    className="space-y-3"
+                  >
+                    <div>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Nama Anda / Nama Brand"
+                        className="input-field text-sm w-full"
+                        value={contactForm.name}
+                        onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                        id="contact-form-name"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="email"
+                        required
+                        placeholder="Email aktif"
+                        className="input-field text-sm w-full"
+                        value={contactForm.email}
+                        onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                        id="contact-form-email"
+                      />
+                      <input
+                        type="tel"
+                        placeholder="No. WhatsApp"
+                        className="input-field text-sm w-full"
+                        value={contactForm.phone}
+                        onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                        id="contact-form-phone"
+                      />
+                    </div>
+                    <div>
+                      <textarea
+                        required
+                        rows={3}
+                        placeholder="Pertanyaan Anda untuk organizer seputar event..."
+                        className="input-field text-sm w-full resize-none"
+                        value={contactForm.message}
+                        onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                        id="contact-form-message"
+                      />
+                    </div>
+                    <button type="submit" className="btn btn-primary btn-sm w-full" id="submit-contact-form">
+                      Kirim Pesan ke Organizer
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
       <Footer />
     </>

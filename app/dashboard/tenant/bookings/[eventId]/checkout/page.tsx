@@ -19,6 +19,8 @@ export default function CheckoutPage() {
   const [agreed, setAgreed] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     try {
@@ -216,7 +218,24 @@ export default function CheckoutPage() {
           <label className="flex items-start gap-2 mt-6 cursor-pointer">
             <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 accent-[var(--primary)]" />
             <span className="text-xs text-muted-foreground">
-              Saya menyetujui <a href="#" className="text-primary-light underline">Syarat & Ketentuan</a> serta <a href="#" className="text-primary-light underline">Kebijakan Pembatalan</a>
+              Saya menyetujui{" "}
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); setShowTermsModal(true); }}
+                className="text-primary-light underline hover:text-primary transition font-medium"
+                id="btn-open-terms"
+              >
+                Syarat &amp; Ketentuan
+              </button>{" "}
+              serta{" "}
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); setShowCancelModal(true); }}
+                className="text-primary-light underline hover:text-primary transition font-medium"
+                id="btn-open-cancellation"
+              >
+                Kebijakan Pembatalan
+              </button>
             </span>
           </label>
 
@@ -239,6 +258,85 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal Syarat & Ketentuan */}
+      {showTermsModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="card-base max-w-lg w-full p-6 relative border border-border/80 shadow-2xl max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
+              <h3 className="text-lg font-bold">Syarat &amp; Ketentuan Sewa Booth</h3>
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="text-muted-foreground hover:text-foreground text-xl p-1"
+                id="close-terms-modal"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-3 text-xs text-muted-foreground leading-relaxed">
+              <p className="font-semibold text-foreground text-sm">1. Hak &amp; Penggunaan Booth</p>
+              <p>Setiap booth berhak digunakan sesuai nomor booth dan zona yang dipilih pada saat checkout. Penyewa tidak diperkenankan memindahtangankan booth tanpa persetujuan tertulis dari pihak penyelenggara.</p>
+              
+              <p className="font-semibold text-foreground text-sm pt-2">2. Fasilitas &amp; Kelistrikan</p>
+              <p>Penyewa booth standar mendapatkan alokasi daya 2A / 450 Watt, 1 meja, dan 2 kursi lipat. Penambahan daya atau fasilitas wajib dikonfirmasikan H-7 sebelum loading-in event.</p>
+
+              <p className="font-semibold text-foreground text-sm pt-2">3. Waktu Loading In / Out</p>
+              <p>Loading in dimulai H-1 event pukul 13:00 - 22:00 WIB. Semua materi promosi dan booth dekorasi harus sudah bersih pada H+1 maksimal pukul 04:00 dini hari.</p>
+            </div>
+            <div className="mt-6 pt-3 border-t border-border flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="btn btn-primary btn-sm"
+              >
+                Saya Mengerti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Kebijakan Pembatalan */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="card-base max-w-lg w-full p-6 relative border border-border/80 shadow-2xl max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
+              <h3 className="text-lg font-bold">Kebijakan Pembatalan &amp; Pengembalian Dana</h3>
+              <button
+                type="button"
+                onClick={() => setShowCancelModal(false)}
+                className="text-muted-foreground hover:text-foreground text-xl p-1"
+                id="close-cancel-modal"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-3 text-xs text-muted-foreground leading-relaxed">
+              <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-primary-light">
+                Kebijakan pengembalian dana (refund) diproses melalui sistem otomatis Boothify Escrow.
+              </div>
+              <p className="font-semibold text-foreground text-sm">1. Pembatalan H-14 Sebelum Event</p>
+              <p>Pengembalian dana 100% (dikurangi biaya administrasi payment gateway Rp 50.000).</p>
+              
+              <p className="font-semibold text-foreground text-sm pt-2">2. Pembatalan H-7 Sebelum Event</p>
+              <p>Pengembalian dana sebesar 50% dari total nilai transaksi sewa booth.</p>
+
+              <p className="font-semibold text-foreground text-sm pt-2">3. Pembatalan Kurang dari H-7</p>
+              <p>Tidak ada pengembalian dana (non-refundable), namun tenant diperkenankan mengalihkan hak booth ke rekan brand sejenis dengan verifikasi organizer.</p>
+            </div>
+            <div className="mt-6 pt-3 border-t border-border flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowCancelModal(false)}
+                className="btn btn-primary btn-sm"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

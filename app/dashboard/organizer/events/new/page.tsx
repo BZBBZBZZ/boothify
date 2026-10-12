@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 export default function CreateEventPage() {
   const router = useRouter();
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const [bannerUploaded, setBannerUploaded] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     date_start: "",
@@ -17,6 +19,27 @@ export default function CreateEventPage() {
     theme: "",
     guidelines: "",
   });
+
+  const handleSaveDraft = () => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+      const draftEvent = {
+        id: String(Date.now()),
+        title: formData.name || "Draft Event Baru",
+        date: formData.date_start ? `${formData.date_start} – ${formData.date_end || formData.date_start}` : "Belum ditentukan",
+        status: "draft",
+        boothsFilled: 0,
+        boothsTotal: 40,
+        location: formData.location || "Belum ditentukan",
+        description: formData.description,
+      };
+      stored.unshift(draftEvent);
+      localStorage.setItem("boothify_events", JSON.stringify(stored));
+    } catch {
+      // ignore
+    }
+    router.push("/dashboard/organizer");
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,10 +142,34 @@ export default function CreateEventPage() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
             Banner Event
           </h2>
-          <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-primary/50 transition cursor-pointer">
-            <svg className="mx-auto mb-3 text-muted-foreground" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-            <p className="text-sm text-muted-foreground">Drag & drop atau <span className="text-primary-light font-medium">klik untuk upload</span></p>
-            <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WebP. Ukuran ideal 1200×400px</p>
+          <input
+            type="file"
+            ref={bannerInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={(e) => {
+              if (e.target.files?.[0]) {
+                setBannerUploaded(true);
+              }
+            }}
+          />
+          <div
+            onClick={() => bannerInputRef.current?.click()}
+            className="border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-primary/50 transition cursor-pointer"
+          >
+            {bannerUploaded ? (
+              <div className="text-primary-light">
+                <svg className="mx-auto mb-2 text-primary" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+                <p className="text-sm font-semibold">✓ Banner Event Berhasil Diunggah!</p>
+                <p className="text-xs text-muted-foreground mt-1">Klik untuk mengganti banner</p>
+              </div>
+            ) : (
+              <>
+                <svg className="mx-auto mb-3 text-muted-foreground" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                <p className="text-sm text-muted-foreground">Drag &amp; drop atau <span className="text-primary-light font-medium">klik untuk upload banner</span></p>
+                <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WebP. Ukuran ideal 1200×400px</p>
+              </>
+            )}
           </div>
         </div>
 
@@ -131,7 +178,12 @@ export default function CreateEventPage() {
           <button type="submit" className="btn btn-primary btn-lg" id="create-event-submit">
             Lanjut ke Floor Plan Builder →
           </button>
-          <button type="button" className="btn btn-secondary btn-lg">
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            className="btn btn-secondary btn-lg"
+            id="save-event-draft"
+          >
             Simpan sebagai Draft
           </button>
         </div>

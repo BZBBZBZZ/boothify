@@ -28,10 +28,15 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-semibold mb-4 text-foreground">Platform</h4>
             <ul className="space-y-3">
-              {["Jelajahi Event", "Buat Event", "Sewa Booth", "Panduan Digital"].map((item) => (
-                <li key={item}>
-                  <Link href="/events" className="text-sm text-muted-foreground hover:text-primary-light transition">
-                    {item}
+              {[
+                { label: "Jelajahi Event", href: "/events" },
+                { label: "Buat Event", href: "/dashboard/organizer/events/new" },
+                { label: "Sewa Booth", href: "/events/1" },
+                { label: "Panduan Digital", href: "/events/1/guide" },
+              ].map((item) => (
+                <li key={item.label}>
+                  <Link href={item.href} className="text-sm text-muted-foreground hover:text-primary-light transition">
+                    {item.label}
                   </Link>
                 </li>
               ))}
@@ -42,10 +47,15 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-semibold mb-4 text-foreground">Perusahaan</h4>
             <ul className="space-y-3">
-              {["Tentang Kami", "Karir", "Blog", "Kontak"].map((item) => (
-                <li key={item}>
-                  <Link href="/" className="text-sm text-muted-foreground hover:text-primary-light transition">
-                    {item}
+              {[
+                { label: "Tentang Kami", href: "/#features" },
+                { label: "Cara Kerja", href: "/#how-it-works" },
+                { label: "Event Populer", href: "/#events" },
+                { label: "Kontak Support", href: "mailto:support@boothify.id" },
+              ].map((item) => (
+                <li key={item.label}>
+                  <Link href={item.href} className="text-sm text-muted-foreground hover:text-primary-light transition">
+                    {item.label}
                   </Link>
                 </li>
               ))}
@@ -54,12 +64,17 @@ export default function Footer() {
 
           {/* Bantuan */}
           <div>
-            <h4 className="text-sm font-semibold mb-4 text-foreground">Bantuan</h4>
+            <h4 className="text-sm font-semibold mb-4 text-foreground">Bantuan &amp; Panduan</h4>
             <ul className="space-y-3">
-              {["Pusat Bantuan", "FAQ", "Syarat & Ketentuan", "Kebijakan Privasi"].map((item) => (
-                <li key={item}>
-                  <Link href="/" className="text-sm text-muted-foreground hover:text-primary-light transition">
-                    {item}
+              {[
+                { label: "Pusat Bantuan", href: "/events/1/guide" },
+                { label: "Denah Interaktif", href: "/events/1" },
+                { label: "Portal Organizer", href: "/dashboard/organizer" },
+                { label: "Portal Tenant", href: "/dashboard/tenant" },
+              ].map((item) => (
+                <li key={item.label}>
+                  <Link href={item.href} className="text-sm text-muted-foreground hover:text-primary-light transition">
+                    {item.label}
                   </Link>
                 </li>
               ))}
@@ -70,18 +85,20 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © 2026 Boothify. Semua hak cipta dilindungi.
+            © 2026 Boothify. Platform Digital Pemesanan Booth &amp; Manajemen Event.
           </p>
           <div className="flex items-center gap-4">
             {/* Social icons */}
             {[
-              { label: "Instagram", path: "M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 01-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 017.8 2zm-.2 2A3.6 3.6 0 004 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 003.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6zm9.65 1.5a1.25 1.25 0 110 2.5 1.25 1.25 0 010-2.5zM12 7a5 5 0 110 10 5 5 0 010-10zm0 2a3 3 0 100 6 3 3 0 000-6z" },
-              { label: "Twitter", path: "M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" },
-              { label: "LinkedIn", path: "M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2zM4 2a2 2 0 110 4 2 2 0 010-4z" },
+              { label: "Instagram", href: "https://instagram.com", path: "M7.8 2h8.4C19.4 2 22 4.6 22 7.8v8.4a5.8 5.8 0 01-5.8 5.8H7.8C4.6 22 2 19.4 2 16.2V7.8A5.8 5.8 0 017.8 2zm-.2 2A3.6 3.6 0 004 7.6v8.8C4 18.39 5.61 20 7.6 20h8.8a3.6 3.6 0 003.6-3.6V7.6C20 5.61 18.39 4 16.4 4H7.6zm9.65 1.5a1.25 1.25 0 110 2.5 1.25 1.25 0 010-2.5zM12 7a5 5 0 110 10 5 5 0 010-10zm0 2a3 3 0 100 6 3 3 0 000-6z" },
+              { label: "Twitter", href: "https://x.com", path: "M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" },
+              { label: "LinkedIn", href: "https://linkedin.com", path: "M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2zM4 2a2 2 0 110 4 2 2 0 010-4z" },
             ].map((social) => (
               <a
                 key={social.label}
-                href="#"
+                href={social.href}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center text-muted-foreground hover:text-primary-light hover:bg-primary/10 transition"
                 aria-label={social.label}
               >

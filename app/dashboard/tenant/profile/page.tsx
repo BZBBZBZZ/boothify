@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const DEFAULT_PROFILE = {
   brandName: "EcoWear Studio",
@@ -15,6 +15,8 @@ const DEFAULT_PROFILE = {
 export default function TenantProfilePage() {
   const [profile, setProfile] = useState(DEFAULT_PROFILE);
   const [saved, setSaved] = useState(false);
+  const [logoToast, setLogoToast] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -40,7 +42,26 @@ export default function TenantProfilePage() {
   ];
 
   return (
-    <div className="animate-fade-in max-w-2xl" id="tenant-profile">
+    <div className="animate-fade-in max-w-2xl relative" id="tenant-profile">
+      <input
+        type="file"
+        ref={logoInputRef}
+        className="hidden"
+        accept="image/*"
+        onChange={(e) => {
+          if (e.target.files?.[0]) {
+            setLogoToast(true);
+            setTimeout(() => setLogoToast(false), 3000);
+          }
+        }}
+      />
+      {logoToast && (
+        <div className="fixed top-20 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 shadow-xl flex items-center gap-3 animate-fade-in text-sm font-medium text-foreground">
+          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-xs font-bold">✓</div>
+          Logo brand berhasil diperbarui!
+        </div>
+      )}
+
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-1">Profil Brand</h1>
         <p className="text-sm text-muted-foreground">Kelola informasi bisnis dan brand kamu</p>
@@ -55,7 +76,14 @@ export default function TenantProfilePage() {
           <div>
             <h2 className="font-semibold">{profile.brandName}</h2>
             <p className="text-sm text-muted-foreground">{categories.find((c) => c.value === profile.category)?.label}</p>
-            <button className="btn btn-secondary btn-sm mt-2">Ganti Logo</button>
+            <button
+              type="button"
+              onClick={() => logoInputRef.current?.click()}
+              className="btn btn-secondary btn-sm mt-2"
+              id="change-brand-logo"
+            >
+              Ganti Logo
+            </button>
           </div>
         </div>
       </div>

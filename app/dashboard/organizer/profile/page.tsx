@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const DEFAULT_PROFILE = {
   orgName: "PT. Green Events Indonesia",
@@ -14,6 +14,8 @@ const DEFAULT_PROFILE = {
 export default function OrganizerProfilePage() {
   const [profile, setProfile] = useState(DEFAULT_PROFILE);
   const [saved, setSaved] = useState(false);
+  const [photoToast, setPhotoToast] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -29,7 +31,26 @@ export default function OrganizerProfilePage() {
   };
 
   return (
-    <div className="animate-fade-in max-w-2xl" id="organizer-profile">
+    <div className="animate-fade-in max-w-2xl relative" id="organizer-profile">
+      <input
+        type="file"
+        ref={photoInputRef}
+        className="hidden"
+        accept="image/*"
+        onChange={(e) => {
+          if (e.target.files?.[0]) {
+            setPhotoToast(true);
+            setTimeout(() => setPhotoToast(false), 3000);
+          }
+        }}
+      />
+      {photoToast && (
+        <div className="fixed top-20 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 shadow-xl flex items-center gap-3 animate-fade-in text-sm font-medium text-foreground">
+          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-xs font-bold">✓</div>
+          Foto profil organisasi berhasil diperbarui!
+        </div>
+      )}
+
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-1">Profil Organisasi</h1>
         <p className="text-sm text-muted-foreground">Kelola informasi organisasi penyelenggara event</p>
@@ -44,7 +65,14 @@ export default function OrganizerProfilePage() {
           <div>
             <h2 className="font-semibold">{profile.orgName}</h2>
             <p className="text-sm text-muted-foreground">Verified Organizer ✓</p>
-            <button className="btn btn-secondary btn-sm mt-2">Ganti Foto</button>
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              className="btn btn-secondary btn-sm mt-2"
+              id="change-org-photo"
+            >
+              Ganti Foto
+            </button>
           </div>
         </div>
       </div>

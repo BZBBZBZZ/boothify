@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 type CatalogType = "fnb" | "non-fnb";
 
@@ -21,6 +21,26 @@ export default function CatalogPage() {
   ]);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [newMenu, setNewMenu] = useState({ name: "", price: 0, description: "", stock: 50 });
+  
+  // Menu edit state
+  const [editingMenuId, setEditingMenuId] = useState<string | null>(null);
+  const [editingMenuData, setEditingMenuData] = useState({ name: "", price: 0, description: "", stock: 50 });
+
+  // Media add modal state
+  const [showAddMediaModal, setShowAddMediaModal] = useState(false);
+  const [newMedia, setNewMedia] = useState({ name: "", type: "PDF", description: "" });
+  const [editingMediaId, setEditingMediaId] = useState<string | null>(null);
+
+  // Notification toast
+  const [notificationToast, setNotificationToast] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaFileInputRef = useRef<HTMLInputElement>(null);
+
+  const showToast = (msg: string) => {
+    setNotificationToast(msg);
+    setTimeout(() => setNotificationToast(null), 3000);
+  };
 
   // Mini website builder state
   const [websiteConfig, setWebsiteConfig] = useState({
@@ -50,15 +70,92 @@ export default function CatalogPage() {
 
   const addMenuItem = () => {
     if (!newMenu.name) return;
-    setMenuItems([...menuItems, { ...newMenu, id: String(menuItems.length + 1), price: Number(newMenu.price), stock: Number(newMenu.stock), image: "🍽️" }]);
+    setMenuItems([...menuItems, { ...newMenu, id: String(Date.now()), price: Number(newMenu.price), stock: Number(newMenu.stock), image: "🍽️" }]);
     setNewMenu({ name: "", price: 0, description: "", stock: 50 });
     setShowAddMenu(false);
+    showToast("Menu berhasil ditambahkan!");
   };
 
-  const removeMenuItem = (id: string) => setMenuItems(menuItems.filter((m) => m.id !== id));
+  const saveEditMenuItem = () => {
+    if (!editingMenuId) return;
+    setMenuItems(menuItems.map((item) => item.id === editingMenuId ? {
+      ...item,
+      name: editingMenuData.name,
+      price: Number(editingMenuData.price),
+      description: editingMenuData.description,
+      stock: Number(editingMenuData.stock),
+    } : item));
+    setEditingMenuId(null);
+    showToast("Perubahan menu berhasil disimpan!");
+  };
+
+  const removeMenuItem = (id: string) => {
+    setMenuItems(menuItems.filter((m) => m.id !== id));
+    showToast("Menu berhasil dihapus!");
+  };
+
+  const addMediaItem = () => {
+    if (!newMedia.name) return;
+    setMediaItems([...mediaItems, { ...newMedia, id: String(Date.now()) }]);
+    setNewMedia({ name: "", type: "PDF", description: "" });
+    setShowAddMediaModal(false);
+    showToast("Media promosi berhasil ditambahkan!");
+  };
+
+  const removeMediaItem = (id: string) => {
+    setMediaItems(mediaItems.filter((m) => m.id !== id));
+    showToast("Media berhasil dihapus!");
+  };
+
+  const handleSaveWebsite = () => {
+    localStorage.setItem("boothify_catalog_website", JSON.stringify(websiteConfig));
+    showToast("✓ Pengaturan Mini Website Berhasil Disimpan!");
+  };
 
   return (
-    <div className="animate-fade-in" id="catalog-page">
+    <div className="animate-fade-in relative" id="catalog-page">
+      {/* Toast notification */}
+      {notificationToast && (
+        <div className="fixed top-20 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 shadow-xl flex items-center gap-3 animate-fade-in text-sm font-medium text-foreground">
+          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-xs font-bold">✓</div>
+          {notificationToast}
+        </div>
+      )}
+
+      {/* Hidden file inputs */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept="image/*"
+        onChange={(e) => {
+          if (e.target.files?.[0]) {
+            showToast(`Foto "${e.target.files[0].name}" berhasil diunggah!`);
+          }
+        }}
+      />
+      <input
+        type="file"
+        ref={mediaFileInputRef}
+        className="hidden"
+        accept=".pdf,image/*,video/*"
+        onChange={(e) => {
+          if (e.target.files?.[0]) {
+            const file = e.target.files[0];
+            const isPdf = file.name.endsWith(".pdf");
+            const isVideo = file.type.startsWith("video/");
+            const type = isPdf ? "PDF" : isVideo ? "Video" : "Galeri";
+            setMediaItems([...mediaItems, {
+              id: String(Date.now()),
+              name: file.name,
+              type,
+              description: `Diunggah: ${new Date().toLocaleDateString("id-ID")}`,
+            }]);
+            showToast(`File "${file.name}" berhasil diunggah!`);
+          }
+        }}
+      />
+
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-1">Katalog Produk & Media</h1>
         <p className="text-sm text-muted-foreground">Kelola menu (F&B) atau media promosi digital yang akan ditampilkan kepada pengunjung</p>
@@ -102,28 +199,80 @@ export default function CatalogPage() {
             {/* Menu list */}
             <div className="space-y-3">
               {menuItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition">
-                  <span className="text-3xl">{item.image}</span>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-sm">{item.name}</h3>
-                    <p className="text-xs text-muted-foreground">{item.description}</p>
-                    <div className="flex items-center gap-3 mt-1 text-xs">
-                      <span className="text-primary-light font-semibold">Rp {item.price.toLocaleString("id-ID")}</span>
-                      <span className="text-muted-foreground">Stok: {item.stock}</span>
+                <div key={item.id} className="p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition border border-white/5">
+                  {editingMenuId === item.id ? (
+                    <div className="space-y-3 animate-fade-in">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <input
+                          type="text"
+                          className="input-base"
+                          value={editingMenuData.name}
+                          onChange={(e) => setEditingMenuData({ ...editingMenuData, name: e.target.value })}
+                          placeholder="Nama menu"
+                        />
+                        <input
+                          type="number"
+                          className="input-base"
+                          value={editingMenuData.price}
+                          onChange={(e) => setEditingMenuData({ ...editingMenuData, price: Number(e.target.value) })}
+                          placeholder="Harga"
+                        />
+                        <input
+                          type="number"
+                          className="input-base"
+                          value={editingMenuData.stock}
+                          onChange={(e) => setEditingMenuData({ ...editingMenuData, stock: Number(e.target.value) })}
+                          placeholder="Stok"
+                        />
+                      </div>
+                      <input
+                        type="text"
+                        className="input-base"
+                        value={editingMenuData.description}
+                        onChange={(e) => setEditingMenuData({ ...editingMenuData, description: e.target.value })}
+                        placeholder="Deskripsi"
+                      />
+                      <div className="flex gap-2 pt-1">
+                        <button onClick={saveEditMenuItem} className="btn btn-primary btn-sm">Simpan Perubahan</button>
+                        <button onClick={() => setEditingMenuId(null)} className="btn btn-ghost btn-sm">Batal</button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button className="btn btn-ghost btn-sm text-xs">Edit</button>
-                    <button onClick={() => removeMenuItem(item.id)} className="btn btn-ghost btn-sm text-xs text-error">Hapus</button>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-4">
+                      <span className="text-3xl">{item.image}</span>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-sm">{item.name}</h3>
+                        <p className="text-xs text-muted-foreground">{item.description}</p>
+                        <div className="flex items-center gap-3 mt-1 text-xs">
+                          <span className="text-primary-light font-semibold">Rp {item.price.toLocaleString("id-ID")}</span>
+                          <span className="text-muted-foreground">Stok: {item.stock}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingMenuId(item.id);
+                            setEditingMenuData({ name: item.name, price: item.price, description: item.description, stock: item.stock });
+                          }}
+                          className="btn btn-ghost btn-sm text-xs"
+                        >
+                          Edit
+                        </button>
+                        <button onClick={() => removeMenuItem(item.id)} className="btn btn-ghost btn-sm text-xs text-error">Hapus</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
 
             {/* Photo upload */}
-            <div className="mt-5 border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary/50 transition cursor-pointer">
-              <svg className="mx-auto mb-2 text-muted-foreground" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
-              <p className="text-sm text-muted-foreground">Upload foto menu — drag & drop atau <span className="text-primary-light">klik di sini</span></p>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-5 border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary/50 transition cursor-pointer group"
+            >
+              <svg className="mx-auto mb-2 text-muted-foreground group-hover:text-primary-light transition" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+              <p className="text-sm text-muted-foreground">Upload foto menu — drag & drop atau <span className="text-primary-light underline font-medium">klik di sini</span></p>
             </div>
           </div>
         </div>
@@ -136,34 +285,68 @@ export default function CatalogPage() {
           <div className="card-base p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold">Media Promosi Digital</h2>
-              <button className="btn btn-primary btn-sm" id="add-media-btn">+ Upload Media</button>
+              <button onClick={() => setShowAddMediaModal(true)} className="btn btn-primary btn-sm" id="add-media-btn">+ Upload Media</button>
             </div>
 
             <div className="space-y-3">
               {mediaItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.02]">
-                  <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary-light">
-                    {item.type === "PDF" ? (
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
-                    ) : item.type === "Video" ? (
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" /></svg>
-                    ) : (
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-sm">{item.name}</h3>
-                    <p className="text-xs text-muted-foreground">{item.description}</p>
-                  </div>
-                  <span className="badge badge-secondary text-[10px]">{item.type}</span>
-                  <button className="btn btn-ghost btn-sm text-xs">Edit</button>
+                <div key={item.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                  {editingMediaId === item.id ? (
+                    <div className="space-y-3 animate-fade-in">
+                      <input
+                        type="text"
+                        className="input-base"
+                        value={item.name}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setMediaItems(mediaItems.map((m) => m.id === item.id ? { ...m, name: val } : m));
+                        }}
+                        placeholder="Nama media"
+                      />
+                      <input
+                        type="text"
+                        className="input-base"
+                        value={item.description}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setMediaItems(mediaItems.map((m) => m.id === item.id ? { ...m, description: val } : m));
+                        }}
+                        placeholder="Deskripsi media"
+                      />
+                      <div className="flex gap-2">
+                        <button onClick={() => setEditingMediaId(null)} className="btn btn-primary btn-sm">Selesai</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary-light">
+                        {item.type === "PDF" ? (
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                        ) : item.type === "Video" ? (
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" /></svg>
+                        ) : (
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-sm">{item.name}</h3>
+                        <p className="text-xs text-muted-foreground">{item.description}</p>
+                      </div>
+                      <span className="badge badge-secondary text-[10px]">{item.type}</span>
+                      <button onClick={() => setEditingMediaId(item.id)} className="btn btn-ghost btn-sm text-xs">Edit</button>
+                      <button onClick={() => removeMediaItem(item.id)} className="btn btn-ghost btn-sm text-xs text-error">Hapus</button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
 
-            <div className="mt-5 border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-secondary/50 transition cursor-pointer">
-              <svg className="mx-auto mb-2 text-muted-foreground" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-              <p className="text-sm text-muted-foreground">Upload brosur (PDF), foto galeri, atau video — <span className="text-secondary-light">klik atau drag & drop</span></p>
+            <div
+              onClick={() => mediaFileInputRef.current?.click()}
+              className="mt-5 border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-secondary/50 transition cursor-pointer group"
+            >
+              <svg className="mx-auto mb-2 text-muted-foreground group-hover:text-secondary-light transition" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+              <p className="text-sm text-muted-foreground">Upload brosur (PDF), foto galeri, atau video — <span className="text-secondary-light underline font-medium">klik atau drag & drop</span></p>
               <p className="text-xs text-muted-foreground mt-1">PDF, JPG, PNG, MP4. Max 50MB</p>
             </div>
           </div>
@@ -206,7 +389,9 @@ export default function CatalogPage() {
                   <label className="text-sm font-medium mb-1 block">Website</label>
                   <input type="url" className="input-base" value={websiteConfig.socialLinks.website} onChange={(e) => setWebsiteConfig({ ...websiteConfig, socialLinks: { ...websiteConfig.socialLinks, website: e.target.value } })} />
                 </div>
-                <button className="btn btn-primary btn-sm" id="save-mini-website">💾 Simpan Mini Website</button>
+                <button type="button" onClick={handleSaveWebsite} className="btn btn-primary btn-sm" id="save-mini-website">
+                  💾 Simpan Mini Website
+                </button>
               </div>
 
               {/* Preview */}
@@ -225,12 +410,80 @@ export default function CatalogPage() {
                     <p className="text-xs text-muted-foreground leading-relaxed mb-4">{websiteConfig.aboutText}</p>
                     <div className="flex items-center justify-center gap-3">
                       <span className="text-xs text-muted-foreground">📸 {websiteConfig.socialLinks.instagram}</span>
-                      <span className="text-xs text-muted-foreground">🌐 Website</span>
+                      <span className="text-xs text-muted-foreground">🌐 {websiteConfig.socialLinks.website}</span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Upload Media */}
+      {showAddMediaModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="card-base max-w-md w-full p-6 relative border border-border/80 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
+              <h3 className="text-lg font-bold">Tambah Media Promosi</h3>
+              <button
+                type="button"
+                onClick={() => setShowAddMediaModal(false)}
+                className="text-muted-foreground hover:text-foreground text-xl p-1"
+                id="close-add-media-modal"
+              >
+                ✕
+              </button>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                addMediaItem();
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="text-xs font-semibold block mb-1">Nama Media / Dokumen</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Lookbook Autumn 2026.pdf"
+                  className="input-base text-sm w-full"
+                  value={newMedia.name}
+                  onChange={(e) => setNewMedia({ ...newMedia, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold block mb-1">Tipe Media</label>
+                <select
+                  className="input-base text-sm w-full"
+                  value={newMedia.type}
+                  onChange={(e) => setNewMedia({ ...newMedia, type: e.target.value })}
+                >
+                  <option value="PDF">PDF (Brosur / Company Profile)</option>
+                  <option value="Galeri">Galeri Foto Produk</option>
+                  <option value="Video">Video Promosi</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold block mb-1">Deskripsi Singkat</label>
+                <textarea
+                  rows={2}
+                  placeholder="Keterangan singkat materi..."
+                  className="input-base text-sm w-full resize-none"
+                  value={newMedia.description}
+                  onChange={(e) => setNewMedia({ ...newMedia, description: e.target.value })}
+                />
+              </div>
+              <div className="pt-2 flex justify-end gap-2">
+                <button type="button" onClick={() => setShowAddMediaModal(false)} className="btn btn-ghost btn-sm">
+                  Batal
+                </button>
+                <button type="submit" className="btn btn-primary btn-sm">
+                  Simpan Media
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
