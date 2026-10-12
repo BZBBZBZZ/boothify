@@ -2,19 +2,21 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useAuth } from "../../../components/AuthContext";
 
 export type OrderStatus = "pending" | "making" | "ready" | "done";
 
 export type VisitorOrder = {
   id: string;
   eventId?: string;
-  items: { name: string; qty: number; price: number }[];
+  items: { boothId?: string; name: string; qty: number; price: number }[];
   total: number;
   customer: string;
   phone?: string;
   method: string;
   time: string;
   status?: OrderStatus;
+  tenantEmail?: string;
 };
 
 export type BookingItem = {
@@ -25,6 +27,7 @@ export type BookingItem = {
   payment: string;
   eventId?: string;
   price?: number;
+  tenantEmail?: string;
 };
 
 const DEFAULT_ORDERS: VisitorOrder[] = [
@@ -37,6 +40,7 @@ const DEFAULT_ORDERS: VisitorOrder[] = [
     time: "5 menit lalu",
     total: 75000,
     status: "making",
+    tenantEmail: "kopi@boothify.id",
     items: [
       { name: "Kopi Susu Gula Aren", qty: 2, price: 25000 },
       { name: "Croissant Almond", qty: 1, price: 25000 },
@@ -51,6 +55,7 @@ const DEFAULT_ORDERS: VisitorOrder[] = [
     time: "12 menit lalu",
     total: 35000,
     status: "ready",
+    tenantEmail: "kopi@boothify.id",
     items: [
       { name: "Matcha Latte Oat", qty: 1, price: 35000 },
     ],
@@ -64,62 +69,109 @@ const DEFAULT_ORDERS: VisitorOrder[] = [
     time: "25 menit lalu",
     total: 50000,
     status: "done",
+    tenantEmail: "kopi@boothify.id",
     items: [
       { name: "Americano Cold Brew", qty: 2, price: 25000 },
     ],
   },
 ];
 
-const DEFAULT_BOOKINGS: BookingItem[] = [
-  { event: "Green Fashion Expo 2026", booth: "A1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1" },
-  { event: "Green Fashion Expo 2026", booth: "A2", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1" },
-  { event: "Eco Market Bandung", booth: "C2", date: "20–22 Des 2026", status: "confirmed", payment: "pending", eventId: "2" },
-];
+const DEMO_TENANT_BOOKINGS: Record<string, BookingItem[]> = {
+  "demo-tenant@boothify.id": [
+    { event: "Green Fashion Expo 2026", booth: "A1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "demo-tenant@boothify.id", price: 2500000 },
+    { event: "Green Fashion Expo 2026", booth: "A2", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "demo-tenant@boothify.id", price: 2500000 },
+  ],
+  "kopi@boothify.id": [
+    { event: "Green Fashion Expo 2026", booth: "C3", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "kopi@boothify.id", price: 3000000 },
+  ],
+};
 
 export default function TenantBookingsAndOrdersPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"orders" | "booths">("orders");
-  const [orders, setOrders] = useState<VisitorOrder[]>(DEFAULT_ORDERS);
-  const [bookings, setBookings] = useState<BookingItem[]>(DEFAULT_BOOKINGS);
+  const [orders, setOrders] = useState<VisitorOrder[]>([]);
+  const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
   const [selectedPass, setSelectedPass] = useState<BookingItem | null>(null);
 
-  // Load from localStorage
+  // Load from localStorage scoped to user
   useEffect(() => {
     try {
-      // 1. Load visitor orders
-      const storedOrders = localStorage.getItem("boothify_visitor_orders");
-      if (storedOrders) {
-        const parsed = JSON.parse(storedOrders);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Normalize status
-          const normalized = parsed.map((o: VisitorOrder) => ({
-            ...o,
-            status: o.status || "pending",
-          }));
-          setOrders(normalized);
-        }
-      } else {
-        localStorage.setItem("boothify_visitor_orders", JSON.stringify(DEFAULT_ORDERS));
+      const email = user?.email || "demo-tenant@boothify.id";
+      const initialDemo = DEMO_TENANT_BOOKINGS[email] || [];
+
+      // 1. Load tenant bookings first to get booked booths
+      const storedBookings = localStorage.getItem("boothify_tenant_bookings");
+      let allBookings: BookingItem[] = [];
+      if (storedBookings) {
+        allBookings = JSON.parse(storedBookings);
       }
 
-      // 2. Load tenant bookings
-      const storedBookings = localStorage.getItem("boothify_tenant_bookings");
-      if (storedBookings) {
-        const parsed = JSON.parse(storedBookings);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setBookings(parsed);
-        }
+      const userBookings = allBookings.filter((b) => b.tenantEmail === email);
+      const activeBookings = userBookings.length > 0 ? userBookings : initialDemo;
+      setBookings(activeBookings);
+
+      const bookedBoothIds = activeBookings.map((b) => b.booth);
+
+      // 2. Load visitor orders scoped to this tenant
+      const storedOrders = localStorage.getItem("boothify_visitor_orders");
+      let allOrders: VisitorOrder[] = [];
+      if (storedOrders) {
+        allOrders = JSON.parse(storedOrders);
+      } else {
+        localStorage.setItem("boothify_visitor_orders", JSON.stringify(DEFAULT_ORDERS));
+        allOrders = DEFAULT_ORDERS;
       }
+
+      let tenantOrders: VisitorOrder[] = [];
+      if (email === "kopi@boothify.id") {
+        tenantOrders = allOrders.filter(
+          (o) =>
+            o.tenantEmail === email ||
+            o.items?.some(
+              (i) =>
+                i.boothId === "C1" ||
+                i.name.toLowerCase().includes("kopi") ||
+                i.name.toLowerCase().includes("matcha") ||
+                i.name.toLowerCase().includes("croissant")
+            )
+        );
+      } else if (email === "demo-tenant@boothify.id" || email === "tenant@boothify.id") {
+        tenantOrders = allOrders.filter(
+          (o) =>
+            o.tenantEmail === email ||
+            o.items?.some(
+              (i) =>
+                i.boothId === "A1" ||
+                i.boothId === "A2" ||
+                i.name.toLowerCase().includes("t-shirt") ||
+                i.name.toLowerCase().includes("outer")
+            )
+        );
+      } else {
+        // Newly registered tenant: only see orders matching their email or their booked booths
+        tenantOrders = allOrders.filter(
+          (o) =>
+            o.tenantEmail === email ||
+            (bookedBoothIds.length > 0 && o.items?.some((i) => Boolean(i.boothId && bookedBoothIds.includes(i.boothId))))
+        );
+      }
+
+      setOrders(tenantOrders.map((o) => ({ ...o, status: o.status || "pending" })));
     } catch {
       // ignore
     }
-  }, []);
+  }, [user]);
 
   const updateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
-    const updated = orders.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o));
-    setOrders(updated);
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
     try {
-      localStorage.setItem("boothify_visitor_orders", JSON.stringify(updated));
+      const raw = localStorage.getItem("boothify_visitor_orders");
+      if (raw) {
+        const list = JSON.parse(raw);
+        const updatedList = list.map((o: VisitorOrder) => (o.id === orderId ? { ...o, status: newStatus } : o));
+        localStorage.setItem("boothify_visitor_orders", JSON.stringify(updatedList));
+      }
     } catch {
       // ignore
     }

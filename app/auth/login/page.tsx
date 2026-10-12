@@ -162,20 +162,17 @@ export default function LoginPage() {
 
           {/* Quick demo access */}
           <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 mb-4">
-            <p className="text-xs text-muted-foreground mb-3 font-medium">🚀 Demo Cepat — klik untuk langsung masuk:</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <p className="text-xs text-muted-foreground mb-3 font-semibold">
+              🚀 Demo Cepat — klik untuk langsung masuk sebagai:
+            </p>
+            <div className="grid grid-cols-2 gap-2 mb-2">
               <button
                 type="button"
                 onClick={() => {
-                  setEmail("demo-organizer@boothify.id");
-                  setPassword("demo1234");
-                  const users = JSON.parse(localStorage.getItem("boothify_users") || "[]");
-                  if (!users.find((u: { email: string }) => u.email === "demo-organizer@boothify.id")) {
-                    users.push({ name: "Demo Organizer", email: "demo-organizer@boothify.id", password: "demo1234", role: "organizer", businessName: "PT. Event Demo", phone: "+62 812 0000 0001" });
-                    localStorage.setItem("boothify_users", JSON.stringify(users));
-                  }
+                  const res = login("demo-organizer@boothify.id", "demo1234");
+                  if (res.success) router.push("/dashboard/organizer");
                 }}
-                className="btn btn-secondary btn-sm text-xs"
+                className="btn btn-secondary btn-sm text-xs py-2 flex items-center justify-center gap-1.5"
                 id="demo-organizer-btn"
               >
                 📅 Organizer
@@ -183,37 +180,42 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setEmail("demo-tenant@boothify.id");
-                  setPassword("demo1234");
-                  const users = JSON.parse(localStorage.getItem("boothify_users") || "[]");
-                  if (!users.find((u: { email: string }) => u.email === "demo-tenant@boothify.id")) {
-                    users.push({ name: "Demo Tenant", email: "demo-tenant@boothify.id", password: "demo1234", role: "tenant", businessName: "Demo Brand", businessCategory: "fashion", phone: "+62 812 0000 0002" });
-                    localStorage.setItem("boothify_users", JSON.stringify(users));
-                  }
+                  const res = login("demo-tenant@boothify.id", "demo1234");
+                  if (res.success) router.push("/dashboard/tenant");
                 }}
-                className="btn btn-secondary btn-sm text-xs"
+                className="btn btn-secondary btn-sm text-xs py-2 flex items-center justify-center gap-1.5"
                 id="demo-tenant-btn"
               >
-                🏪 Tenant
+                👗 Tenant Fashion
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const res = login("kopi@boothify.id", "demo1234");
+                  if (res.success) router.push("/dashboard/tenant");
+                }}
+                className="btn btn-secondary btn-sm text-xs py-2 flex items-center justify-center gap-1.5"
+                id="demo-tenant-fnb-btn"
+              >
+                ☕ Tenant F&amp;B
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  setEmail("demo-guest@boothify.id");
-                  setPassword("demo1234");
-                  const users = JSON.parse(localStorage.getItem("boothify_users") || "[]");
-                  if (!users.find((u: { email: string }) => u.email === "demo-guest@boothify.id")) {
-                    users.push({ name: "Pengunjung Demo", email: "demo-guest@boothify.id", password: "demo1234", role: "guest", businessName: "Pengunjung Event", phone: "+62 811 2233 4455" });
-                    localStorage.setItem("boothify_users", JSON.stringify(users));
-                  }
+                  const res = login("demo-guest@boothify.id", "demo1234");
+                  if (res.success) router.push("/events/1/guide");
                 }}
-                className="btn btn-secondary btn-sm text-xs"
+                className="btn btn-secondary btn-sm text-xs py-2 flex items-center justify-center gap-1.5"
                 id="demo-guest-btn"
               >
-                👤 Pengunjung (Guest)
+                👤 Pengunjung
               </button>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">Klik tombol demo → lalu klik &quot;Masuk&quot;</p>
+            <p className="text-[10px] text-muted-foreground mt-2 text-center">
+              💡 Tiap akun memiliki data, booth, dan katalog terpisah di Local Storage.
+            </p>
           </div>
 
           {/* Register link */}

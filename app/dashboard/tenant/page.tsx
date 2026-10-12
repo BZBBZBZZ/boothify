@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useAuth } from "../../components/AuthContext";
 
 type BookingItem = {
   event: string;
@@ -11,25 +12,31 @@ type BookingItem = {
   payment: string;
   eventId?: string;
   price?: number;
+  tenantEmail?: string;
 };
 
 type VisitorOrderItem = {
   id: string;
   eventId?: string;
-  items: { name: string; qty: number; price: number }[];
+  items: { boothId?: string; name: string; qty: number; price: number }[];
   total: number;
   customer: string;
   phone?: string;
   method: string;
   time: string;
   status?: "pending" | "making" | "ready" | "done";
+  tenantEmail?: string;
 };
 
-const DEFAULT_BOOKINGS: BookingItem[] = [
-  { event: "Green Fashion Expo 2026", booth: "A1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1" },
-  { event: "Green Fashion Expo 2026", booth: "A2", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1" },
-  { event: "Eco Market Bandung", booth: "C2", date: "20–22 Des 2026", status: "confirmed", payment: "pending", eventId: "2" },
-];
+const DEMO_TENANT_BOOKINGS: Record<string, BookingItem[]> = {
+  "demo-tenant@boothify.id": [
+    { event: "Green Fashion Expo 2026", booth: "A1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "demo-tenant@boothify.id", price: 2500000 },
+    { event: "Green Fashion Expo 2026", booth: "A2", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "demo-tenant@boothify.id", price: 2500000 },
+  ],
+  "kopi@boothify.id": [
+    { event: "Green Fashion Expo 2026", booth: "C1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "kopi@boothify.id", price: 3000000 },
+  ],
+};
 
 const RECOMMENDED_EVENTS = [
   { id: "3", title: "EduTech Innovation Fair", date: "1–3 Des 2026", location: "Surabaya", match: "92%", reason: "Cocok dengan kategori Education" },
@@ -37,44 +44,84 @@ const RECOMMENDED_EVENTS = [
 ];
 
 export default function TenantDashboard() {
-  const [bookings, setBookings] = useState<BookingItem[]>(DEFAULT_BOOKINGS);
-  const [orderCount, setOrderCount] = useState("124");
+  const { user } = useAuth();
+  const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [visitorOrders, setVisitorOrders] = useState<VisitorOrderItem[]>([]);
 
   useEffect(() => {
     try {
+      const email = user?.email || "demo-tenant@boothify.id";
+      const initialDemo = DEMO_TENANT_BOOKINGS[email] || [];
+
       const stored = localStorage.getItem("boothify_tenant_bookings");
+      let allBookings: BookingItem[] = [];
       if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setBookings(parsed);
-        }
+        allBookings = JSON.parse(stored);
       }
 
+      // Filter bookings matching this specific tenant
+      const userBookings = allBookings.filter((b) => b.tenantEmail === email);
+
+      const activeBookings = userBookings.length > 0 ? userBookings : initialDemo;
+      setBookings(activeBookings);
+      const bookedBoothIds = activeBookings.map((b) => b.booth);
+
+      // Load visitor orders scoped to this tenant
       const storedOrders = localStorage.getItem("boothify_visitor_orders");
       if (storedOrders) {
-        const parsedOrders = JSON.parse(storedOrders);
+        const parsedOrders: VisitorOrderItem[] = JSON.parse(storedOrders);
         if (Array.isArray(parsedOrders)) {
-          setVisitorOrders(parsedOrders);
+          let tenantOrders: VisitorOrderItem[] = [];
+          if (email === "kopi@boothify.id") {
+            tenantOrders = parsedOrders.filter(
+              (o) =>
+                o.tenantEmail === email ||
+                o.items?.some(
+                  (i) =>
+                    i.boothId === "C1" ||
+                    i.name.toLowerCase().includes("kopi") ||
+                    i.name.toLowerCase().includes("matcha") ||
+                    i.name.toLowerCase().includes("croissant")
+                )
+            );
+          } else if (email === "demo-tenant@boothify.id" || email === "tenant@boothify.id") {
+            tenantOrders = parsedOrders.filter(
+              (o) =>
+                o.tenantEmail === email ||
+                o.items?.some(
+                  (i) =>
+                    i.boothId === "A1" ||
+                    i.boothId === "A2" ||
+                    i.name.toLowerCase().includes("t-shirt") ||
+                    i.name.toLowerCase().includes("outer")
+                )
+            );
+          } else {
+            tenantOrders = parsedOrders.filter(
+              (o) =>
+                o.tenantEmail === email ||
+                (bookedBoothIds.length > 0 && o.items?.some((i) => Boolean(i.boothId && bookedBoothIds.includes(i.boothId))))
+            );
+          }
+          setVisitorOrders(tenantOrders);
         }
-      }
-
-      const count = localStorage.getItem("boothify_tenant_order_count");
-      if (count) {
-        setOrderCount(count);
       }
     } catch {
       // ignore
     }
-  }, []);
+  }, [user]);
 
   const uniqueEventsCount = new Set(bookings.map((b) => b.event)).size;
 
   const updateOrderStatus = (orderId: string, newStatus: "pending" | "making" | "ready" | "done") => {
-    const updated = visitorOrders.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o));
-    setVisitorOrders(updated);
+    setVisitorOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
     try {
-      localStorage.setItem("boothify_visitor_orders", JSON.stringify(updated));
+      const raw = localStorage.getItem("boothify_visitor_orders");
+      if (raw) {
+        const list = JSON.parse(raw);
+        const updatedList = list.map((o: VisitorOrderItem) => (o.id === orderId ? { ...o, status: newStatus } : o));
+        localStorage.setItem("boothify_visitor_orders", JSON.stringify(updatedList));
+      }
     } catch {
       // ignore
     }
@@ -123,7 +170,7 @@ export default function TenantDashboard() {
             <span className="text-2xl">📦</span>
             <span className="text-[11px] text-secondary-light font-medium">Live dari pengunjung</span>
           </div>
-          <div className="text-2xl font-bold mb-1">{orderCount}</div>
+          <div className="text-2xl font-bold mb-1">{visitorOrders.length}</div>
           <div className="text-xs text-muted-foreground">Pesanan Masuk</div>
         </div>
       </div>
@@ -137,40 +184,51 @@ export default function TenantDashboard() {
               <h2 className="font-semibold">Booth Saya</h2>
               <div className="flex items-center gap-2">
                 <Link href="/dashboard/tenant/catalog" className="btn btn-secondary btn-sm">
-                  Kelola Menu & Web
+                  Kelola Menu &amp; Web
                 </Link>
                 <Link href="/dashboard/tenant/events" className="btn btn-primary btn-sm">
                   Cari Event Baru
                 </Link>
               </div>
             </div>
-            <div className="space-y-3">
-              {bookings.map((booking, i) => (
-                <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition border border-white/[0.03]">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center font-bold text-sm">
-                      {booking.booth}
+            {bookings.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground border border-dashed border-white/10 rounded-xl p-6">
+                <span className="text-3xl block mb-2">🏪</span>
+                <p className="font-semibold text-foreground mb-1">Belum Ada Booth yang Disewa</p>
+                <p className="text-xs mb-4">Akun brand ini belum memiliki sewa booth aktif. Jelajahi event yang cocok untuk brand kamu.</p>
+                <Link href="/dashboard/tenant/events" className="btn btn-primary btn-sm">
+                  Cari &amp; Sewa Booth Sekarang →
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {bookings.map((booking, i) => (
+                  <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition border border-white/[0.03]">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center font-bold text-sm">
+                        {booking.booth}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-medium text-sm truncate">{booking.event}</h3>
+                        <p className="text-xs text-muted-foreground">{booking.date} • Booth {booking.booth}</p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="font-medium text-sm truncate">{booking.event}</h3>
-                      <p className="text-xs text-muted-foreground">{booking.date} • Booth {booking.booth}</p>
+                    <div className="flex items-center gap-3">
+                      <span className={`badge text-[10px] ${booking.payment === "paid" ? "badge-primary" : "badge-accent"}`}>
+                        {booking.payment === "paid" ? "✓ Lunas" : "⏳ Pending"}
+                      </span>
+                      <Link
+                        href={`/events/${booking.eventId || "1"}/guide`}
+                        className="btn btn-ghost btn-sm text-xs text-primary-light"
+                        title="Lihat tampilan booth di Denah Pengunjung"
+                      >
+                        Buka Denah ↗
+                      </Link>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`badge text-[10px] ${booking.payment === "paid" ? "badge-primary" : "badge-accent"}`}>
-                      {booking.payment === "paid" ? "✓ Lunas" : "⏳ Pending"}
-                    </span>
-                    <Link
-                      href={`/events/${booking.eventId || "1"}/guide`}
-                      className="btn btn-ghost btn-sm text-xs text-primary-light"
-                      title="Lihat tampilan booth di Denah Pengunjung"
-                    >
-                      Buka Denah ↗
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Incoming Orders from Visitors */}

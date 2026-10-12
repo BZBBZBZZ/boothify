@@ -138,26 +138,75 @@ function EventGuideContent() {
         });
       }
 
-      // Load tenant's menu & mini website
+      // Load tenant's menu & mini website (support scoped keys)
       const storedMenu = JSON.parse(localStorage.getItem("boothify_catalog_menu") || "[]");
       const storedWebsite = JSON.parse(localStorage.getItem("boothify_catalog_website") || "null");
 
       // Load booths booked for this event by tenants
       const storedBoothTenants = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booth_tenants`) || "{}");
       
-      const mergedBooths = [...BOOTHS];
+      const mergedBooths = BOOTHS.map((b) => {
+        // Hydrate C1 with Kopi Keliling's customized catalog if available
+        if (b.id === "C1") {
+          const kopiMenu = JSON.parse(localStorage.getItem("boothify_catalog_menu_kopi@boothify.id") || "[]");
+          const kopiWeb = JSON.parse(localStorage.getItem("boothify_catalog_website_kopi@boothify.id") || "null");
+          return {
+            ...b,
+            menu: kopiMenu.length > 0 ? kopiMenu : b.menu,
+            branding: kopiWeb ? {
+              headline: kopiWeb.headline || b.name,
+              tagline: kopiWeb.tagline || "Secangkir Cerita di Setiap Sudut Event ☕",
+              aboutText: kopiWeb.aboutText || b.desc,
+              primaryColor: kopiWeb.primaryColor || "#d97706",
+              instagram: kopiWeb.socialLinks?.instagram || "@kopikeliling.id",
+              website: kopiWeb.socialLinks?.website || "https://kopikeliling.id",
+              highlights: ["Manual Brew", "Espresso Bar", "Biji Kopi Nusantara"],
+            } : b.branding,
+          };
+        }
+        // Hydrate A1 with EcoWear Studio's customized catalog if available
+        if (b.id === "A1") {
+          const ecoWeb = JSON.parse(localStorage.getItem("boothify_catalog_website_demo-tenant@boothify.id") || "null");
+          return {
+            ...b,
+            branding: ecoWeb ? {
+              headline: ecoWeb.headline || b.name,
+              tagline: ecoWeb.tagline || "Fashion yang merawat bumi 🌿",
+              aboutText: ecoWeb.aboutText || b.desc,
+              primaryColor: ecoWeb.primaryColor || "#10b981",
+              instagram: ecoWeb.socialLinks?.instagram || "@ecowearstudio",
+              website: ecoWeb.socialLinks?.website || "https://ecowear.id",
+              highlights: ["100% Daur Ulang", "Pewarna Alami", "Fair Trade Verified"],
+            } : b.branding,
+          };
+        }
+        return b;
+      });
+
       Object.keys(storedBoothTenants).forEach((bId) => {
         const tenantInfo = storedBoothTenants[bId];
         const existingIdx = mergedBooths.findIndex((b) => b.id === bId);
+        const tEmail = tenantInfo.tenantEmail || "";
+        const customMenu = tEmail ? JSON.parse(localStorage.getItem(`boothify_catalog_menu_${tEmail}`) || "[]") : [];
+        const customWeb = tEmail ? JSON.parse(localStorage.getItem(`boothify_catalog_website_${tEmail}`) || "null") : null;
+
         const newEntry: Booth = {
           id: bId,
           name: tenantInfo.name,
           category: tenantInfo.category || "Fashion",
           zone: tenantInfo.zone || bId.charAt(0),
           type: tenantInfo.type || "non-fnb",
-          desc: tenantInfo.desc || "Brand terdaftar di event ini",
-          menu: tenantInfo.type === "fnb" && storedMenu.length > 0 ? storedMenu : undefined,
-          branding: storedWebsite ? {
+          desc: tenantInfo.desc || `${tenantInfo.name} terdaftar resmi di event ini.`,
+          menu: tenantInfo.type === "fnb" ? (customMenu.length > 0 ? customMenu : (storedMenu.length > 0 ? storedMenu : undefined)) : undefined,
+          branding: customWeb ? {
+            headline: customWeb.headline || tenantInfo.name,
+            tagline: customWeb.tagline || "Brand Pilihan",
+            aboutText: customWeb.aboutText || tenantInfo.desc,
+            primaryColor: customWeb.primaryColor || "#10b981",
+            instagram: customWeb.socialLinks?.instagram || "@brand",
+            website: customWeb.socialLinks?.website || "https://boothify.id",
+            highlights: ["Katalog Resmi", "Verified Tenant", "Garansi Kualitas"],
+          } : (storedWebsite ? {
             headline: storedWebsite.headline || tenantInfo.name,
             tagline: storedWebsite.tagline || "Brand Pilihan",
             aboutText: storedWebsite.aboutText || tenantInfo.desc,
@@ -165,7 +214,7 @@ function EventGuideContent() {
             instagram: storedWebsite.socialLinks?.instagram || "@brand",
             website: storedWebsite.socialLinks?.website || "https://boothify.id",
             highlights: ["Katalog Resmi", "Verified Tenant", "Garansi Kualitas"],
-          } : undefined,
+          } : undefined),
         };
         if (existingIdx >= 0) {
           mergedBooths[existingIdx] = newEntry;
@@ -229,6 +278,17 @@ function EventGuideContent() {
     const generatedCode = "BF-ORDER-" + Date.now().toString().slice(-4);
     setOrderCode(generatedCode);
     try {
+      const storedBoothTenants = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booth_tenants`) || "{}");
+      const firstBoothId = cart[0]?.boothId;
+      let targetTenantEmail = "";
+      if (firstBoothId === "C1") {
+        targetTenantEmail = "kopi@boothify.id";
+      } else if (firstBoothId === "A1" || firstBoothId === "A2") {
+        targetTenantEmail = "demo-tenant@boothify.id";
+      } else if (storedBoothTenants[firstBoothId]?.tenantEmail) {
+        targetTenantEmail = storedBoothTenants[firstBoothId].tenantEmail;
+      }
+
       const orders = JSON.parse(localStorage.getItem("boothify_visitor_orders") || "[]");
       orders.unshift({
         id: generatedCode,
@@ -240,6 +300,7 @@ function EventGuideContent() {
         method: selectedPaymentMethod,
         time: "Baru saja",
         status: "pending",
+        tenantEmail: targetTenantEmail,
       });
       localStorage.setItem("boothify_visitor_orders", JSON.stringify(orders));
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/app/components/AuthContext";
 
 interface CheckoutItem {
   booth: string;
@@ -18,6 +19,7 @@ const DEFAULT_ITEMS: CheckoutItem[] = [
 function CheckoutContent() {
   const params = useParams();
   const eventId = (params?.eventId as string) || "1";
+  const { user } = useAuth();
   const [items, setItems] = useState<CheckoutItem[]>(DEFAULT_ITEMS);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -59,10 +61,11 @@ function CheckoutContent() {
     setProcessing(true);
     setTimeout(() => {
       try {
-        // Get tenant brand name
-        const tenantProfile = JSON.parse(localStorage.getItem("boothify_tenant_profile") || "{}");
+        // Get tenant brand name & email
+        const tenantProfile = JSON.parse(localStorage.getItem(`boothify_profile_${user?.email}`) || localStorage.getItem("boothify_tenant_profile") || "{}");
         const currentUser = JSON.parse(localStorage.getItem("boothify_current_user") || "{}");
-        const tenantBrand = tenantProfile.brandName || currentUser.businessName || currentUser.name || "EcoWear Studio";
+        const tenantEmail = user?.email || currentUser.email || "demo-tenant@boothify.id";
+        const tenantBrand = user?.businessName || tenantProfile.brandName || currentUser.businessName || user?.name || "EcoWear Studio";
 
         // Persist booked booths per-event and global
         const storedBooked = JSON.parse(localStorage.getItem("boothify_booked_booths") || "[]");
@@ -79,15 +82,16 @@ function CheckoutContent() {
           storedBoothTenants[item.booth] = {
             id: item.booth,
             name: tenantBrand,
-            category: tenantProfile.category || item.zone || "Fashion",
+            tenantEmail: tenantEmail,
+            category: user?.category || tenantProfile.category || item.zone || "Fashion",
             zone: item.zone || item.booth.charAt(0),
-            type: item.zone === "F&B" ? "fnb" : "non-fnb",
-            desc: tenantProfile.description || "Brand terdaftar di event ini",
+            type: (user?.category === "fnb" || item.zone === "F&B" || tenantEmail === "kopi@boothify.id") ? "fnb" : "non-fnb",
+            desc: tenantProfile.description || `${tenantBrand} terdaftar resmi di event ini.`,
           };
         });
         localStorage.setItem(`boothify_event_${eventId}_booth_tenants`, JSON.stringify(storedBoothTenants));
 
-        // Persist to tenant bookings
+        // Persist to tenant bookings (scoped by tenantEmail)
         const storedBookings = JSON.parse(localStorage.getItem("boothify_tenant_bookings") || "[]");
         items.forEach((item) => {
           storedBookings.unshift({
@@ -99,6 +103,8 @@ function CheckoutContent() {
             payment: "paid",
             amount: `Rp ${item.price.toLocaleString("id-ID")}`,
             time: "Baru saja",
+            tenantEmail: tenantEmail,
+            tenantName: tenantBrand,
           });
         });
         localStorage.setItem("boothify_tenant_bookings", JSON.stringify(storedBookings));
@@ -108,6 +114,8 @@ function CheckoutContent() {
         items.forEach((item) => {
           recentBookings.unshift({
             tenant: tenantBrand,
+            tenantEmail: tenantEmail,
+            eventId: eventId,
             event: eventTitle,
             booth: item.booth,
             amount: `Rp ${item.price.toLocaleString("id-ID")}`,
@@ -190,8 +198,8 @@ function CheckoutContent() {
               <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5">
                 <span className="text-2xl">🌿</span>
                 <div>
-                  <p className="font-medium text-sm">Green Fashion Expo 2026</p>
-                  <p className="text-xs text-muted-foreground">15–17 November 2026 • Jakarta Convention Center</p>
+                  <p className="font-medium text-sm">{eventTitle}</p>
+                  <p className="text-xs text-muted-foreground">{eventDate} • Venue Resmi Acara</p>
                 </div>
               </div>
               {items.map((item) => (

@@ -1,34 +1,76 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-
-const DEFAULT_PROFILE = {
-  orgName: "PT. Green Events Indonesia",
-  email: "admin@greenevents.id",
-  phone: "+62 812 3456 7890",
-  description: "Penyelenggara event terkemuka yang berfokus pada sustainability dan green lifestyle. Berpengalaman mengelola lebih dari 50 event nasional.",
-  website: "https://greenevents.id",
-  instagram: "@greenevents.id",
-};
+import { useAuth } from "@/app/components/AuthContext";
 
 export default function OrganizerProfilePage() {
-  const [profile, setProfile] = useState(DEFAULT_PROFILE);
+  const { user, updateProfile } = useAuth();
+  const email = user?.email || "demo-organizer@boothify.id";
+  const isDemoOrg = email === "demo-organizer@boothify.id" || email === "organizer@boothify.id";
+
+  const [profile, setProfile] = useState({
+    orgName: user?.businessName || (isDemoOrg ? "PT. Event Kreasi Nusantara" : user?.name || "Organisasi Saya"),
+    email: user?.email || "demo-organizer@boothify.id",
+    phone: user?.phone || "+62 812 3456 7890",
+    description: user?.description || (isDemoOrg
+      ? "Penyelenggara expo dan festival pameran industri kreatif profesional berstandar nasional dan internasional di Indonesia."
+      : "Penyelenggara event pameran, expo dan festival terpercaya."),
+    website: user?.website || (isDemoOrg ? "https://eventkreasi.id" : "https://boothify.id"),
+    instagram: user?.instagram || (isDemoOrg ? "@eventkreasi.id" : "@organizer"),
+  });
+
   const [saved, setSaved] = useState(false);
   const [photoToast, setPhotoToast] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("boothify_org_profile");
-      if (stored) setProfile(JSON.parse(stored));
-    } catch { /* ignore */ }
-  }, []);
+      const stored = localStorage.getItem(`boothify_org_profile_${email}`);
+      if (stored) {
+        setProfile(JSON.parse(stored));
+      } else if (user) {
+        setProfile({
+          orgName: user.businessName || (isDemoOrg ? "PT. Event Kreasi Nusantara" : user.name || "Organisasi Saya"),
+          email: user.email,
+          phone: user.phone || "+62 812 3456 7890",
+          description: user.description || (isDemoOrg
+            ? "Penyelenggara expo dan festival pameran industri kreatif profesional berstandar nasional di Indonesia."
+            : "Penyelenggara event pameran, expo dan festival terpercaya."),
+          website: user.website || (isDemoOrg ? "https://eventkreasi.id" : "https://boothify.id"),
+          instagram: user.instagram || (isDemoOrg ? "@eventkreasi.id" : "@organizer"),
+        });
+      }
+    } catch {
+      // ignore
+    }
+  }, [user, email, isDemoOrg]);
 
   const handleSave = () => {
-    localStorage.setItem("boothify_org_profile", JSON.stringify(profile));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    try {
+      localStorage.setItem(`boothify_org_profile_${email}`, JSON.stringify(profile));
+      if (isDemoOrg) {
+        localStorage.setItem("boothify_org_profile", JSON.stringify(profile));
+      }
+      updateProfile({
+        businessName: profile.orgName,
+        phone: profile.phone,
+        description: profile.description,
+        website: profile.website,
+        instagram: profile.instagram,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch {
+      // ignore
+    }
   };
+
+  const initials = (profile.orgName || "EO")
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
     <div className="animate-fade-in max-w-2xl relative" id="organizer-profile">
@@ -53,18 +95,18 @@ export default function OrganizerProfilePage() {
 
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-1">Profil Organisasi</h1>
-        <p className="text-sm text-muted-foreground">Kelola informasi organisasi penyelenggara event</p>
+        <p className="text-sm text-muted-foreground">Kelola informasi perusahaan penyelenggara event dan kontak resmi</p>
       </div>
 
       {/* Avatar */}
       <div className="card-base p-6 mb-6">
         <div className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-2xl gradient-primary flex items-center justify-center text-white text-2xl font-bold">
-            GE
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/30 to-secondary/30 border border-primary/20 flex items-center justify-center text-foreground text-2xl font-bold shadow-md">
+            {initials}
           </div>
           <div>
-            <h2 className="font-semibold">{profile.orgName}</h2>
-            <p className="text-sm text-muted-foreground">Verified Organizer ✓</p>
+            <h2 className="font-semibold text-lg">{profile.orgName}</h2>
+            <p className="text-sm text-emerald-400 font-medium">Verified Event Organizer ✓</p>
             <button
               type="button"
               onClick={() => photoInputRef.current?.click()}
@@ -78,41 +120,80 @@ export default function OrganizerProfilePage() {
       </div>
 
       {/* Form */}
-      <form className="card-base p-6 space-y-5">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSave();
+        }}
+        className="card-base p-6 space-y-5"
+      >
         <div>
-          <label className="block text-sm font-medium mb-2">Nama Organisasi</label>
-          <input type="text" className="input-base" value={profile.orgName} onChange={(e) => setProfile({ ...profile, orgName: e.target.value })} />
+          <label className="block text-sm font-medium mb-2">Nama Organisasi / PT Penyelenggara</label>
+          <input
+            type="text"
+            required
+            className="input-base"
+            value={profile.orgName}
+            onChange={(e) => setProfile({ ...profile, orgName: e.target.value })}
+          />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Email</label>
-            <input type="email" className="input-base" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} />
+            <label className="block text-sm font-medium mb-2">Email Resmi</label>
+            <input
+              type="email"
+              className="input-base"
+              value={profile.email}
+              onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Telepon</label>
-            <input type="tel" className="input-base" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} />
+            <label className="block text-sm font-medium mb-2">Telepon / WhatsApp Panitia</label>
+            <input
+              type="tel"
+              className="input-base"
+              value={profile.phone}
+              onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+            />
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Deskripsi</label>
-          <textarea className="input-base min-h-[100px] resize-y" value={profile.description} onChange={(e) => setProfile({ ...profile, description: e.target.value })} rows={4} />
+          <label className="block text-sm font-medium mb-2">Deskripsi Organisasi</label>
+          <textarea
+            className="input-base min-h-[100px] resize-y"
+            value={profile.description}
+            onChange={(e) => setProfile({ ...profile, description: e.target.value })}
+            rows={4}
+          />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Website</label>
-            <input type="url" className="input-base" value={profile.website} onChange={(e) => setProfile({ ...profile, website: e.target.value })} />
+            <label className="block text-sm font-medium mb-2">Website Resmi</label>
+            <input
+              type="url"
+              className="input-base"
+              value={profile.website}
+              onChange={(e) => setProfile({ ...profile, website: e.target.value })}
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Instagram</label>
-            <input type="text" className="input-base" value={profile.instagram} onChange={(e) => setProfile({ ...profile, instagram: e.target.value })} />
+            <label className="block text-sm font-medium mb-2">Instagram Organisasi</label>
+            <input
+              type="text"
+              className="input-base"
+              value={profile.instagram}
+              onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
+            />
           </div>
         </div>
-        <button type="button" onClick={handleSave} className="btn btn-primary" id="save-org-profile">{saved ? "✓ Tersimpan!" : "Simpan Perubahan"}</button>
+        <button type="submit" className="btn btn-primary" id="save-org-profile">
+          {saved ? "✓ Tersimpan!" : "Simpan Perubahan"}
+        </button>
       </form>
 
       {/* Event Portfolio */}
       <div className="card-base p-6 mt-6">
-        <h2 className="font-semibold mb-4">Portofolio Event</h2>
+        <h2 className="font-semibold mb-4">Portofolio &amp; Jejak Rekam Event</h2>
         <div className="space-y-3">
           {[
             { name: "Green Fashion Expo 2025", date: "Nov 2025", attendees: "15,000+", status: "Selesai" },

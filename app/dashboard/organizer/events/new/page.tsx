@@ -2,9 +2,14 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/app/components/AuthContext";
 
 export default function CreateEventPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const organizerEmail = user?.email || "demo-organizer@boothify.id";
+  const organizerName = user?.businessName || user?.name || "PT. Event Kreasi Nusantara";
+
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [bannerUploaded, setBannerUploaded] = useState(false);
   const [formData, setFormData] = useState({
@@ -32,6 +37,8 @@ export default function CreateEventPage() {
         boothsTotal: 40,
         location: formData.location || "Belum ditentukan",
         description: formData.description,
+        organizer: organizerName,
+        organizerEmail: organizerEmail,
       };
       stored.unshift(draftEvent);
       localStorage.setItem("boothify_events", JSON.stringify(stored));
@@ -68,7 +75,8 @@ export default function CreateEventPage() {
         location: formData.location || "Venue Acara",
         address: formData.address || "",
         description: formData.description || "Pameran & expo booth interaktif.",
-        organizer: "PT. Green Events Indonesia",
+        organizer: organizerName,
+        organizerEmail: organizerEmail,
         priceRange: "Rp 2.000.000 – Rp 4.500.000",
         image: "🎪",
         theme: formData.theme,
