@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 
-type Role = "organizer" | "tenant";
+type Role = "organizer" | "tenant" | "guest";
 
 interface User {
   name: string;
@@ -19,6 +19,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => { success: boolean; message: string };
   register: (user: User, password: string) => { success: boolean; message: string };
+  loginAsGuest: (name?: string, phone?: string) => { success: boolean; message: string };
   logout: () => void;
 }
 
@@ -27,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   login: () => ({ success: false, message: "" }),
   register: () => ({ success: false, message: "" }),
+  loginAsGuest: () => ({ success: false, message: "" }),
   logout: () => {},
 });
 
@@ -53,6 +55,15 @@ const DEFAULT_USERS: Array<User & { password: string }> = [
     businessCategory: "fashion",
     phone: "+62 813 9876 5432",
     description: "Brand fashion ramah lingkungan dari bahan organik dan daur ulang",
+  },
+  {
+    name: "Pengunjung Demo",
+    email: "demo-guest@boothify.id",
+    password: "demo1234",
+    role: "guest",
+    businessName: "Pengunjung Event",
+    phone: "+62 811 2233 4455",
+    description: "Akun tamu untuk transaksi self-ordering di event",
   },
 ];
 
@@ -140,13 +151,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { success: true, message: "Registrasi berhasil!" };
   }, []);
 
+  const loginAsGuest = useCallback((name?: string, phone?: string): { success: boolean; message: string } => {
+    const guestUser: User = {
+      name: name?.trim() || "Pengunjung (Tamu)",
+      email: `guest-${Date.now()}@boothify.id`,
+      role: "guest",
+      businessName: "Pengunjung Event",
+      phone: phone || "+62 811 0000 1234",
+    };
+    setUser(guestUser);
+    setStoredCurrentUser(guestUser);
+    return { success: true, message: "Berhasil masuk sebagai Tamu!" };
+  }, []);
+
   const logout = useCallback(() => {
     setUser(null);
     setStoredCurrentUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, loginAsGuest, logout }}>
       {children}
     </AuthContext.Provider>
   );

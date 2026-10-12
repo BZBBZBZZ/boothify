@@ -4,40 +4,70 @@ import Link from "next/link";
 import { useState } from "react";
 
 const EVENTS = [
-  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", location: "Jakarta Convention Center", category: "Fashion", price: "Rp 2.5Jt", match: "95%", booths: 18, image: "🌿" },
-  { id: "2", title: "Indonesia Food Festival", date: "22–24 Nov 2026", location: "ICE BSD", category: "F&B", price: "Rp 3Jt", match: "72%", booths: 35, image: "🍜" },
-  { id: "3", title: "EduTech Innovation Fair", date: "1–3 Des 2026", location: "Surabaya Grand City", category: "Education", price: "Rp 1.8Jt", match: "92%", booths: 22, image: "📚" },
-  { id: "4", title: "AutoMotive Show 2026", date: "10–12 Des 2026", location: "JIEXPO Kemayoran", category: "Automotive", price: "Rp 5Jt", match: "45%", booths: 15, image: "🚗" },
-  { id: "5", title: "Craft & Artisan Market", date: "18–20 Des 2026", location: "Bandung Creative Hub", category: "Craft", price: "Rp 1.2Jt", match: "88%", booths: 15, image: "🎨" },
-  { id: "6", title: "Sustainable Living Expo", date: "5–7 Jan 2027", location: "Bali BNDCC", category: "Fashion", price: "Rp 4Jt", match: "87%", booths: 22, image: "🌱" },
+  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", location: "Jakarta Convention Center, Jakarta", category: "Fashion", price: "Rp 2.5Jt", match: "95%", booths: 18, image: "🌿", scope: "Lokal" },
+  { id: "2", title: "Indonesia Food Festival", date: "22–24 Nov 2026", location: "ICE BSD, Tangerang", category: "F&B", price: "Rp 3Jt", match: "72%", booths: 35, image: "🍜", scope: "Lokal" },
+  { id: "3", title: "EduTech Innovation Fair", date: "1–3 Des 2026", location: "Surabaya Grand City, Surabaya", category: "Education", price: "Rp 1.8Jt", match: "92%", booths: 22, image: "📚", scope: "Lokal" },
+  { id: "4", title: "AutoMotive Show 2026", date: "10–12 Des 2026", location: "JIEXPO Kemayoran, Jakarta", category: "Automotive", price: "Rp 5Jt", match: "45%", booths: 15, image: "🚗", scope: "Lokal" },
+  { id: "5", title: "Craft & Artisan Market", date: "18–20 Des 2026", location: "Bandung Creative Hub, Bandung", category: "Craft", price: "Rp 1.2Jt", match: "88%", booths: 15, image: "🎨", scope: "Lokal" },
+  { id: "6", title: "Sustainable Living Expo", date: "5–7 Jan 2027", location: "Bali BNDCC, Nusa Dua, Bali", category: "Fashion", price: "Rp 4Jt", match: "87%", booths: 22, image: "🌱", scope: "Lokal" },
+  { id: "7", title: "ASEAN Eco Lifestyle Summit 2027", date: "20–23 Feb 2027", location: "Marina Bay Sands, Singapore (Internasional)", category: "Fashion", price: "Rp 8.5Jt", match: "94%", booths: 40, image: "🌏", scope: "Internasional" },
 ];
 
 export default function TenantEventsPage() {
   const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedLocation, setSelectedLocation] = useState("all");
   const [sortBy, setSortBy] = useState("match");
 
-  const filtered = EVENTS.filter(
-    (e) => e.title.toLowerCase().includes(search.toLowerCase()) || e.location.toLowerCase().includes(search.toLowerCase())
-  ).sort((a, b) => sortBy === "match" ? parseInt(b.match) - parseInt(a.match) : 0);
+  const filtered = EVENTS.filter((e) => {
+    const matchesSearch =
+      e.title.toLowerCase().includes(search.toLowerCase()) ||
+      e.location.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "all" || e.category.toLowerCase() === selectedCategory.toLowerCase();
+    const matchesLocation =
+      selectedLocation === "all" ||
+      (selectedLocation === "internasional"
+        ? e.scope === "Internasional"
+        : e.location.toLowerCase().includes(selectedLocation.toLowerCase()));
+    return matchesSearch && matchesCategory && matchesLocation;
+  }).sort((a, b) => (sortBy === "match" ? parseInt(b.match) - parseInt(a.match) : 0));
 
   return (
     <div className="animate-fade-in" id="tenant-events">
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-1">
           <h1 className="text-2xl font-bold">Cari Event & Smart Matching</h1>
-          <span className="badge badge-secondary text-[10px]">✨ AI</span>
+          <span className="badge badge-secondary text-[10px]">✨ AI MATCHING</span>
         </div>
-        <p className="text-sm text-muted-foreground">Temukan event yang paling cocok dengan produk dan brand kamu</p>
+        <p className="text-sm text-muted-foreground">Temukan event lokal & internasional yang paling cocok dengan profil brand kamu</p>
       </div>
 
-      {/* Search */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="relative flex-1">
+      {/* Search & Multi Filters */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div className="relative lg:col-span-1">
           <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
           <input type="text" className="input-base pl-11" placeholder="Cari event..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <select className="input-base w-auto min-w-[180px]" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-          <option value="match">Urutkan: AI Match</option>
+        <select className="input-base" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
+          <option value="all">Semua Kategori</option>
+          <option value="Fashion">👗 Fashion & Lifestyle</option>
+          <option value="F&B">🍜 Food & Beverage</option>
+          <option value="Education">📚 Education & Tech</option>
+          <option value="Automotive">🚗 Automotive</option>
+          <option value="Craft">🎨 Craft & Art</option>
+        </select>
+        <select className="input-base" value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)}>
+          <option value="all">Semua Lokasi</option>
+          <option value="jakarta">Jakarta</option>
+          <option value="tangerang">ICE BSD / Tangerang</option>
+          <option value="bandung">Bandung</option>
+          <option value="surabaya">Surabaya</option>
+          <option value="bali">Bali</option>
+          <option value="internasional">🌏 Internasional (ASEAN)</option>
+        </select>
+        <select className="input-base" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+          <option value="match">Urutkan: AI Match Tertinggi</option>
           <option value="newest">Terbaru</option>
           <option value="price">Harga Terendah</option>
         </select>

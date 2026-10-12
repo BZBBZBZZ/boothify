@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../../../components/AuthContext";
 
 // Mock data
 const EVENT = {
@@ -15,6 +17,16 @@ interface MenuItem {
   image: string;
 }
 
+interface BrandingInfo {
+  headline: string;
+  tagline: string;
+  aboutText: string;
+  primaryColor: string;
+  instagram: string;
+  website: string;
+  highlights?: string[];
+}
+
 interface Booth {
   id: string;
   name: string;
@@ -25,10 +37,29 @@ interface Booth {
   media?: string[];
   website?: string;
   menu?: MenuItem[];
+  branding?: BrandingInfo;
 }
 
 const BOOTHS: Booth[] = [
-  { id: "A1", name: "EcoWear Studio", category: "Fashion", zone: "A", type: "non-fnb", desc: "Brand fashion daur ulang premium dari Bandung", media: ["brosur.pdf", "galeri-produk.jpg"], website: "https://ecowear.id" },
+  {
+    id: "A1",
+    name: "EcoWear Studio",
+    category: "Fashion",
+    zone: "A",
+    type: "non-fnb",
+    desc: "Brand fashion daur ulang premium dari Bandung",
+    media: ["brosur-ecowear-2026.pdf", "koleksi-daur-ulang.jpg"],
+    website: "https://ecowear.id",
+    branding: {
+      headline: "EcoWear Studio",
+      tagline: "Fashion yang Merawat Masa Depan Bumi 🌿",
+      aboutText: "Kami adalah inisiatif busana sirkular berkelanjutan yang memanfaatkan 100% serat tekstil daur ulang dan pewarna alami tumbuhan. Kolaborasi bersama pengrajin tenun lokal Jawa Barat.",
+      primaryColor: "#10b981",
+      instagram: "@ecowearstudio",
+      website: "https://ecowear.id",
+      highlights: ["100% Daur Ulang", "Pewarna Alami", "Fair Trade Verified", "Zero Waste Packaging"],
+    },
+  },
   { id: "A2", name: "Green Threads", category: "Fashion", zone: "A", type: "non-fnb", desc: "Pakaian berbahan organik dan ramah lingkungan", media: ["lookbook.pdf"], website: "https://greenthreads.co" },
   { id: "B2", name: "Nusantara Bites", category: "F&B", zone: "B", type: "fnb", desc: "Street food khas Nusantara yang autentik", menu: [
     { name: "Nasi Goreng Kampung", price: 25000, image: "🍛" },
@@ -41,7 +72,25 @@ const BOOTHS: Booth[] = [
     { name: "Iced Latte", price: 25000, image: "🧊" },
     { name: "Matcha Latte", price: 28000, image: "🍵" },
   ]},
-  { id: "C3", name: "CraftHouse", category: "Craft", zone: "C", type: "non-fnb", desc: "Kerajinan tangan premium dari pengrajin lokal", media: ["catalog.pdf", "workshop-info.jpg"], website: "https://crafthouse.id" },
+  {
+    id: "C3",
+    name: "CraftHouse",
+    category: "Craft",
+    zone: "C",
+    type: "non-fnb",
+    desc: "Kerajinan tangan premium dari pengrajin lokal",
+    media: ["catalog.pdf", "workshop-info.jpg"],
+    website: "https://crafthouse.id",
+    branding: {
+      headline: "CraftHouse Indonesia",
+      tagline: "Sentuhan Jiwa dalam Karya Seni Anyaman Tradisional",
+      aboutText: "Menghubungkan ratusan perajin anyaman bambu dan rotan nusantara dengan pasar modern, mempersembahkan perabot dan dekorasi rumah bergaya etnik minimalis.",
+      primaryColor: "#d97706",
+      instagram: "@crafthouse.id",
+      website: "https://crafthouse.id",
+      highlights: ["Anyaman Bambu Alami", "Dibuat Manual dengan Tangan", "Tahan Cuaca", "Pemberdayaan Pengrajin"],
+    },
+  },
   { id: "D4", name: "EduTech Lab", category: "Education", zone: "D", type: "non-fnb", desc: "Workshop teknologi dan coding interaktif untuk semua usia", media: ["jadwal-workshop.pdf", "pricing.pdf"], website: "https://edutechlab.com" },
 ];
 
@@ -51,10 +100,36 @@ const BOOTHS_PER_ROW = 6;
 type CartItem = { boothId: string; name: string; price: number; qty: number };
 
 export default function EventGuidePage() {
+  const router = useRouter();
+  const { user, loginAsGuest } = useAuth();
   const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [showAuthGate, setShowAuthGate] = useState(false);
+  const [showMiniWebsite, setShowMiniWebsite] = useState(false);
+  const [activeMiniWebsite, setActiveMiniWebsite] = useState<BrandingInfo | null>(null);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("QRIS");
+  const [guestName, setGuestName] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+
+  const handleProceedToPayment = () => {
+    if (!user) {
+      setShowCart(false);
+      setShowAuthGate(true);
+    } else {
+      setShowCart(false);
+      setShowCheckout(true);
+    }
+  };
+
+  const handleGuestQuickLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    loginAsGuest(guestName || "Pengunjung (Tamu)", guestPhone);
+    setShowAuthGate(false);
+    setShowCheckout(true);
+  };
 
   const addToCart = (boothId: string, name: string, price: number) => {
     setCart((prev) => {
@@ -254,24 +329,53 @@ export default function EventGuidePage() {
             )}
 
             {/* Non-F&B Media */}
-            {selectedBooth.type === "non-fnb" && selectedBooth.media && (
-              <div>
-                <h3 className="font-semibold text-sm mb-3">📁 Media & Brosur Digital</h3>
-                <div className="space-y-2 mb-6">
-                  {selectedBooth.media.map((file) => (
-                    <div key={file} className="flex items-center gap-3 p-3 rounded-xl bg-white/3">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
-                      </div>
-                      <span className="text-sm flex-1">{file}</span>
-                      <button className="btn btn-ghost btn-sm text-primary-light">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                        Unduh
-                      </button>
+            {selectedBooth.type === "non-fnb" && (
+              <div className="space-y-4">
+                {selectedBooth.branding && (
+                  <div className="p-4 rounded-2xl bg-secondary/10 border border-secondary/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="badge badge-secondary text-[10px]">BRANDING SHOWCASE</span>
+                      <span className="text-xs text-secondary-light font-semibold">Mini Website Aktif</span>
                     </div>
-                  ))}
-                </div>
-                {"website" in selectedBooth && selectedBooth.website && (
+                    <h4 className="text-sm font-bold text-foreground mb-1">{selectedBooth.branding.headline}</h4>
+                    <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{selectedBooth.branding.aboutText}</p>
+                    <button
+                      onClick={() => {
+                        setActiveMiniWebsite(selectedBooth.branding || null);
+                        setShowMiniWebsite(true);
+                      }}
+                      className="btn btn-primary btn-sm w-full"
+                      id="open-mini-website-btn"
+                    >
+                      🌐 Buka Mini Website Brand
+                    </button>
+                  </div>
+                )}
+
+                {selectedBooth.media && (
+                  <div>
+                    <h3 className="font-semibold text-sm mb-3">📁 Media & Brosur Digital (Paperless)</h3>
+                    <div className="space-y-2 mb-4">
+                      {selectedBooth.media.map((file) => (
+                        <div key={file} className="flex items-center gap-3 p-3 rounded-xl bg-white/3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-light)" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
+                          </div>
+                          <span className="text-sm flex-1 truncate">{file}</span>
+                          <button
+                            onClick={() => alert(`Mengunduh digital flyer ${file} (Eco-friendly paperless guide)`)}
+                            className="btn btn-ghost btn-sm text-primary-light"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                            Unduh
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {selectedBooth.website && (
                   <a
                     href={selectedBooth.website}
                     target="_blank"
@@ -279,7 +383,7 @@ export default function EventGuidePage() {
                     className="btn btn-secondary w-full"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg>
-                    Kunjungi Website
+                    Kunjungi Website Resmi
                   </a>
                 )}
               </div>
@@ -306,7 +410,7 @@ export default function EventGuidePage() {
               </div>
             ) : (
               <>
-                <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                <div className="space-y-3 max-h-[350px] overflow-y-auto">
                   {cart.map((item) => (
                     <div key={`${item.boothId}-${item.name}`} className="flex items-center gap-3 p-3 rounded-xl bg-white/3">
                       <div className="flex-1">
@@ -333,11 +437,11 @@ export default function EventGuidePage() {
                   <span className="gradient-text">Rp {totalCart.toLocaleString("id-ID")}</span>
                 </div>
                 <button
-                  onClick={() => { setShowCart(false); setShowCheckout(true); }}
+                  onClick={handleProceedToPayment}
                   className="btn btn-primary w-full btn-lg"
                   id="cart-checkout"
                 >
-                  Bayar Sekarang
+                  Lanjut ke Pembayaran →
                 </button>
               </>
             )}
@@ -345,40 +449,251 @@ export default function EventGuidePage() {
         </div>
       )}
 
-      {/* ========== CHECKOUT MODAL ========== */}
-      {showCheckout && (
-        <div className="modal-overlay" onClick={() => setShowCheckout(false)} id="checkout-modal">
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-bold text-lg">💳 Pembayaran</h2>
-              <button onClick={() => setShowCheckout(false)} className="btn btn-ghost btn-icon">
+      {/* ========== AUTH GATE MODAL ========== */}
+      {showAuthGate && (
+        <div className="modal-overlay" onClick={() => setShowAuthGate(false)} id="auth-gate-modal">
+          <div className="modal-content max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🔐</span>
+                <h2 className="font-bold text-lg">Login untuk Pembayaran</h2>
+              </div>
+              <button onClick={() => setShowAuthGate(false)} className="btn btn-ghost btn-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 text-center">
-                <p className="text-sm text-muted-foreground">Total Pembayaran</p>
-                <p className="text-3xl font-bold gradient-text mt-1">Rp {totalCart.toLocaleString("id-ID")}</p>
-              </div>
+            <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 text-xs text-muted-foreground leading-relaxed mb-5">
+              💡 <strong>Ketentuan Sistem:</strong> Pengunjung dapat melihat denah & informasi event secara bebas tanpa login. Namun untuk memproses transaksi pembayaran pesanan, silakan masuk ke akun atau gunakan Akses Tamu 1-Klik di bawah ini.
+            </div>
 
-              <h3 className="font-semibold text-sm">Pilih Metode Pembayaran</h3>
-              <div className="space-y-2">
-                {["QRIS", "GoPay", "OVO", "ShopeePay", "Transfer Bank (BCA)", "Kartu Kredit/Debit"].map((method) => (
-                  <label key={method} className="flex items-center gap-3 p-3 rounded-xl bg-white/3 cursor-pointer hover:bg-white/5 transition">
-                    <input type="radio" name="payment" className="accent-[var(--primary)]" />
-                    <span className="text-sm">{method}</span>
-                  </label>
-                ))}
+            <form onSubmit={handleGuestQuickLogin} className="space-y-4 mb-4">
+              <div>
+                <label className="text-xs font-medium text-foreground mb-1 block">Nama Pengunjung / Tamu</label>
+                <input
+                  type="text"
+                  className="input-base text-sm"
+                  placeholder="Misal: Budi Santoso"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  required
+                />
               </div>
-
-              <button
-                onClick={() => { setShowCheckout(false); setCart([]); alert("Pembayaran berhasil! (Demo)"); }}
-                className="btn btn-primary w-full btn-lg mt-4"
-                id="confirm-payment"
-              >
-                Konfirmasi Pembayaran
+              <div>
+                <label className="text-xs font-medium text-foreground mb-1 block">Nomor WhatsApp / HP</label>
+                <input
+                  type="tel"
+                  className="input-base text-sm"
+                  placeholder="Misal: 081234567890"
+                  value={guestPhone}
+                  onChange={(e) => setGuestPhone(e.target.value)}
+                  required
+                />
+              </div>
+              <button type="submit" className="btn btn-primary w-full btn-lg" id="guest-quick-login-btn">
+                ⚡ Lanjut sebagai Tamu (Guest Login 1-Klik)
               </button>
+            </form>
+
+            <div className="flex items-center gap-3 my-4">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-[11px] text-muted-foreground">atau punya akun terdaftar</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            <button
+              onClick={() => router.push("/auth/login")}
+              className="btn btn-secondary w-full text-sm"
+              id="goto-login-btn"
+            >
+              🔑 Masuk dengan Akun Boothify
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ========== CHECKOUT MODAL ========== */}
+      {showCheckout && (
+        <div className="modal-overlay" onClick={() => !paymentSuccess && setShowCheckout(false)} id="checkout-modal">
+          <div className="modal-content max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-bold text-lg">💳 Pembayaran Pesanan Digital</h2>
+              {!paymentSuccess && (
+                <button onClick={() => setShowCheckout(false)} className="btn btn-ghost btn-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                </button>
+              )}
+            </div>
+
+            {paymentSuccess ? (
+              <div className="text-center py-6 space-y-4 animate-fade-in">
+                <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center text-3xl">
+                  ✓
+                </div>
+                <div>
+                  <h3 className="font-bold text-xl text-foreground">🎉 Pembayaran Berhasil!</h3>
+                  <p className="text-xs text-muted-foreground mt-1">Pesanan Anda telah diterima oleh merchant</p>
+                </div>
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-border text-left space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Nomor Antrean / Booking:</span>
+                    <span className="font-bold font-mono text-primary-light">BF-ORDER-8821</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Nama Pembeli:</span>
+                    <span className="font-medium text-foreground">{user?.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Metode Pembayaran:</span>
+                    <span className="font-medium text-foreground">{selectedPaymentMethod}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Bayar:</span>
+                    <span className="font-bold text-foreground">Rp {totalCart.toLocaleString("id-ID")}</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  💡 Tunjukkan kode <strong>BF-ORDER-8821</strong> di meja booth saat mengambil hidangan.
+                </p>
+                <button
+                  onClick={() => {
+                    setPaymentSuccess(false);
+                    setShowCheckout(false);
+                    setCart([]);
+                  }}
+                  className="btn btn-primary w-full"
+                  id="finish-order-btn"
+                >
+                  Selesai & Kembali ke Denah
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* User info */}
+                {user && (
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-between text-xs">
+                    <div>
+                      <p className="text-muted-foreground text-[10px]">Akun Pemesan:</p>
+                      <p className="font-semibold text-foreground">{user.name}</p>
+                      <p className="text-muted-foreground">{user.phone || user.email}</p>
+                    </div>
+                    <span className="badge badge-primary text-[10px] capitalize">{user.role}</span>
+                  </div>
+                )}
+
+                <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 text-center">
+                  <p className="text-xs text-muted-foreground">Total Tagihan</p>
+                  <p className="text-3xl font-bold gradient-text mt-1">Rp {totalCart.toLocaleString("id-ID")}</p>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-xs mb-2">Pilih Metode Pembayaran</h3>
+                  <div className="space-y-2">
+                    {["QRIS", "GoPay", "OVO", "ShopeePay", "Transfer Bank (BCA)", "Kartu Kredit/Debit"].map((method) => (
+                      <label
+                        key={method}
+                        className={`flex items-center gap-3 p-3 rounded-xl border transition cursor-pointer ${
+                          selectedPaymentMethod === method
+                            ? "border-primary bg-primary/10"
+                            : "border-border bg-white/3 hover:bg-white/5"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value={method}
+                          checked={selectedPaymentMethod === method}
+                          onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                          className="accent-[var(--primary)]"
+                        />
+                        <span className="text-sm font-medium">{method}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setPaymentSuccess(true)}
+                  className="btn btn-primary w-full btn-lg mt-4"
+                  id="confirm-payment"
+                >
+                  Bayar Sekarang Rp {totalCart.toLocaleString("id-ID")}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========== NON-F&B MINI WEBSITE MODAL ========== */}
+      {showMiniWebsite && activeMiniWebsite && (
+        <div className="modal-overlay" onClick={() => setShowMiniWebsite(false)} id="mini-website-modal">
+          <div className="modal-content max-w-lg p-0 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* Header banner */}
+            <div
+              className="h-32 relative flex items-center justify-center p-4 text-center"
+              style={{
+                background: `linear-gradient(135deg, ${activeMiniWebsite.primaryColor}55, #0f172a)`,
+              }}
+            >
+              <button
+                onClick={() => setShowMiniWebsite(false)}
+                className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition"
+              >
+                ✕
+              </button>
+              <div className="w-16 h-16 rounded-2xl bg-black/40 border border-white/20 flex items-center justify-center text-white text-2xl font-bold shadow-xl">
+                {activeMiniWebsite.headline.slice(0, 2)}
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="text-center">
+                <span className="badge badge-secondary text-[10px] mb-1">BRAND MINI WEBSITE</span>
+                <h3 className="font-bold text-xl text-foreground">{activeMiniWebsite.headline}</h3>
+                <p className="text-sm font-medium mt-1" style={{ color: activeMiniWebsite.primaryColor }}>
+                  {activeMiniWebsite.tagline}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-border">
+                <h4 className="text-xs font-semibold text-foreground mb-2">Tentang Brand & Visi</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {activeMiniWebsite.aboutText}
+                </p>
+              </div>
+
+              {activeMiniWebsite.highlights && (
+                <div>
+                  <h4 className="text-xs font-semibold text-foreground mb-2">Keunggulan Utama</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {activeMiniWebsite.highlights.map((h) => (
+                      <span key={h} className="badge badge-accent text-[11px] py-1">
+                        ✓ {h}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <a
+                  href={`https://instagram.com`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary btn-sm flex items-center justify-center gap-1.5"
+                >
+                  📸 {activeMiniWebsite.instagram}
+                </a>
+                <a
+                  href={activeMiniWebsite.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary btn-sm flex items-center justify-center gap-1.5"
+                >
+                  🌐 Kunjungi Web
+                </a>
+              </div>
             </div>
           </div>
         </div>

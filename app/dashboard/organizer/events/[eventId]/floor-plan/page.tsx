@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 type Booth = {
   id: string;
@@ -37,26 +38,92 @@ const INITIAL_BOOTHS: Booth[] = [
 ];
 
 export default function FloorPlanPage() {
+  const router = useRouter();
   const [booths, setBooths] = useState<Booth[]>(INITIAL_BOOTHS);
   const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [activeZone, setActiveZone] = useState("fashion");
+  const [blueprintBg, setBlueprintBg] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load from localStorage on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem("boothify_floor_plan");
       if (stored) setBooths(JSON.parse(stored));
+      const storedBg = localStorage.getItem("boothify_floor_plan_bg");
+      if (storedBg) setBlueprintBg(storedBg);
     } catch { /* ignore */ }
   }, []);
 
   const saveFloorPlan = () => {
     localStorage.setItem("boothify_floor_plan", JSON.stringify(booths));
+    if (blueprintBg) localStorage.setItem("boothify_floor_plan_bg", blueprintBg);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handlePublishAndGetQR = () => {
+    saveFloorPlan();
+    router.push("/dashboard/organizer/events/1/qr-code");
+  };
+
+  const handleUploadBlueprint = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const url = event.target?.result as string;
+        setBlueprintBg(url);
+        localStorage.setItem("boothify_floor_plan_bg", url);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const applyTemplate = (type: "cinema" | "expo" | "cluster") => {
+    if (type === "cinema") {
+      // 3 rows x 5 columns cinema grid
+      const newBooths: Booth[] = [];
+      const rows = ["A", "B", "C"];
+      rows.forEach((r, rIdx) => {
+        const zone = r === "A" ? "fashion" : r === "B" ? "fnb" : "craft";
+        const price = r === "A" ? 3500000 : r === "B" ? 3000000 : 2000000;
+        for (let c = 1; c <= 5; c++) {
+          newBooths.push({
+            id: `${r}${c}`,
+            x: 30 + (c - 1) * 95,
+            y: 80 + rIdx * 90,
+            width: 80,
+            height: 65,
+            label: `${r}${c}`,
+            zone,
+            price,
+          });
+        }
+      });
+      setBooths(newBooths);
+      setSelectedBooth(null);
+    } else if (type === "expo") {
+      // Perimeter layout surrounding stage
+      const newBooths: Booth[] = [
+        { id: "A1", x: 40, y: 70, width: 90, height: 60, label: "A1", zone: "automotive", price: 5000000 },
+        { id: "A2", x: 150, y: 70, width: 90, height: 60, label: "A2", zone: "automotive", price: 5000000 },
+        { id: "A3", x: 260, y: 70, width: 90, height: 60, label: "A3", zone: "fashion", price: 3000000 },
+        { id: "A4", x: 370, y: 70, width: 90, height: 60, label: "A4", zone: "fashion", price: 3000000 },
+        { id: "B1", x: 40, y: 160, width: 80, height: 120, label: "B1", zone: "fnb", price: 4000000 },
+        { id: "B2", x: 380, y: 160, width: 80, height: 120, label: "B2", zone: "fnb", price: 4000000 },
+        { id: "C1", x: 140, y: 280, width: 100, height: 65, label: "C1", zone: "education", price: 2500000 },
+        { id: "C2", x: 260, y: 280, width: 100, height: 65, label: "C2", zone: "craft", price: 2200000 },
+      ];
+      setBooths(newBooths);
+      setSelectedBooth(null);
+    } else {
+      setBooths(INITIAL_BOOTHS);
+    }
   };
 
   const nextId = String(booths.length + 1);
@@ -151,6 +218,64 @@ export default function FloorPlanPage() {
             </div>
           </div>
 
+          {/* Canva-style Templates & Blueprint Upload */}
+          <div className="card-base p-4">
+            <h3 className="font-semibold text-sm mb-2">Template & Blueprint</h3>
+            <p className="text-[11px] text-muted-foreground mb-3">Terapkan tata letak instan ala bioskop atau unggah denah venue arsitektur.</p>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => applyTemplate("cinema")}
+                className="btn btn-secondary w-full btn-sm text-xs justify-start"
+              >
+                🎬 Template Denah Bioskop (Grid Rapi)
+              </button>
+              <button
+                type="button"
+                onClick={() => applyTemplate("expo")}
+                className="btn btn-secondary w-full btn-sm text-xs justify-start"
+              >
+                🏛️ Template Expo Hall (Keliling Panggung)
+              </button>
+              <button
+                type="button"
+                onClick={() => applyTemplate("cluster")}
+                className="btn btn-ghost w-full btn-sm text-xs justify-start"
+              >
+                🎪 Reset Template Awal
+              </button>
+
+              <div className="pt-2 border-t border-border">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleUploadBlueprint}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="btn btn-secondary w-full btn-sm text-xs"
+                >
+                  📐 {blueprintBg ? "Ganti Denah/Blueprint" : "Unggah Blueprint Venue"}
+                </button>
+                {blueprintBg && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBlueprintBg(null);
+                      localStorage.removeItem("boothify_floor_plan_bg");
+                    }}
+                    className="text-[10px] text-error hover:underline block text-center mt-1 w-full"
+                  >
+                    Hapus gambar blueprint
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Zone legend */}
           <div className="card-base p-4">
             <h3 className="font-semibold text-sm mb-3">Zona Warna</h3>
@@ -204,12 +329,14 @@ export default function FloorPlanPage() {
         {/* Canvas */}
         <div className="lg:col-span-3">
           <div className="card-base p-4">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-xs text-muted-foreground">🖱️ Drag booth untuk memindahkan • Klik untuk memilih & edit</p>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <p className="text-xs text-muted-foreground">🖱️ Drag booth untuk memindahkan • Klik untuk edit harga & zona</p>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">{booths.length} booth</span>
-                <button onClick={saveFloorPlan} className="btn btn-primary btn-sm" id="save-floor-plan">
-                  {saved ? "✓ Tersimpan!" : "💾 Simpan Layout"}
+                <button onClick={saveFloorPlan} className="btn btn-secondary btn-sm" id="save-floor-plan">
+                  {saved ? "✓ Tersimpan!" : "💾 Simpan Draft"}
+                </button>
+                <button onClick={handlePublishAndGetQR} className="btn btn-primary btn-sm" id="publish-event-btn">
+                  🚀 Terbitkan & Dapatkan QR Code →
                 </button>
               </div>
             </div>
@@ -223,8 +350,15 @@ export default function FloorPlanPage() {
 
             <div
               ref={canvasRef}
-              className="floor-plan-canvas"
-              style={{ minHeight: 420 }}
+              className="floor-plan-canvas relative"
+              style={{
+                minHeight: 460,
+                backgroundImage: blueprintBg
+                  ? `linear-gradient(rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.88)), url(${blueprintBg})`
+                  : undefined,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}

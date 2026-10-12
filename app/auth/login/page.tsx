@@ -16,7 +16,13 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      router.push(user.role === "organizer" ? "/dashboard/organizer" : "/dashboard/tenant");
+      if (user.role === "organizer") {
+        router.push("/dashboard/organizer");
+      } else if (user.role === "tenant") {
+        router.push("/dashboard/tenant");
+      } else {
+        router.push("/events/1/guide");
+      }
     }
   }, [user, router]);
 
@@ -31,7 +37,13 @@ export default function LoginPage() {
       const storedUser = localStorage.getItem("boothify_current_user");
       if (storedUser) {
         const userData = JSON.parse(storedUser);
-        router.push(userData.role === "organizer" ? "/dashboard/organizer" : "/dashboard/tenant");
+        if (userData.role === "organizer") {
+          router.push("/dashboard/organizer");
+        } else if (userData.role === "tenant") {
+          router.push("/dashboard/tenant");
+        } else {
+          router.push("/events/1/guide");
+        }
       }
     } else {
       setError(result.message);
@@ -151,13 +163,12 @@ export default function LoginPage() {
           {/* Quick demo access */}
           <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 mb-4">
             <p className="text-xs text-muted-foreground mb-3 font-medium">🚀 Demo Cepat — klik untuk langsung masuk:</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => {
                   setEmail("demo-organizer@boothify.id");
                   setPassword("demo1234");
-                  // Auto register demo user if not exists
                   const users = JSON.parse(localStorage.getItem("boothify_users") || "[]");
                   if (!users.find((u: { email: string }) => u.email === "demo-organizer@boothify.id")) {
                     users.push({ name: "Demo Organizer", email: "demo-organizer@boothify.id", password: "demo1234", role: "organizer", businessName: "PT. Event Demo", phone: "+62 812 0000 0001" });
@@ -167,7 +178,7 @@ export default function LoginPage() {
                 className="btn btn-secondary btn-sm text-xs"
                 id="demo-organizer-btn"
               >
-                📅 Demo Organizer
+                📅 Organizer
               </button>
               <button
                 type="button"
@@ -183,7 +194,23 @@ export default function LoginPage() {
                 className="btn btn-secondary btn-sm text-xs"
                 id="demo-tenant-btn"
               >
-                🏪 Demo Tenant
+                🏪 Tenant
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("demo-guest@boothify.id");
+                  setPassword("demo1234");
+                  const users = JSON.parse(localStorage.getItem("boothify_users") || "[]");
+                  if (!users.find((u: { email: string }) => u.email === "demo-guest@boothify.id")) {
+                    users.push({ name: "Pengunjung Demo", email: "demo-guest@boothify.id", password: "demo1234", role: "guest", businessName: "Pengunjung Event", phone: "+62 811 2233 4455" });
+                    localStorage.setItem("boothify_users", JSON.stringify(users));
+                  }
+                }}
+                className="btn btn-secondary btn-sm text-xs"
+                id="demo-guest-btn"
+              >
+                👤 Pengunjung (Guest)
               </button>
             </div>
             <p className="text-[10px] text-muted-foreground mt-2">Klik tombol demo → lalu klik &quot;Masuk&quot;</p>
