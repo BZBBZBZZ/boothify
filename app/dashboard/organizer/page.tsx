@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState, useEffect } from "react";
 
 const STATS = [
   { label: "Event Aktif", value: "3", icon: "📅", change: "+1 bulan ini" },
@@ -7,13 +10,13 @@ const STATS = [
   { label: "Tenant Terdaftar", value: "89", icon: "👥", change: "+7 minggu ini" },
 ];
 
-const RECENT_EVENTS = [
+const DEFAULT_EVENTS = [
   { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", status: "active", boothsFilled: 42, boothsTotal: 60 },
   { id: "2", title: "Sustainable Living Fair", date: "5–7 Des 2026", status: "draft", boothsFilled: 0, boothsTotal: 40 },
   { id: "3", title: "Eco Market Bandung", date: "20–22 Des 2026", status: "active", boothsFilled: 28, boothsTotal: 35 },
 ];
 
-const RECENT_BOOKINGS = [
+const DEFAULT_BOOKINGS = [
   { tenant: "EcoWear Studio", event: "Green Fashion Expo", booth: "A1", amount: "Rp 2.500.000", time: "2 jam lalu", status: "paid" },
   { tenant: "Green Threads", event: "Green Fashion Expo", booth: "A2", amount: "Rp 2.500.000", time: "5 jam lalu", status: "paid" },
   { tenant: "Kopi Keliling", event: "Green Fashion Expo", booth: "C3", amount: "Rp 3.000.000", time: "1 hari lalu", status: "pending" },
@@ -21,6 +24,29 @@ const RECENT_BOOKINGS = [
 ];
 
 export default function OrganizerDashboard() {
+  const [events, setEvents] = useState(DEFAULT_EVENTS);
+  const [bookings, setBookings] = useState(DEFAULT_BOOKINGS);
+
+  useEffect(() => {
+    try {
+      const storedEvents = localStorage.getItem("boothify_events");
+      if (storedEvents) {
+        const parsed = JSON.parse(storedEvents);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setEvents([...parsed, ...DEFAULT_EVENTS]);
+        }
+      }
+      const storedBookings = localStorage.getItem("boothify_recent_bookings");
+      if (storedBookings) {
+        const parsed = JSON.parse(storedBookings);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setBookings([...parsed, ...DEFAULT_BOOKINGS]);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
   return (
     <div className="animate-fade-in" id="organizer-overview">
       {/* Header */}
@@ -54,7 +80,7 @@ export default function OrganizerDashboard() {
               </Link>
             </div>
             <div className="space-y-4">
-              {RECENT_EVENTS.map((event) => (
+              {events.map((event) => (
                 <div key={event.id} className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -87,7 +113,7 @@ export default function OrganizerDashboard() {
           <div className="card-base p-6">
             <h2 className="font-semibold mb-5">Booking Terbaru</h2>
             <div className="space-y-3">
-              {RECENT_BOOKINGS.map((booking, i) => (
+              {bookings.map((booking, i) => (
                 <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02]">
                   <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center text-white text-xs font-bold">
                     {booking.booth}

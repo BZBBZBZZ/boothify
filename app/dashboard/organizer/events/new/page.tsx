@@ -20,6 +20,23 @@ export default function CreateEventPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+      const newEvent = {
+        id: String(Date.now()),
+        title: formData.name || "Event Baru",
+        date: formData.date_start ? `${formData.date_start} – ${formData.date_end}` : "Nov 2026",
+        status: "active",
+        boothsFilled: 0,
+        boothsTotal: 40,
+        location: formData.location,
+        description: formData.description,
+      };
+      stored.unshift(newEvent);
+      localStorage.setItem("boothify_events", JSON.stringify(stored));
+    } catch {
+      // ignore
+    }
     router.push("/dashboard/organizer/events/1/floor-plan");
   };
 

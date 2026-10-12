@@ -9,7 +9,25 @@ const EVENT = {
   location: "Jakarta Convention Center, Hall A",
 };
 
-const BOOTHS = [
+interface MenuItem {
+  name: string;
+  price: number;
+  image: string;
+}
+
+interface Booth {
+  id: string;
+  name: string;
+  category: string;
+  zone: string;
+  type: "fnb" | "non-fnb";
+  desc: string;
+  media?: string[];
+  website?: string;
+  menu?: MenuItem[];
+}
+
+const BOOTHS: Booth[] = [
   { id: "A1", name: "EcoWear Studio", category: "Fashion", zone: "A", type: "non-fnb", desc: "Brand fashion daur ulang premium dari Bandung", media: ["brosur.pdf", "galeri-produk.jpg"], website: "https://ecowear.id" },
   { id: "A2", name: "Green Threads", category: "Fashion", zone: "A", type: "non-fnb", desc: "Pakaian berbahan organik dan ramah lingkungan", media: ["lookbook.pdf"], website: "https://greenthreads.co" },
   { id: "B2", name: "Nusantara Bites", category: "F&B", zone: "B", type: "fnb", desc: "Street food khas Nusantara yang autentik", menu: [
@@ -33,7 +51,7 @@ const BOOTHS_PER_ROW = 6;
 type CartItem = { boothId: string; name: string; price: number; qty: number };
 
 export default function EventGuidePage() {
-  const [selectedBooth, setSelectedBooth] = useState<typeof BOOTHS[0] | null>(null);
+  const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -211,7 +229,7 @@ export default function EventGuidePage() {
             <p className="text-sm text-muted mb-6">{selectedBooth.desc}</p>
 
             {/* F&B Menu */}
-            {selectedBooth.type === "fnb" && "menu" in selectedBooth && (
+            {selectedBooth.type === "fnb" && selectedBooth.menu && (
               <div>
                 <h3 className="font-semibold text-sm mb-3">📋 Menu — Pesan & Bayar</h3>
                 <div className="space-y-3">
@@ -236,7 +254,7 @@ export default function EventGuidePage() {
             )}
 
             {/* Non-F&B Media */}
-            {selectedBooth.type === "non-fnb" && "media" in selectedBooth && (
+            {selectedBooth.type === "non-fnb" && selectedBooth.media && (
               <div>
                 <h3 className="font-semibold text-sm mb-3">📁 Media & Brosur Digital</h3>
                 <div className="space-y-2 mb-6">

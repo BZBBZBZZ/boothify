@@ -5,6 +5,7 @@ import { useState } from "react";
 export default function AICampaignPage() {
   const [topic, setTopic] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [appliedIndex, setAppliedIndex] = useState<number | null>(null);
   const [results, setResults] = useState<null | {
     trends: { title: string; description: string; source: string }[];
     campaigns: { title: string; narrative: string; impact: string }[];
@@ -13,29 +14,80 @@ export default function AICampaignPage() {
 
   const handleGenerate = () => {
     setIsGenerating(true);
-    // Simulated AI response (placeholder for Gemini API integration)
+    setAppliedIndex(null);
+
     setTimeout(() => {
-      setResults({
-        trends: [
-          { title: "Sustainable Fashion Movement 2026", description: "Tren global menunjukkan peningkatan 45% permintaan fashion berkelanjutan. Brand yang mengedepankan transparansi rantai pasok mendapatkan kepercayaan konsumen lebih tinggi.", source: "Global Fashion Report 2026" },
-          { title: "Circular Economy in Indonesia", description: "Indonesia menargetkan pengurangan limbah tekstil 30% pada 2027. Program daur ulang pakaian semakin populer di kalangan milenial dan Gen Z.", source: "Kementerian LHK" },
-          { title: "Zero Waste Events", description: "Event tanpa sampah menjadi standar baru. Penggunaan material biodegradable dan digital ticketing meningkat 60% dibanding tahun lalu.", source: "Event Industry Report" },
-        ],
-        campaigns: [
-          { title: "🌿 #FashionForFuture — Mode yang Merawat Bumi", narrative: "Kampanye yang mengajak pengunjung untuk mengenal proses produksi fashion berkelanjutan. Setiap booth menampilkan journey produk dari bahan baku ramah lingkungan hingga produk jadi. Pengunjung bisa membawa pakaian lama untuk di-upcycle di workshop booth.", impact: "Tinggi — Relevan dengan tren global & lokal" },
-          { title: "♻️ Circular Fashion Fair — Beli, Pakai, Kembalikan", narrative: "Konsep event yang menonjolkan siklus hidup produk fashion. Tenant menampilkan program take-back dan resale. Ada zone khusus vintage/secondhand yang dikurasi. Edukasi tentang microplastic dari fast fashion.", impact: "Sangat Tinggi — Actionable & Edukatif" },
-          { title: "🌱 Green Lifestyle Expo — Hidup Bijak, Mulai dari Pilihan", narrative: "Campaign holistik yang tidak hanya mencakup fashion tapi juga gaya hidup berkelanjutan. Kolaborasi lintas sektor: fashion, F&B organik, dan teknologi hijau. Setiap tenant menyertakan green scorecard pada produk mereka.", impact: "Tinggi — Menarik audience lintas segment" },
-        ],
-        tips: [
-          "Gunakan hashtag campaign di seluruh materi promosi digital",
-          "Sediakan booth edukasi interaktif untuk meningkatkan engagement",
-          "Kolaborasikan dengan influencer sustainability lokal",
-          "Siapkan merchandise event dari bahan daur ulang",
-          "Dokumentasikan dampak positif event untuk laporan sustainability",
-        ],
-      });
+      const q = topic.toLowerCase();
+
+      let trends = [
+        {
+          title: `Pertumbuhan Minat ${topic} di Indonesia 2026`,
+          description: `Riset pasar menunjukkan lonjakan minat publik hingga 52% terhadap inovasi ${topic}. Konsumen muda semakin mengutamakan nilai otentisitas dan keterlibatan komunitas.`,
+          source: "Indonesia Market Pulse 2026",
+        },
+        {
+          title: `Digital & Interactive Experiences di Sektor ${topic}`,
+          description: `Pameran dengan integrasi teknologi dan live experience menghasilkan retensi pengunjung 3.2x lebih lama dibanding format konvensional.`,
+          source: "Global Event Forum 2026",
+        },
+        {
+          title: "Community-Driven & Sustainable Commerce",
+          description: `Pola belanja offline kini didorong oleh kurasi brand lokal yang memiliki narasi kuat, transparan, dan berorientasi jangka panjang.`,
+          source: "Kemenparekraf Insight",
+        },
+      ];
+
+      let campaigns = [
+        {
+          title: `🌟 #${topic.replace(/\s+/g, "")}Fest — Eksplorasi & Kolaborasi Tanpa Batas`,
+          narrative: `Kampanye utama yang memposisikan event sebagai episentrum inovasi ${topic}. Menggabungkan showcase brand terbaik, ruang dialog praktisi, dan instalasi interaktif yang memikat ribuan pengunjung.`,
+          impact: "Sangat Tinggi — Virality & Community Appeal",
+        },
+        {
+          title: `🔥 Experience ${topic}: Dari Inspirasi Menjadi Aksi`,
+          narrative: `Menghubungkan tenant dengan pengunjung melalui workshop langsung, live demonstration, dan exclusive product drop yang hanya bisa didapatkan di venue selama pameran berlangsung.`,
+          impact: "Tinggi — Direct Sales & Engagement",
+        },
+        {
+          title: `💡 Next-Gen ${topic}: Masa Depan Dimulai Hari Ini`,
+          narrative: `Fokus pada terobosan masa depan, keberlanjutan, dan pemberdayaan kreator lokal. Sangat kuat untuk menarik liputan media massa dan kolaborasi sponsor tier 1.`,
+          impact: "Sangat Tinggi — Media & Sponsor Value",
+        },
+      ];
+
+      const tips = [
+        `Gunakan hashtag #${topic.replace(/\s+/g, "")}Fest2026 secara konsisten di konten pra-event`,
+        "Sediakan activation zone atau photo installation yang Instagramable bagi pengunjung",
+        "Rancang program 'early bird passport' untuk mendorong traffic booth tenant",
+        "Ajak tenant menyajikan program promosi eksklusif yang hanya ada di event",
+        "Buat dokumentasi video after-movie untuk materi sponsor edisi berikutnya",
+      ];
+
+      if (q.includes("fashion") || q.includes("baju") || q.includes("pakaian") || q.includes("mode")) {
+        trends = [
+          { title: "Sustainable Fashion Movement 2026", description: "Peningkatan 45% permintaan fashion ramah lingkungan. Brand dengan transparansi material mendapatkan kepercayaan tertinggi.", source: "Global Fashion Report 2026" },
+          { title: "Circular Economy in Indonesia", description: "Inisiatif daur ulang dan upcycling tekstil semakin populer di kalangan milenial dan Gen Z.", source: "Kementerian LHK" },
+          { title: "Zero Waste Event Standards", description: "Event fashion tanpa sampah kemasan plastik sekali pakai kini menjadi standar prestise industri.", source: "Event Industry Report" },
+        ];
+        campaigns = [
+          { title: "🌿 #FashionForFuture — Mode yang Merawat Bumi", narrative: "Mengajak pengunjung mengenal proses produksi fashion berkelanjutan. Setiap booth menampilkan journey produk dan workshop upcycle.", impact: "Tinggi — Relevan dengan tren global" },
+          { title: "♻️ Circular Fashion Fair — Beli, Pakai, Kembalikan", narrative: "Konsep event yang menonjolkan siklus hidup pakaian dengan program take-back dan kurasi vintage berkualitas.", impact: "Sangat Tinggi — Actionable & Edukatif" },
+          { title: "🌱 Green Lifestyle Expo — Gaya Hidup Berkelanjutan", narrative: "Campaign holistik mencakup fashion etis, kerajinan tangan, dan gaya hidup minim sampah.", impact: "Tinggi — Menjangkau segmen luas" },
+        ];
+      }
+
+      setResults({ trends, campaigns, tips });
       setIsGenerating(false);
-    }, 2500);
+    }, 1200);
+  };
+
+  const handleApplyCampaign = (campaign: { title: string; narrative: string }, index: number) => {
+    try {
+      localStorage.setItem("boothify_applied_campaign", JSON.stringify(campaign));
+      setAppliedIndex(index);
+    } catch {
+      // ignore
+    }
   };
 
   return (
@@ -131,8 +183,12 @@ export default function AICampaignPage() {
                     <span className="badge badge-accent text-[10px] whitespace-nowrap">{campaign.impact}</span>
                   </div>
                   <p className="text-sm text-muted leading-relaxed mb-4">{campaign.narrative}</p>
-                  <button className="btn btn-secondary btn-sm" id={`use-campaign-${i}`}>
-                    Gunakan Campaign Ini
+                  <button
+                    onClick={() => handleApplyCampaign(campaign, i)}
+                    className={`btn btn-sm ${appliedIndex === i ? "btn-primary" : "btn-secondary"}`}
+                    id={`use-campaign-${i}`}
+                  >
+                    {appliedIndex === i ? "✓ Campaign Diterapkan ke Event" : "Gunakan Campaign Ini"}
                   </button>
                 </div>
               ))}

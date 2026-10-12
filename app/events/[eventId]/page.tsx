@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 
@@ -37,7 +38,7 @@ const EVENT_DATA = {
 // Generate booth layout (cinema-style)
 const BOOTH_ROWS = ["A", "B", "C", "D", "E", "F"];
 const BOOTHS_PER_ROW = 10;
-const TAKEN_BOOTHS = ["A1", "A2", "A3", "B2", "B5", "B6", "C1", "C3", "C7", "C8", "D4", "D5", "D6", "E2", "E3", "E8", "F1", "F5", "F6", "F7"];
+const INITIAL_TAKEN_BOOTHS = ["A1", "A2", "A3", "B2", "B5", "B6", "C1", "C3", "C7", "C8", "D4", "D5", "D6", "E2", "E3", "E8", "F1", "F5", "F6", "F7"];
 
 const getZoneColor = (row: string) => {
   if (["A", "B"].includes(row)) return "booth-zone-fashion";
@@ -47,14 +48,39 @@ const getZoneColor = (row: string) => {
 };
 
 export default function EventDetailPage() {
+  const router = useRouter();
   const [selectedBooths, setSelectedBooths] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"info" | "booths" | "tenants">("info");
+  const [takenBooths, setTakenBooths] = useState<string[]>(INITIAL_TAKEN_BOOTHS);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("boothify_booked_booths");
+      if (stored) {
+        const extra = JSON.parse(stored);
+        setTakenBooths((prev) => Array.from(new Set([...prev, ...extra])));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const toggleBooth = (boothId: string) => {
-    if (TAKEN_BOOTHS.includes(boothId)) return;
+    if (takenBooths.includes(boothId)) return;
     setSelectedBooths((prev) =>
       prev.includes(boothId) ? prev.filter((b) => b !== boothId) : [...prev, boothId]
     );
+  };
+
+  const handleProceedCheckout = () => {
+    if (selectedBooths.length === 0) return;
+    const items = selectedBooths.map((b) => {
+      const row = b.charAt(0);
+      const zone = ["A", "B"].includes(row) ? "Fashion" : row === "C" ? "F&B" : row === "D" ? "Craft" : "Education";
+      return { booth: b, zone, price: 2500000 };
+    });
+    localStorage.setItem("boothify_checkout_items", JSON.stringify(items));
+    router.push("/dashboard/tenant/bookings/1/checkout");
   };
 
   return (
@@ -240,7 +266,7 @@ export default function EventDetailPage() {
                           <div className="flex items-center gap-2">
                             {Array.from({ length: BOOTHS_PER_ROW }).map((_, i) => {
                               const boothId = `${row}${i + 1}`;
-                              const isTaken = TAKEN_BOOTHS.includes(boothId);
+                              const isTaken = takenBooths.includes(boothId);
                               const isSelected = selectedBooths.includes(boothId);
                               const zoneClass = getZoneColor(row);
                               return (
@@ -297,9 +323,9 @@ export default function EventDetailPage() {
                           <span>Total</span>
                           <span className="gradient-text text-lg">Rp {(selectedBooths.length * 2500000).toLocaleString("id-ID")}</span>
                         </div>
-                        <Link href="/dashboard/tenant/bookings/1/checkout" className="btn btn-primary w-full btn-lg mt-4" id="proceed-checkout">
+                        <button onClick={handleProceedCheckout} className="btn btn-primary w-full btn-lg mt-4" id="proceed-checkout">
                           Lanjut ke Pembayaran
-                        </Link>
+                        </button>
                       </div>
                     )}
                   </div>

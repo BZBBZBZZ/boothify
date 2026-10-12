@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../components/AuthContext";
 
@@ -14,10 +14,13 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   // Redirect if already logged in
-  if (user) {
-    router.push(user.role === "organizer" ? "/dashboard/organizer" : "/dashboard/tenant");
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      router.push(user.role === "organizer" ? "/dashboard/organizer" : "/dashboard/tenant");
+    }
+  }, [user, router]);
+
+  if (user) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

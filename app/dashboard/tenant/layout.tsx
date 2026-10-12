@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "../../components/AuthContext";
 
 const NAV_ITEMS = [
@@ -13,18 +13,48 @@ const NAV_ITEMS = [
   { href: "/dashboard/tenant/profile", label: "Profil", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> },
 ];
 
-export default function TenantLayout({ children }: { children: React.ReactNode }) {
+function TenantNavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  return (
+    <>
+      {NAV_ITEMS.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          className={`sidebar-link ${pathname === item.href ? "active" : ""}`}
+          onClick={onNavigate}
+        >
+          {item.icon} {item.label}
+        </Link>
+      ))}
+    </>
+  );
+}
+
+function NavFallback() {
+  return (
+    <div className="space-y-1">
+      {NAV_ITEMS.map((item) => (
+        <Link key={item.href} href={item.href} className="sidebar-link">
+          {item.icon} {item.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function TenantLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, logout, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (!isLoading && (!user || user.role !== "tenant")) {
-    router.push("/auth/login");
-    return null;
-  }
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push("/auth/login");
+    }
+  }, [isLoading, user, router]);
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -65,11 +95,9 @@ export default function TenantLayout({ children }: { children: React.ReactNode }
               </div>
               <span className="font-bold text-sm">Boothify <span className="text-secondary-light">Tenant</span></span>
             </div>
-            {NAV_ITEMS.map((item) => (
-              <Link key={item.href} href={item.href} className={`sidebar-link ${pathname === item.href ? "active" : ""}`} onClick={() => setSidebarOpen(false)}>
-                {item.icon} {item.label}
-              </Link>
-            ))}
+            <Suspense fallback={<NavFallback />}>
+              <TenantNavLinks onNavigate={() => setSidebarOpen(false)} />
+            </Suspense>
           </div>
         </div>
       )}
@@ -86,14 +114,21 @@ export default function TenantLayout({ children }: { children: React.ReactNode }
           </div>
         </Link>
         <nav className="flex-1 space-y-1">
-          {NAV_ITEMS.map((item) => (
-            <Link key={item.href} href={item.href} className={`sidebar-link ${pathname === item.href ? "active" : ""}`}>
-              {item.icon} {item.label}
-            </Link>
-          ))}
+          <Suspense fallback={<NavFallback />}>
+            <TenantNavLinks />
+          </Suspense>
         </nav>
         <div className="pt-4 border-t border-border mt-4">
-          <button onClick={handleLogout} className="sidebar-link text-xs w-full">
+          {user && (
+            <div className="px-3 py-2 mb-2 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+              <p className="text-xs font-semibold truncate text-foreground">{user.name}</p>
+              <p className="text-[11px] text-muted-foreground truncate">{user.businessName || user.email}</p>
+              {user.role === "organizer" && (
+                <span className="badge badge-accent text-[9px] mt-1.5 inline-block py-0.5">Mode Organizer (Simulasi)</span>
+              )}
+            </div>
+          )}
+          <button onClick={handleLogout} className="sidebar-link text-xs w-full text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
             Keluar
           </button>
@@ -104,5 +139,22 @@ export default function TenantLayout({ children }: { children: React.ReactNode }
         <div className="p-6 sm:p-8 max-w-6xl">{children}</div>
       </div>
     </div>
+  );
+}
+
+export default function TenantLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <svg className="animate-spin mx-auto mb-3 text-primary" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
+            <p className="text-sm text-muted-foreground">Memuat...</p>
+          </div>
+        </div>
+      }
+    >
+      <TenantLayoutContent>{children}</TenantLayoutContent>
+    </Suspense>
   );
 }

@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useState, useEffect } from "react";
 
 const STATS = [
   { label: "Event Terdaftar", value: "2", icon: "📅", change: "Aktif sekarang" },
@@ -7,7 +10,7 @@ const STATS = [
   { label: "Pesanan Masuk", value: "124", icon: "📦", change: "+32 hari ini" },
 ];
 
-const MY_BOOKINGS = [
+const DEFAULT_BOOKINGS = [
   { event: "Green Fashion Expo 2026", booth: "A1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid" },
   { event: "Green Fashion Expo 2026", booth: "A2", date: "15–17 Nov 2026", status: "confirmed", payment: "paid" },
   { event: "Eco Market Bandung", booth: "C2", date: "20–22 Des 2026", status: "confirmed", payment: "pending" },
@@ -19,6 +22,23 @@ const RECOMMENDED_EVENTS = [
 ];
 
 export default function TenantDashboard() {
+  const [bookings, setBookings] = useState(DEFAULT_BOOKINGS);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("boothify_tenant_bookings");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Merge unique bookings
+          setBookings(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   return (
     <div className="animate-fade-in" id="tenant-overview">
       <div className="mb-8">
@@ -28,13 +48,15 @@ export default function TenantDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {STATS.map((stat) => (
+        {STATS.map((stat, i) => (
           <div key={stat.label} className="stat-card">
             <div className="flex items-center justify-between mb-3">
               <span className="text-2xl">{stat.icon}</span>
               <span className="text-[11px] text-secondary-light font-medium">{stat.change}</span>
             </div>
-            <div className="text-2xl font-bold mb-1">{stat.value}</div>
+            <div className="text-2xl font-bold mb-1">
+              {i === 1 ? bookings.length : stat.value}
+            </div>
             <div className="text-xs text-muted-foreground">{stat.label}</div>
           </div>
         ))}
@@ -49,7 +71,7 @@ export default function TenantDashboard() {
               <Link href="/dashboard/tenant/events" className="btn btn-primary btn-sm">Cari Event Baru</Link>
             </div>
             <div className="space-y-3">
-              {MY_BOOKINGS.map((booking, i) => (
+              {bookings.map((booking, i) => (
                 <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center font-bold text-sm">
                     {booking.booth}

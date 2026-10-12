@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
 
 type Role = "organizer" | "tenant";
 
@@ -35,14 +34,41 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
+const DEFAULT_USERS: Array<User & { password: string }> = [
+  {
+    name: "Organizer Event",
+    email: "demo-organizer@boothify.id",
+    password: "demo1234",
+    role: "organizer",
+    businessName: "PT. Event Kreasi Nusantara",
+    phone: "+62 812 3456 7890",
+    description: "Penyelenggara pameran & expo terkemuka di Indonesia",
+  },
+  {
+    name: "Tenant Brand",
+    email: "demo-tenant@boothify.id",
+    password: "demo1234",
+    role: "tenant",
+    businessName: "EcoWear Studio",
+    businessCategory: "fashion",
+    phone: "+62 813 9876 5432",
+    description: "Brand fashion ramah lingkungan dari bahan organik dan daur ulang",
+  },
+];
+
 // Helper to safely access localStorage
 function getStoredUsers(): Array<User & { password: string }> {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined") return DEFAULT_USERS;
   try {
     const data = localStorage.getItem("boothify_users");
-    return data ? JSON.parse(data) : [];
+    if (!data) {
+      localStorage.setItem("boothify_users", JSON.stringify(DEFAULT_USERS));
+      return DEFAULT_USERS;
+    }
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_USERS;
   } catch {
-    return [];
+    return DEFAULT_USERS;
   }
 }
 
@@ -87,7 +113,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!found) {
       return { success: false, message: "Email atau kata sandi salah. Belum punya akun? Daftar dulu." };
     }
-    const { password: _, ...userData } = found;
+    const userData: User = {
+      name: found.name,
+      email: found.email,
+      role: found.role,
+      businessName: found.businessName,
+      businessCategory: found.businessCategory,
+      phone: found.phone,
+      description: found.description,
+    };
     setUser(userData);
     setStoredCurrentUser(userData);
     return { success: true, message: "Login berhasil!" };

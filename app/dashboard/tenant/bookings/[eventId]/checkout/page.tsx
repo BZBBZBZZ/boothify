@@ -1,17 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+interface CheckoutItem {
+  booth: string;
+  zone: string;
+  price: number;
+}
+
+const DEFAULT_ITEMS: CheckoutItem[] = [
+  { booth: "A2", zone: "Fashion", price: 2500000 },
+  { booth: "A4", zone: "Fashion", price: 2500000 },
+];
 
 export default function CheckoutPage() {
+  const [items, setItems] = useState<CheckoutItem[]>(DEFAULT_ITEMS);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const items = [
-    { booth: "A2", zone: "Fashion", price: 2500000 },
-    { booth: "A4", zone: "Fashion", price: 2500000 },
-  ];
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("boothify_checkout_items");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setItems(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const subtotal = items.reduce((s, i) => s + i.price, 0);
   const serviceFee = 50000;
   const total = subtotal + serviceFee;
@@ -20,9 +42,47 @@ export default function CheckoutPage() {
     if (!paymentMethod || !agreed) return;
     setProcessing(true);
     setTimeout(() => {
+      // Persist booked booths
+      try {
+        const storedBooked = JSON.parse(localStorage.getItem("boothify_booked_booths") || "[]");
+        const newBooked = Array.from(new Set([...storedBooked, ...items.map((i) => i.booth)]));
+        localStorage.setItem("boothify_booked_booths", JSON.stringify(newBooked));
+
+        // Persist to tenant bookings
+        const storedBookings = JSON.parse(localStorage.getItem("boothify_tenant_bookings") || "[]");
+        items.forEach((item) => {
+          storedBookings.unshift({
+            event: "Green Fashion Expo 2026",
+            booth: item.booth,
+            date: "15–17 Nov 2026",
+            status: "confirmed",
+            payment: "paid",
+            amount: `Rp ${item.price.toLocaleString("id-ID")}`,
+            time: "Baru saja",
+          });
+        });
+        localStorage.setItem("boothify_tenant_bookings", JSON.stringify(storedBookings));
+
+        // Persist to recent bookings (for organizer)
+        const recentBookings = JSON.parse(localStorage.getItem("boothify_recent_bookings") || "[]");
+        items.forEach((item) => {
+          recentBookings.unshift({
+            tenant: "EcoWear Studio",
+            event: "Green Fashion Expo",
+            booth: item.booth,
+            amount: `Rp ${item.price.toLocaleString("id-ID")}`,
+            time: "Baru saja",
+            status: "paid",
+          });
+        });
+        localStorage.setItem("boothify_recent_bookings", JSON.stringify(recentBookings));
+      } catch (err) {
+        console.error("Failed to save booking:", err);
+      }
+
       setProcessing(false);
       setSuccess(true);
-    }, 2000);
+    }, 1500);
   };
 
   if (success) {
