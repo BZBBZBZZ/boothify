@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
 
 interface CheckoutItem {
   booth: string;
@@ -13,7 +15,9 @@ const DEFAULT_ITEMS: CheckoutItem[] = [
   { booth: "A4", zone: "Fashion", price: 2500000 },
 ];
 
-export default function CheckoutPage() {
+function CheckoutContent() {
+  const params = useParams();
+  const eventId = (params?.eventId as string) || "1";
   const [items, setItems] = useState<CheckoutItem[]>(DEFAULT_ITEMS);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [agreed, setAgreed] = useState(false);
@@ -21,6 +25,8 @@ export default function CheckoutPage() {
   const [success, setSuccess] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [eventTitle, setEventTitle] = useState("Green Fashion Expo 2026");
+  const [eventDate, setEventDate] = useState("15–17 Nov 2026");
 
   useEffect(() => {
     try {
@@ -31,10 +37,18 @@ export default function CheckoutPage() {
           setItems(parsed);
         }
       }
+
+      // Load event details
+      const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+      const found = storedEvents.find((e: { id: string; title: string; date: string }) => e.id === eventId);
+      if (found) {
+        setEventTitle(found.title);
+        if (found.date) setEventDate(found.date);
+      }
     } catch {
       // ignore
     }
-  }, []);
+  }, [eventId]);
 
   const subtotal = items.reduce((s, i) => s + i.price, 0);
   const serviceFee = 50000;
@@ -44,19 +58,43 @@ export default function CheckoutPage() {
     if (!paymentMethod || !agreed) return;
     setProcessing(true);
     setTimeout(() => {
-      // Persist booked booths
       try {
+        // Get tenant brand name
+        const tenantProfile = JSON.parse(localStorage.getItem("boothify_tenant_profile") || "{}");
+        const currentUser = JSON.parse(localStorage.getItem("boothify_current_user") || "{}");
+        const tenantBrand = tenantProfile.brandName || currentUser.businessName || currentUser.name || "EcoWear Studio";
+
+        // Persist booked booths per-event and global
         const storedBooked = JSON.parse(localStorage.getItem("boothify_booked_booths") || "[]");
         const newBooked = Array.from(new Set([...storedBooked, ...items.map((i) => i.booth)]));
         localStorage.setItem("boothify_booked_booths", JSON.stringify(newBooked));
+
+        const storedEventBooked = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booked_booths`) || "[]");
+        const newEventBooked = Array.from(new Set([...storedEventBooked, ...items.map((i) => i.booth)]));
+        localStorage.setItem(`boothify_event_${eventId}_booked_booths`, JSON.stringify(newEventBooked));
+
+        // Map booth to tenant brand for digital guide
+        const storedBoothTenants = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booth_tenants`) || "{}");
+        items.forEach((item) => {
+          storedBoothTenants[item.booth] = {
+            id: item.booth,
+            name: tenantBrand,
+            category: tenantProfile.category || item.zone || "Fashion",
+            zone: item.zone || item.booth.charAt(0),
+            type: item.zone === "F&B" ? "fnb" : "non-fnb",
+            desc: tenantProfile.description || "Brand terdaftar di event ini",
+          };
+        });
+        localStorage.setItem(`boothify_event_${eventId}_booth_tenants`, JSON.stringify(storedBoothTenants));
 
         // Persist to tenant bookings
         const storedBookings = JSON.parse(localStorage.getItem("boothify_tenant_bookings") || "[]");
         items.forEach((item) => {
           storedBookings.unshift({
-            event: "Green Fashion Expo 2026",
+            eventId,
+            event: eventTitle,
             booth: item.booth,
-            date: "15–17 Nov 2026",
+            date: eventDate,
             status: "confirmed",
             payment: "paid",
             amount: `Rp ${item.price.toLocaleString("id-ID")}`,
@@ -69,8 +107,8 @@ export default function CheckoutPage() {
         const recentBookings = JSON.parse(localStorage.getItem("boothify_recent_bookings") || "[]");
         items.forEach((item) => {
           recentBookings.unshift({
-            tenant: "EcoWear Studio",
-            event: "Green Fashion Expo",
+            tenant: tenantBrand,
+            event: eventTitle,
             booth: item.booth,
             amount: `Rp ${item.price.toLocaleString("id-ID")}`,
             time: "Baru saja",
@@ -78,13 +116,23 @@ export default function CheckoutPage() {
           });
         });
         localStorage.setItem("boothify_recent_bookings", JSON.stringify(recentBookings));
+
+        // Update organizer events stats: increase boothsFilled
+        const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+        const updatedEvents = storedEvents.map((ev: { id: string; boothsFilled: number }) => {
+          if (ev.id === eventId) {
+            return { ...ev, boothsFilled: (ev.boothsFilled || 0) + items.length };
+          }
+          return ev;
+        });
+        localStorage.setItem("boothify_events", JSON.stringify(updatedEvents));
       } catch (err) {
         console.error("Failed to save booking:", err);
       }
 
       setProcessing(false);
       setSuccess(true);
-    }, 1500);
+    }, 1200);
   };
 
   if (success) {
@@ -92,13 +140,13 @@ export default function CheckoutPage() {
       <div className="animate-fade-in-up text-center py-16 max-w-md mx-auto" id="checkout-success">
         <div className="text-7xl mb-6">🎉</div>
         <h1 className="text-2xl font-bold mb-3">Pembayaran Berhasil!</h1>
-        <p className="text-muted-foreground mb-2">Booth kamu telah dikonfirmasi untuk</p>
-        <p className="font-semibold text-lg mb-6">Green Fashion Expo 2026</p>
+        <p className="text-muted-foreground mb-1">Booth kamu telah resmi terkonfirmasi untuk</p>
+        <p className="font-semibold text-lg text-primary-light mb-6">{eventTitle}</p>
         <div className="card-base p-4 mb-6 text-left space-y-2">
           {items.map((item) => (
             <div key={item.booth} className="flex items-center justify-between text-sm">
               <span>Booth {item.booth} ({item.zone})</span>
-              <span className="font-medium">✓ Confirmed</span>
+              <span className="font-medium text-emerald-400">✓ Confirmed &amp; Paid</span>
             </div>
           ))}
           <hr className="border-border" />
@@ -107,10 +155,19 @@ export default function CheckoutPage() {
             <span className="gradient-text">Rp {total.toLocaleString("id-ID")}</span>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground mb-6">Selanjutnya, upload katalog produk dan media promosi kamu untuk ditampilkan kepada pengunjung.</p>
+        <p className="text-xs text-muted-foreground mb-6">
+          Selanjutnya, kelola menu F&amp;B atau media promosi digital kamu agar langsung tampil kepada pengunjung saat scan denah acara.
+        </p>
         <div className="flex flex-col gap-3">
-          <a href="/dashboard/tenant/catalog" className="btn btn-primary btn-lg">Upload Katalog Produk →</a>
-          <a href="/dashboard/tenant" className="btn btn-secondary">Kembali ke Dashboard</a>
+          <Link href="/dashboard/tenant/catalog" className="btn btn-primary btn-lg" id="goto-catalog-btn">
+            Kelola Katalog Produk &amp; Mini Website →
+          </Link>
+          <Link href={`/events/${eventId}/guide`} className="btn btn-secondary" id="preview-guide-btn">
+            📱 Lihat Booth Kamu di Panduan Pengunjung
+          </Link>
+          <Link href="/dashboard/tenant" className="btn btn-ghost text-xs">
+            Kembali ke Dashboard Tenant
+          </Link>
         </div>
       </div>
     );
@@ -338,5 +395,13 @@ export default function CheckoutPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Memuat checkout...</div>}>
+      <CheckoutContent />
+    </Suspense>
   );
 }

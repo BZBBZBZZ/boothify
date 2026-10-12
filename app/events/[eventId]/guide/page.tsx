@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "../../../components/AuthContext";
 
 // Mock data
@@ -99,9 +99,13 @@ const BOOTHS_PER_ROW = 6;
 
 type CartItem = { boothId: string; name: string; price: number; qty: number };
 
-export default function EventGuidePage() {
+function EventGuideContent() {
   const router = useRouter();
+  const params = useParams();
+  const eventId = (params?.eventId as string) || "1";
   const { user, loginAsGuest } = useAuth();
+  const [eventInfo, setEventInfo] = useState(EVENT);
+  const [boothsList, setBoothsList] = useState<Booth[]>(BOOTHS);
   const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
@@ -110,9 +114,63 @@ export default function EventGuidePage() {
   const [showMiniWebsite, setShowMiniWebsite] = useState(false);
   const [activeMiniWebsite, setActiveMiniWebsite] = useState<BrandingInfo | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [orderCode, setOrderCode] = useState("BF-ORDER-8821");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("QRIS");
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
+
+  useEffect(() => {
+    try {
+      // Load event info
+      const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+      const found = storedEvents.find((e: { id: string; title: string; date: string; location: string }) => e.id === eventId);
+      if (found) {
+        setEventInfo({
+          title: found.title,
+          date: found.date,
+          location: found.location,
+        });
+      }
+
+      // Load tenant's menu & mini website
+      const storedMenu = JSON.parse(localStorage.getItem("boothify_catalog_menu") || "[]");
+      const storedWebsite = JSON.parse(localStorage.getItem("boothify_catalog_website") || "null");
+
+      // Load booths booked for this event by tenants
+      const storedBoothTenants = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booth_tenants`) || "{}");
+      
+      const mergedBooths = [...BOOTHS];
+      Object.keys(storedBoothTenants).forEach((bId) => {
+        const tenantInfo = storedBoothTenants[bId];
+        const existingIdx = mergedBooths.findIndex((b) => b.id === bId);
+        const newEntry: Booth = {
+          id: bId,
+          name: tenantInfo.name,
+          category: tenantInfo.category || "Fashion",
+          zone: tenantInfo.zone || bId.charAt(0),
+          type: tenantInfo.type || "non-fnb",
+          desc: tenantInfo.desc || "Brand terdaftar di event ini",
+          menu: tenantInfo.type === "fnb" && storedMenu.length > 0 ? storedMenu : undefined,
+          branding: storedWebsite ? {
+            headline: storedWebsite.headline || tenantInfo.name,
+            tagline: storedWebsite.tagline || "Brand Pilihan",
+            aboutText: storedWebsite.aboutText || tenantInfo.desc,
+            primaryColor: storedWebsite.primaryColor || "#10b981",
+            instagram: storedWebsite.socialLinks?.instagram || "@brand",
+            website: storedWebsite.socialLinks?.website || "https://boothify.id",
+            highlights: ["Katalog Resmi", "Verified Tenant", "Garansi Kualitas"],
+          } : undefined,
+        };
+        if (existingIdx >= 0) {
+          mergedBooths[existingIdx] = newEntry;
+        } else {
+          mergedBooths.push(newEntry);
+        }
+      });
+
+      setBoothsList(mergedBooths);
+    } catch { /* ignore */ }
+  }, [eventId]);
 
   const handleProceedToPayment = () => {
     if (!user) {
@@ -158,7 +216,34 @@ export default function EventGuidePage() {
   };
 
   const totalCart = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
-  const boothMap = Object.fromEntries(BOOTHS.map((b) => [b.id, b]));
+  const boothMap = Object.fromEntries(boothsList.map((b) => [b.id, b]));
+
+  useEffect(() => {
+    if (!paymentSuccess) return;
+    const generatedCode = "BF-ORDER-" + Date.now().toString().slice(-4);
+    setOrderCode(generatedCode);
+    try {
+      const orders = JSON.parse(localStorage.getItem("boothify_visitor_orders") || "[]");
+      orders.unshift({
+        id: generatedCode,
+        eventId,
+        items: cart,
+        total: totalCart,
+        customer: user?.name || guestName || "Pengunjung Tamu",
+        phone: user?.phone || guestPhone || "",
+        method: selectedPaymentMethod,
+        time: "Baru saja",
+      });
+      localStorage.setItem("boothify_visitor_orders", JSON.stringify(orders));
+
+      // Increment tenant incoming orders count
+      const curOrders = Number(localStorage.getItem("boothify_tenant_order_count") || "124");
+      localStorage.setItem("boothify_tenant_order_count", String(curOrders + 1));
+    } catch {
+      // ignore
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentSuccess]);
 
   const getBoothInfo = (row: string, col: number) => {
     const id = `${row}${col}`;
@@ -171,8 +256,8 @@ export default function EventGuidePage() {
       <div className="glass fixed top-0 left-0 right-0 z-50 px-4 py-3">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-sm font-bold">{EVENT.title}</h1>
-            <p className="text-xs text-muted-foreground">{EVENT.location}</p>
+            <h1 className="text-sm font-bold">{eventInfo.title}</h1>
+            <p className="text-xs text-muted-foreground">{eventInfo.location}</p>
           </div>
           <button
             onClick={() => setShowCart(true)}
@@ -193,8 +278,8 @@ export default function EventGuidePage() {
         {/* Event info */}
         <div className="card-base p-4 mb-6 text-center">
           <span className="text-4xl mb-2 block">🌿</span>
-          <h2 className="font-bold text-lg">{EVENT.title}</h2>
-          <p className="text-xs text-muted-foreground mt-1">{EVENT.date} • {EVENT.location}</p>
+          <h2 className="font-bold text-lg">{eventInfo.title}</h2>
+          <p className="text-xs text-muted-foreground mt-1">{eventInfo.date} • {eventInfo.location}</p>
         </div>
 
         {/* Interactive Floor Plan */}
@@ -252,9 +337,9 @@ export default function EventGuidePage() {
         </div>
 
         {/* Tenant Directory */}
-        <h3 className="font-semibold text-sm mb-3">Direktori Tenant</h3>
+        <h3 className="font-semibold text-sm mb-3">Direktori Tenant ({boothsList.length} Brand)</h3>
         <div className="space-y-3">
-          {BOOTHS.map((booth) => (
+          {boothsList.map((booth) => (
             <button
               key={booth.id}
               onClick={() => setSelectedBooth(booth)}
@@ -537,7 +622,7 @@ export default function EventGuidePage() {
                 <div className="p-4 rounded-xl bg-white/[0.03] border border-border text-left space-y-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Nomor Antrean / Booking:</span>
-                    <span className="font-bold font-mono text-primary-light">BF-ORDER-8821</span>
+                    <span className="font-bold font-mono text-primary-light">{orderCode}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Nama Pembeli:</span>
@@ -553,7 +638,7 @@ export default function EventGuidePage() {
                   </div>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  💡 Tunjukkan kode <strong>BF-ORDER-8821</strong> di meja booth saat mengambil hidangan.
+                  💡 Tunjukkan kode <strong>{orderCode}</strong> di meja booth saat mengambil hidangan.
                 </p>
                 <button
                   onClick={() => {
@@ -699,5 +784,13 @@ export default function EventGuidePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function EventGuidePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Memuat petunjuk event...</div>}>
+      <EventGuideContent />
+    </Suspense>
   );
 }

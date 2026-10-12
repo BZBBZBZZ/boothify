@@ -43,24 +43,43 @@ export default function CreateEventPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const eventId = String(Date.now());
     try {
       const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+      const categoryFromTheme = formData.theme.toLowerCase().includes("food") || formData.theme.toLowerCase().includes("kuliner")
+        ? "F&B"
+        : formData.theme.toLowerCase().includes("edu") || formData.theme.toLowerCase().includes("tech")
+        ? "Education"
+        : formData.theme.toLowerCase().includes("auto") || formData.theme.toLowerCase().includes("motor")
+        ? "Automotive"
+        : formData.theme.toLowerCase().includes("craft") || formData.theme.toLowerCase().includes("seni")
+        ? "Craft"
+        : "Fashion";
+
       const newEvent = {
-        id: String(Date.now()),
+        id: eventId,
         title: formData.name || "Event Baru",
-        date: formData.date_start ? `${formData.date_start} – ${formData.date_end}` : "Nov 2026",
+        date: formData.date_start ? `${formData.date_start} s/d ${formData.date_end || formData.date_start}` : "Nov 2026",
+        time: `${formData.time_start} – ${formData.time_end} WIB`,
         status: "active",
+        category: categoryFromTheme,
         boothsFilled: 0,
-        boothsTotal: 40,
-        location: formData.location,
-        description: formData.description,
+        boothsTotal: 30,
+        location: formData.location || "Venue Acara",
+        address: formData.address || "",
+        description: formData.description || "Pameran & expo booth interaktif.",
+        organizer: "PT. Green Events Indonesia",
+        priceRange: "Rp 2.000.000 – Rp 4.500.000",
+        image: "🎪",
+        theme: formData.theme,
+        guidelines: formData.guidelines,
       };
       stored.unshift(newEvent);
       localStorage.setItem("boothify_events", JSON.stringify(stored));
+      router.push(`/dashboard/organizer/events/${eventId}/floor-plan`);
     } catch {
-      // ignore
+      router.push(`/dashboard/organizer/events/${eventId}/floor-plan`);
     }
-    router.push("/dashboard/organizer/events/1/floor-plan");
   };
 
   const update = (key: string, value: string) =>

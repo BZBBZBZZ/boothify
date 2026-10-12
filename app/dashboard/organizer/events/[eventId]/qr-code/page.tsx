@@ -1,24 +1,40 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
 import QRCode from "qrcode";
 
-export default function QRCodePage() {
+function QRCodeContent() {
+  const params = useParams();
+  const eventId = (params?.eventId as string) || "1";
   const [copied, setCopied] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [showLogo, setShowLogo] = useState(true);
   const [showEventInfo, setShowEventInfo] = useState(true);
   const [printSize, setPrintSize] = useState("A4");
+  const [eventTitle, setEventTitle] = useState("Green Fashion Expo 2026");
+  const [eventDate, setEventDate] = useState("15–17 November 2026");
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Use current origin for the URL so it works with port forwarding
-  const eventPath = "/events/1/guide";
+  const eventPath = `/events/${eventId}/guide`;
   const [eventUrl, setEventUrl] = useState("");
+
+  useEffect(() => {
+    try {
+      const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+      const found = storedEvents.find((e: { id: string; title: string; date: string }) => e.id === eventId);
+      if (found) {
+        setEventTitle(found.title);
+        if (found.date) setEventDate(found.date);
+      }
+    } catch { /* ignore */ }
+  }, [eventId]);
 
   useEffect(() => {
     // Set URL based on actual origin (works with port forwarding)
     setEventUrl(window.location.origin + eventPath);
-  }, []);
+  }, [eventPath]);
 
   useEffect(() => {
     if (!eventUrl) return;
@@ -88,14 +104,15 @@ export default function QRCodePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* QR Code Preview */}
         <div className="card-base p-8 text-center">
-          <h2 className="font-semibold mb-6">Green Fashion Expo 2026</h2>
+          <h2 className="font-semibold text-lg mb-1">{eventTitle}</h2>
+          <p className="text-xs text-muted-foreground mb-6">{eventDate}</p>
 
           {/* Real QR Code */}
           <div className="inline-block p-6 bg-white rounded-2xl mb-6 shadow-lg">
             {qrDataUrl ? (
               <img
                 src={qrDataUrl}
-                alt="QR Code untuk Green Fashion Expo 2026"
+                alt={`QR Code untuk ${eventTitle}`}
                 className="w-56 h-56"
                 id="qr-code-image"
               />
@@ -134,7 +151,7 @@ export default function QRCodePage() {
           </div>
 
           {/* Download buttons */}
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-3 mb-6">
             <button onClick={downloadPNG} className="btn btn-primary" id="download-qr-png">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
@@ -151,6 +168,29 @@ export default function QRCodePage() {
               </svg>
               Download SVG
             </button>
+          </div>
+
+          {/* Direct Role Test Buttons */}
+          <div className="border-t border-border pt-5 space-y-2 text-left">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              🧪 Uji Coba Alur Langsung (Demo Flow):
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <Link
+                href={`/events/${eventId}/guide`}
+                className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                id="test-visitor-flow"
+              >
+                📱 Uji sbg Pengunjung (Scan)
+              </Link>
+              <Link
+                href={`/events/${eventId}`}
+                className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2 border-primary/30 text-primary-light hover:bg-primary/10"
+                id="test-tenant-flow"
+              >
+                🏪 Uji sbg Tenant (Sewa Booth)
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -230,5 +270,13 @@ export default function QRCodePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function QRCodePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Memuat QR Code...</div>}>
+      <QRCodeContent />
+    </Suspense>
   );
 }

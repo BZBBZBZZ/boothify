@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const EVENTS = [
   { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", location: "Jakarta Convention Center, Jakarta", category: "Fashion", price: "Rp 2.5Jt", match: "95%", booths: 18, image: "🌿", scope: "Lokal" },
@@ -14,12 +14,36 @@ const EVENTS = [
 ];
 
 export default function TenantEventsPage() {
+  const [eventsList, setEventsList] = useState(EVENTS);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [sortBy, setSortBy] = useState("match");
 
-  const filtered = EVENTS.filter((e) => {
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+      if (Array.isArray(stored) && stored.length > 0) {
+        const customEvents = stored.map((e: { id: string; title: string; date: string; location: string; category?: string; boothsFilled?: number; boothsTotal?: number; priceRange?: string; image?: string }) => ({
+          id: e.id,
+          title: e.title,
+          date: e.date,
+          location: e.location,
+          category: e.category || "Fashion",
+          price: e.priceRange?.split("–")[0]?.replace("000.000", "Jt")?.trim() || "Rp 2Jt",
+          match: "96%",
+          booths: (e.boothsTotal || 30) - (e.boothsFilled || 0),
+          image: e.image || "🎪",
+          scope: "Lokal",
+        }));
+        const existingIds = new Set(customEvents.map((e: { id: string }) => e.id));
+        const remainingDefaults = EVENTS.filter((e) => !existingIds.has(e.id));
+        setEventsList([...customEvents, ...remainingDefaults]);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const filtered = eventsList.filter((e) => {
     const matchesSearch =
       e.title.toLowerCase().includes(search.toLowerCase()) ||
       e.location.toLowerCase().includes(search.toLowerCase());

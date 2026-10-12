@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
@@ -19,11 +19,35 @@ const ALL_EVENTS = [
 const CATEGORIES = ["Semua", "F&B", "Fashion", "Education", "Automotive", "Craft"];
 
 export default function EventsPage() {
+  const [eventsList, setEventsList] = useState(ALL_EVENTS);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [sortBy, setSortBy] = useState("newest");
 
-  const filtered = ALL_EVENTS.filter((event) => {
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+      if (Array.isArray(stored) && stored.length > 0) {
+        const customEvents = stored.map((e: { id: string; title: string; date: string; location: string; category?: string; boothsFilled?: number; boothsTotal?: number; priceRange?: string; image?: string }) => ({
+          id: e.id,
+          title: e.title,
+          date: e.date,
+          location: e.location,
+          category: e.category || "Fashion",
+          boothsFilled: e.boothsFilled || 0,
+          boothsTotal: e.boothsTotal || 40,
+          price: e.priceRange?.split("–")[0]?.trim() || "Rp 2.000.000",
+          image: e.image || "🎪",
+          gradient: "from-emerald-500/20 to-teal-500/20",
+        }));
+        const existingIds = new Set(customEvents.map((e: { id: string }) => e.id));
+        const remainingDefaults = ALL_EVENTS.filter((e) => !existingIds.has(e.id));
+        setEventsList([...customEvents, ...remainingDefaults]);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const filtered = eventsList.filter((event) => {
     const matchesSearch = event.title.toLowerCase().includes(search.toLowerCase()) ||
       event.location.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = selectedCategory === "Semua" || event.category === selectedCategory;

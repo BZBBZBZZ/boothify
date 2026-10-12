@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useCallback, useEffect, Suspense } from "react";
+import { useRouter, useParams } from "next/navigation";
 
 type Booth = {
   id: string;
@@ -37,8 +37,10 @@ const INITIAL_BOOTHS: Booth[] = [
   { id: "11", x: 280, y: 260, width: 100, height: 70, label: "C3", zone: "education", price: 2000000 },
 ];
 
-export default function FloorPlanPage() {
+function FloorPlanContent() {
   const router = useRouter();
+  const params = useParams();
+  const eventId = (params?.eventId as string) || "1";
   const [booths, setBooths] = useState<Booth[]>(INITIAL_BOOTHS);
   const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
@@ -52,23 +54,40 @@ export default function FloorPlanPage() {
   // Load from localStorage on mount
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("boothify_floor_plan");
-      if (stored) setBooths(JSON.parse(stored));
-      const storedBg = localStorage.getItem("boothify_floor_plan_bg");
+      const storedEventBooths = localStorage.getItem(`boothify_event_${eventId}_booths`);
+      if (storedEventBooths) {
+        setBooths(JSON.parse(storedEventBooths));
+      } else {
+        const stored = localStorage.getItem("boothify_floor_plan");
+        if (stored) setBooths(JSON.parse(stored));
+      }
+      const storedBg = localStorage.getItem(`boothify_floor_plan_bg_${eventId}`) || localStorage.getItem("boothify_floor_plan_bg");
       if (storedBg) setBlueprintBg(storedBg);
     } catch { /* ignore */ }
-  }, []);
+  }, [eventId]);
 
   const saveFloorPlan = () => {
-    localStorage.setItem("boothify_floor_plan", JSON.stringify(booths));
-    if (blueprintBg) localStorage.setItem("boothify_floor_plan_bg", blueprintBg);
+    try {
+      localStorage.setItem(`boothify_event_${eventId}_booths`, JSON.stringify(booths));
+      localStorage.setItem("boothify_floor_plan", JSON.stringify(booths));
+      if (blueprintBg) {
+        localStorage.setItem(`boothify_floor_plan_bg_${eventId}`, blueprintBg);
+        localStorage.setItem("boothify_floor_plan_bg", blueprintBg);
+      }
+      // Update boothsTotal on event
+      const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+      const updatedEvents = storedEvents.map((ev: { id: string; boothsTotal: number; status: string }) =>
+        ev.id === eventId ? { ...ev, boothsTotal: booths.length, status: "active" } : ev
+      );
+      localStorage.setItem("boothify_events", JSON.stringify(updatedEvents));
+    } catch { /* ignore */ }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   const handlePublishAndGetQR = () => {
     saveFloorPlan();
-    router.push("/dashboard/organizer/events/1/qr-code");
+    router.push(`/dashboard/organizer/events/${eventId}/qr-code`);
   };
 
   const handleUploadBlueprint = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -391,5 +410,13 @@ export default function FloorPlanPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function FloorPlanPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Memuat denah booth...</div>}>
+      <FloorPlanContent />
+    </Suspense>
   );
 }

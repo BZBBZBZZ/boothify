@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 
@@ -47,8 +47,11 @@ const getZoneColor = (row: string) => {
   return "booth-zone-education";
 };
 
-export default function EventDetailPage() {
+function EventDetailContent() {
   const router = useRouter();
+  const params = useParams();
+  const eventId = (params?.eventId as string) || "1";
+  const [event, setEvent] = useState(EVENT_DATA);
   const [selectedBooths, setSelectedBooths] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"info" | "booths" | "tenants">("info");
   const [takenBooths, setTakenBooths] = useState<string[]>(INITIAL_TAKEN_BOOTHS);
@@ -58,15 +61,27 @@ export default function EventDetailPage() {
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("boothify_booked_booths");
-      if (stored) {
-        const extra = JSON.parse(stored);
+      const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+      const found = storedEvents.find((e: { id: string }) => e.id === eventId);
+      if (found) {
+        setEvent((prev) => ({
+          ...prev,
+          ...found,
+          highlights: prev.highlights,
+          zones: prev.zones,
+        }));
+      }
+
+      const eventTaken = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booked_booths`) || "[]");
+      const generalTaken = JSON.parse(localStorage.getItem("boothify_booked_booths") || "[]");
+      const extra = Array.from(new Set([...eventTaken, ...generalTaken]));
+      if (extra.length > 0) {
         setTakenBooths((prev) => Array.from(new Set([...prev, ...extra])));
       }
     } catch {
       // ignore
     }
-  }, []);
+  }, [eventId]);
 
   const toggleBooth = (boothId: string) => {
     if (takenBooths.includes(boothId)) return;
@@ -83,7 +98,8 @@ export default function EventDetailPage() {
       return { booth: b, zone, price: 2500000 };
     });
     localStorage.setItem("boothify_checkout_items", JSON.stringify(items));
-    router.push("/dashboard/tenant/bookings/1/checkout");
+    localStorage.setItem("boothify_checkout_eventId", eventId);
+    router.push(`/dashboard/tenant/bookings/${eventId}/checkout`);
   };
 
   return (
@@ -95,19 +111,19 @@ export default function EventDetailPage() {
           <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
             <Link href="/events" className="hover:text-foreground transition">Event</Link>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
-            <span className="text-foreground">{EVENT_DATA.title}</span>
+            <span className="text-foreground">{event.title}</span>
           </nav>
 
           {/* Hero */}
           <div className="card-base overflow-hidden mb-8">
             <div className="h-48 sm:h-64 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center relative">
-              <span className="text-8xl">{EVENT_DATA.image}</span>
+              <span className="text-8xl">{event.image}</span>
               <div className="absolute top-4 right-4">
-                <span className="badge badge-primary">{EVENT_DATA.category}</span>
+                <span className="badge badge-primary">{event.category}</span>
               </div>
             </div>
             <div className="p-6 sm:p-8">
-              <h1 className="text-2xl sm:text-3xl font-bold mb-4">{EVENT_DATA.title}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold mb-4">{event.title}</h1>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary-light">
@@ -115,7 +131,7 @@ export default function EventDetailPage() {
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs">Tanggal</p>
-                    <p className="font-medium">{EVENT_DATA.date}</p>
+                    <p className="font-medium">{event.date}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -124,7 +140,7 @@ export default function EventDetailPage() {
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs">Waktu</p>
-                    <p className="font-medium">{EVENT_DATA.time}</p>
+                    <p className="font-medium">{event.time}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -133,7 +149,7 @@ export default function EventDetailPage() {
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs">Lokasi</p>
-                    <p className="font-medium">{EVENT_DATA.location}</p>
+                    <p className="font-medium">{event.location}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -142,7 +158,7 @@ export default function EventDetailPage() {
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs">Harga Booth</p>
-                    <p className="font-medium">{EVENT_DATA.priceRange}</p>
+                    <p className="font-medium">{event.priceRange}</p>
                   </div>
                 </div>
               </div>
@@ -177,12 +193,12 @@ export default function EventDetailPage() {
               <div className="lg:col-span-2 space-y-6">
                 <div className="card-base p-6">
                   <h2 className="text-lg font-semibold mb-4">Tentang Event</h2>
-                  <p className="text-muted leading-relaxed">{EVENT_DATA.description}</p>
+                  <p className="text-muted leading-relaxed">{event.description}</p>
                 </div>
                 <div className="card-base p-6">
                   <h2 className="text-lg font-semibold mb-4">Zona Booth</h2>
                   <div className="space-y-3">
-                    {EVENT_DATA.zones.map((zone) => (
+                    {event.zones.map((zone) => (
                       <div key={zone.name} className="flex items-center gap-3 p-3 rounded-xl bg-white/3">
                         <div className={`w-3 h-3 rounded-full bg-${zone.color}`} style={{
                           backgroundColor: zone.color === "zone-fashion" ? "var(--zone-fashion)" :
@@ -198,7 +214,7 @@ export default function EventDetailPage() {
                 <div className="card-base p-6">
                   <h2 className="text-lg font-semibold mb-4">Highlights</h2>
                   <ul className="space-y-2">
-                    {EVENT_DATA.highlights.map((h) => (
+                    {event.highlights.map((h) => (
                       <li key={h} className="flex items-center gap-2 text-sm text-muted">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                         {h}
@@ -215,7 +231,7 @@ export default function EventDetailPage() {
                       GE
                     </div>
                     <div>
-                      <p className="font-medium text-sm">{EVENT_DATA.organizer}</p>
+                      <p className="font-medium text-sm">{event.organizer}</p>
                       <p className="text-xs text-muted-foreground">Verified Organizer</p>
                     </div>
                   </div>
@@ -231,11 +247,11 @@ export default function EventDetailPage() {
                 <div className="card-base p-6">
                   <h2 className="text-lg font-semibold mb-4">Ketersediaan Booth</h2>
                   <div className="text-center mb-4">
-                    <div className="text-4xl font-bold gradient-text">{EVENT_DATA.boothsTotal - EVENT_DATA.boothsFilled}</div>
-                    <p className="text-sm text-muted-foreground">booth tersedia dari {EVENT_DATA.boothsTotal}</p>
+                    <div className="text-4xl font-bold gradient-text">{Math.max(0, event.boothsTotal - takenBooths.length)}</div>
+                    <p className="text-sm text-muted-foreground">booth tersedia dari {event.boothsTotal}</p>
                   </div>
                   <div className="h-2 rounded-full bg-white/5 overflow-hidden mb-4">
-                    <div className="h-full rounded-full gradient-primary" style={{ width: `${(EVENT_DATA.boothsFilled / EVENT_DATA.boothsTotal) * 100}%` }} />
+                    <div className="h-full rounded-full gradient-primary" style={{ width: `${Math.min(100, (takenBooths.length / event.boothsTotal) * 100)}%` }} />
                   </div>
                   <button onClick={() => setActiveTab("booths")} className="btn btn-primary w-full" id="goto-booth-picker">
                     Pilih Booth Sekarang
@@ -393,8 +409,8 @@ export default function EventDetailPage() {
                   GE
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">{EVENT_DATA.organizer}</h3>
-                  <p className="text-xs text-muted-foreground">Penyelenggara {EVENT_DATA.title}</p>
+                  <h3 className="text-lg font-semibold">{event.organizer}</h3>
+                  <p className="text-xs text-muted-foreground">Penyelenggara {event.title}</p>
                 </div>
               </div>
 
@@ -499,5 +515,13 @@ export default function EventDetailPage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+export default function EventDetailPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Memuat event...</div>}>
+      <EventDetailContent />
+    </Suspense>
   );
 }
