@@ -10,6 +10,7 @@ import {
   setActiveOrganizerEventId,
   EventDetail,
 } from "@/app/lib/event-defaults";
+import { useAuth } from "@/app/components/AuthContext";
 
 type Booth = {
   id: string;
@@ -49,6 +50,7 @@ function FloorPlanContent() {
   const router = useRouter();
   const params = useParams();
   const eventId = (params?.eventId as string) || "1";
+  const { user, isLoading: authLoading } = useAuth();
   const [eventMeta, setEventMeta] = useState<EventDetail>(getEventMeta(eventId));
   const [allEvents, setAllEvents] = useState<Array<{ id: string; title: string; category: string }>>([]);
   const [booths, setBooths] = useState<Booth[]>(INITIAL_BOOTHS);
@@ -209,6 +211,44 @@ function FloorPlanContent() {
   const handleMouseUp = useCallback(() => {
     setDragging(null);
   }, []);
+
+  const isAuthorizedOrganizer = Boolean(
+    user &&
+    user.role === "organizer" &&
+    (
+      // 1. Matches event organizer email
+      (eventMeta.organizerEmail && user.email?.toLowerCase() === eventMeta.organizerEmail.toLowerCase()) ||
+      // 2. Demo organizer owns default events (1, 2, 3) or events without specific email
+      (user.email === "demo-organizer@boothify.id" && (!eventMeta.organizerEmail || eventMeta.organizerEmail === "demo-organizer@boothify.id")) ||
+      // 3. Matches organizer organization/business name or user name
+      (eventMeta.organizer && (
+        user.businessName?.toLowerCase() === eventMeta.organizer.toLowerCase() ||
+        user.name?.toLowerCase() === eventMeta.organizer.toLowerCase()
+      ))
+    )
+  );
+
+  if (!authLoading && user && !isAuthorizedOrganizer) {
+    return (
+      <div className="animate-fade-in max-w-lg mx-auto py-12 px-4 text-center">
+        <div className="card-base p-8 border border-amber-500/30 bg-amber-500/5">
+          <span className="text-4xl block mb-3">🔒</span>
+          <h2 className="text-xl font-bold mb-2">Akses Terbatas Penyelenggara</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            Hanya pihak penyelenggara resmi acara <strong>{eventMeta.title}</strong> ({eventMeta.organizer || eventMeta.organizerEmail}) yang berhak merancang denah tata letak acara ini.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <Link href={`/events/${eventId}`} className="btn btn-primary btn-sm text-xs">
+              Lihat Halaman Publik Acara ↗
+            </Link>
+            <Link href="/dashboard/organizer" className="btn btn-secondary btn-sm text-xs">
+              Dashboard Organizer
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const getZoneColor = (zone: string) => ZONES.find((z) => z.value === zone)?.color || "var(--zone-general)";
 

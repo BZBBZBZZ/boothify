@@ -108,6 +108,23 @@ function EventDetailContent() {
 
   const registeredTenantsList = Object.values(tenantsMap);
 
+  // Check if current logged in user is specifically the organizer of this event
+  const isEventOrganizer = Boolean(
+    user &&
+    user.role === "organizer" &&
+    (
+      // 1. Matches event organizer email
+      (event.organizerEmail && user.email?.toLowerCase() === event.organizerEmail.toLowerCase()) ||
+      // 2. Demo organizer owns default events (1, 2, 3) or events without specific email
+      (user.email === "demo-organizer@boothify.id" && (!event.organizerEmail || event.organizerEmail === "demo-organizer@boothify.id")) ||
+      // 3. Matches organizer organization/business name or user name
+      (event.organizer && (
+        user.businessName?.toLowerCase() === event.organizer.toLowerCase() ||
+        user.name?.toLowerCase() === event.organizer.toLowerCase()
+      ))
+    )
+  );
+
   return (
     <>
       <Navbar />
@@ -143,7 +160,7 @@ function EventDetailContent() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                 <h1 className="text-2xl sm:text-3xl font-bold">{event.title}</h1>
                 <div className="flex items-center gap-2">
-                  {user?.role === "organizer" && (
+                  {isEventOrganizer && (
                     <Link
                       href={`/dashboard/organizer/events/${eventId}/floor-plan`}
                       className="btn btn-secondary btn-sm text-xs"
