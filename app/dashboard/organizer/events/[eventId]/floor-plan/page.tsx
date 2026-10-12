@@ -3,7 +3,13 @@
 import { useState, useRef, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { ensureEventFloorPlanInitialized } from "@/app/lib/event-defaults";
+import {
+  ensureEventFloorPlanInitialized,
+  getEventMeta,
+  getAllOrganizerEvents,
+  setActiveOrganizerEventId,
+  EventDetail,
+} from "@/app/lib/event-defaults";
 
 type Booth = {
   id: string;
@@ -43,6 +49,8 @@ function FloorPlanContent() {
   const router = useRouter();
   const params = useParams();
   const eventId = (params?.eventId as string) || "1";
+  const [eventMeta, setEventMeta] = useState<EventDetail>(getEventMeta(eventId));
+  const [allEvents, setAllEvents] = useState<Array<{ id: string; title: string; category: string }>>([]);
   const [booths, setBooths] = useState<Booth[]>(INITIAL_BOOTHS);
   const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
@@ -53,9 +61,12 @@ function FloorPlanContent() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount & when eventId changes
   useEffect(() => {
     try {
+      setActiveOrganizerEventId(eventId);
+      setEventMeta(getEventMeta(eventId));
+      setAllEvents(getAllOrganizerEvents());
       const initialized = ensureEventFloorPlanInitialized(eventId);
       setBooths(initialized.booths);
       const storedBg = localStorage.getItem(`boothify_floor_plan_bg_${eventId}`) || localStorage.getItem("boothify_floor_plan_bg");
@@ -203,29 +214,55 @@ function FloorPlanContent() {
 
   return (
     <div className="animate-fade-in" id="floor-plan-builder">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/[0.08]">
         <div>
-          <h1 className="text-2xl font-bold mb-1">Interactive Floor Plan Builder</h1>
-          <p className="text-sm text-muted-foreground">
-            Rancang tata letak booth acara Anda. Hasil rancangan ini langsung otomatis terbit di halaman Sewa Booth Tenant dan Panduan Digital Pengunjung.
+          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+            <h1 className="text-2xl font-bold tracking-tight">Interactive Floor Plan Builder</h1>
+            <span className="badge badge-primary text-xs">Event #{eventId}</span>
+            <span className="badge badge-secondary text-xs">{eventMeta.category}</span>
+          </div>
+          <p className="text-sm font-semibold text-primary-light mb-1">
+            🎯 {eventMeta.title} <span className="text-muted-foreground font-normal text-xs">({eventMeta.location} • {eventMeta.date})</span>
           </p>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-2">
+            <span>Ganti Event yang Diedit:</span>
+            <select
+              value={eventId}
+              onChange={(e) => {
+                setActiveOrganizerEventId(e.target.value);
+                router.push(`/dashboard/organizer/events/${e.target.value}/floor-plan`);
+              }}
+              className="bg-card/90 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:outline-none"
+            >
+              {allEvents.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title} (ID #{ev.id})
+                </option>
+              ))}
+            </select>
+            <span className="text-emerald-400 font-medium">● Perubahan denah langsung sinkron ke halaman Tenant & Pengunjung</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Link
             href={`/events/${eventId}`}
             target="_blank"
-            className="btn btn-secondary btn-sm text-xs"
+            className="btn btn-secondary btn-sm text-xs hover:border-primary/50 transition flex items-center gap-1.5"
             id="btn-preview-tenant-view"
+            title={`Lihat halaman pemesanan booth untuk ${eventMeta.title}`}
           >
-            👁️ Lihat Tampilan Tenant ↗
+            <span>👁️ Tampilan Tenant (#{eventId})</span>
+            <span className="text-[10px] text-muted-foreground">↗</span>
           </Link>
           <Link
             href={`/events/${eventId}/guide`}
             target="_blank"
-            className="btn btn-secondary btn-sm text-xs"
+            className="btn btn-secondary btn-sm text-xs hover:border-accent/50 transition flex items-center gap-1.5"
             id="btn-preview-guide-view"
+            title={`Lihat panduan digital pengunjung untuk ${eventMeta.title}`}
           >
-            📱 Lihat Panduan Pengunjung ↗
+            <span>📱 Panduan Pengunjung (#{eventId})</span>
+            <span className="text-[10px] text-muted-foreground">↗</span>
           </Link>
         </div>
       </div>

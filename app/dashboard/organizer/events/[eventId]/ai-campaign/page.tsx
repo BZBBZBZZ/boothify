@@ -1,9 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useParams, useRouter } from "next/navigation";
+import {
+  getEventMeta,
+  getAllOrganizerEvents,
+  setActiveOrganizerEventId,
+} from "@/app/lib/event-defaults";
 
-export default function AICampaignPage() {
+function AICampaignContent() {
+  const router = useRouter();
+  const params = useParams();
+  const eventId = (params?.eventId as string) || "1";
+
   const [topic, setTopic] = useState("");
+  const [eventTitle, setEventTitle] = useState("Green Fashion Expo 2026");
+  const [eventCategory, setEventCategory] = useState("Fashion");
+  const [allEvents, setAllEvents] = useState<Array<{ id: string; title: string }>>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [appliedIndex, setAppliedIndex] = useState<number | null>(null);
   const [results, setResults] = useState<null | {
@@ -11,6 +24,30 @@ export default function AICampaignPage() {
     campaigns: { title: string; narrative: string; impact: string }[];
     tips: string[];
   }>(null);
+
+  useEffect(() => {
+    try {
+      setActiveOrganizerEventId(eventId);
+      const meta = getEventMeta(eventId);
+      setEventTitle(meta.title);
+      setEventCategory(meta.category);
+      setAllEvents(getAllOrganizerEvents());
+
+      // Set intelligent default topic based on event category
+      const cat = (meta.category || "").toLowerCase();
+      if (cat.includes("food") || cat.includes("fnb")) {
+        setTopic("Kuliner Nusantara & Street Food Otentik");
+      } else if (cat.includes("edu") || cat.includes("tech")) {
+        setTopic("EduTech, Coding Academy & AI Classroom");
+      } else if (cat.includes("auto")) {
+        setTopic("Mobil Listrik & Inovasi Otomotif Ramah Lingkungan");
+      } else if (cat.includes("craft")) {
+        setTopic("Kriya Lokal Handmade & Upcycled Artisan");
+      } else {
+        setTopic("Sustainable Fashion & Circular Lifestyle");
+      }
+    } catch { /* ignore */ }
+  }, [eventId]);
 
   const handleGenerate = () => {
     setIsGenerating(true);
@@ -92,14 +129,34 @@ export default function AICampaignPage() {
 
   return (
     <div className="animate-fade-in" id="ai-campaign-page">
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-1">
-          <h1 className="text-2xl font-bold">AI Campaign & Insights Generator</h1>
-          <span className="badge badge-secondary text-[10px]">✨ POWERED BY GEMINI</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/[0.08]">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-bold">AI Campaign & Insights Generator</h1>
+            <span className="badge badge-secondary text-[10px]">✨ POWERED BY GEMINI</span>
+            <span className="badge badge-primary text-xs">Event #{eventId}</span>
+          </div>
+          <p className="text-sm text-primary-light font-medium">
+            🎯 {eventTitle} <span className="text-muted-foreground text-xs font-normal">({eventCategory})</span>
+          </p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+            <span>Ganti Acara:</span>
+            <select
+              value={eventId}
+              onChange={(e) => {
+                setActiveOrganizerEventId(e.target.value);
+                router.push(`/dashboard/organizer/events/${e.target.value}/ai-campaign`);
+              }}
+              className="bg-card/90 border border-white/10 rounded-lg px-2 py-1 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:outline-none"
+            >
+              {allEvents.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title} (ID #{ev.id})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Analisis tren global & lokal, dapatkan rekomendasi narasi campaign yang berdampak tinggi untuk event kamu
-        </p>
       </div>
 
       {/* Input */}
@@ -219,5 +276,22 @@ export default function AICampaignPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AICampaignPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[300px]">
+          <div className="text-center">
+            <svg className="animate-spin mx-auto mb-2 text-primary" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
+            <p className="text-xs text-muted-foreground">Memuat Generator Kampanye AI...</p>
+          </div>
+        </div>
+      }
+    >
+      <AICampaignContent />
+    </Suspense>
   );
 }

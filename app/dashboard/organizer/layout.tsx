@@ -5,42 +5,182 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "../../components/AuthContext";
 
-const NAV_ITEMS = [
-  { href: "/dashboard/organizer", label: "Dashboard", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg> },
-  { href: "/dashboard/organizer/events/new", label: "Buat Event", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg> },
-  { href: "/dashboard/organizer/events/1/floor-plan", label: "Floor Plan", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></svg> },
-  { href: "/dashboard/organizer/events/1/ai-campaign", label: "AI Campaign", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg> },
-  { href: "/dashboard/organizer/events/1/qr-code", label: "QR Code", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="2" width="8" height="8" rx="1" /><rect x="14" y="2" width="8" height="8" rx="1" /><rect x="2" y="14" width="8" height="8" rx="1" /><rect x="14" y="14" width="4" height="4" /><line x1="22" y1="18" x2="22" y2="22" /><line x1="18" y1="22" x2="22" y2="22" /></svg> },
-  { href: "/dashboard/organizer#organizer-inbox", label: "Pesan Masuk", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> },
-  { href: "/dashboard/organizer/profile", label: "Profil", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> },
-];
+import {
+  getAllOrganizerEvents,
+  getActiveOrganizerEventId,
+  setActiveOrganizerEventId,
+} from "../../lib/event-defaults";
 
 function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [activeEventId, setActiveEventId] = useState("1");
+  const [eventsList, setEventsList] = useState<Array<{ id: string; title: string; category: string }>>([]);
+
+  useEffect(() => {
+    // 1. Detect eventId from pathname if present
+    const match = pathname.match(/\/events\/([^/]+)/);
+    if (match && match[1] && match[1] !== "new") {
+      setActiveEventId(match[1]);
+      setActiveOrganizerEventId(match[1]);
+    } else {
+      setActiveEventId(getActiveOrganizerEventId());
+    }
+
+    // 2. Load events list for switcher
+    setEventsList(getAllOrganizerEvents());
+  }, [pathname]);
+
+  const handleSwitchEvent = (newEventId: string) => {
+    setActiveEventId(newEventId);
+    setActiveOrganizerEventId(newEventId);
+
+    // If currently on an event subpage (floor-plan, ai-campaign, qr-code), switch seamlessly
+    if (pathname.includes("/floor-plan")) {
+      router.push(`/dashboard/organizer/events/${newEventId}/floor-plan`);
+    } else if (pathname.includes("/ai-campaign")) {
+      router.push(`/dashboard/organizer/events/${newEventId}/ai-campaign`);
+    } else if (pathname.includes("/qr-code")) {
+      router.push(`/dashboard/organizer/events/${newEventId}/qr-code`);
+    }
+    if (onNavigate) onNavigate();
+  };
+
+  const navItems = [
+    {
+      href: "/dashboard/organizer",
+      label: "Dashboard",
+      isActive: pathname === "/dashboard/organizer",
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <rect x="3" y="3" width="7" height="7" />
+          <rect x="14" y="3" width="7" height="7" />
+          <rect x="14" y="14" width="7" height="7" />
+          <rect x="3" y="14" width="7" height="7" />
+        </svg>
+      ),
+    },
+    {
+      href: "/dashboard/organizer/events/new",
+      label: "Buat Event",
+      isActive: pathname === "/dashboard/organizer/events/new",
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="16" />
+          <line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+      ),
+    },
+    {
+      href: `/dashboard/organizer/events/${activeEventId}/floor-plan`,
+      label: "Floor Plan",
+      isActive: pathname.includes("/floor-plan"),
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="3" y1="9" x2="21" y2="9" />
+          <line x1="9" y1="21" x2="9" y2="9" />
+        </svg>
+      ),
+    },
+    {
+      href: `/dashboard/organizer/events/${activeEventId}/ai-campaign`,
+      label: "AI Campaign",
+      isActive: pathname.includes("/ai-campaign"),
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" />
+          <path d="M2 17l10 5 10-5" />
+          <path d="M2 12l10 5 10-5" />
+        </svg>
+      ),
+    },
+    {
+      href: `/dashboard/organizer/events/${activeEventId}/qr-code`,
+      label: "QR Code",
+      isActive: pathname.includes("/qr-code"),
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <rect x="2" y="2" width="8" height="8" rx="1" />
+          <rect x="14" y="2" width="8" height="8" rx="1" />
+          <rect x="2" y="14" width="8" height="8" rx="1" />
+          <rect x="14" y="14" width="4" height="4" />
+          <line x1="22" y1="18" x2="22" y2="22" />
+          <line x1="18" y1="22" x2="22" y2="22" />
+        </svg>
+      ),
+    },
+    {
+      href: "/dashboard/organizer#organizer-inbox",
+      label: "Pesan Masuk",
+      isActive: pathname === "/dashboard/organizer" && typeof window !== "undefined" && window.location.hash === "#organizer-inbox",
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+          <polyline points="22,6 12,13 2,6" />
+        </svg>
+      ),
+    },
+    {
+      href: "/dashboard/organizer/profile",
+      label: "Profil",
+      isActive: pathname === "/dashboard/organizer/profile",
+      icon: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      ),
+    },
+  ];
+
   return (
-    <>
-      {NAV_ITEMS.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className={`sidebar-link ${pathname === item.href ? "active" : ""}`}
-          onClick={onNavigate}
-        >
-          {item.icon} {item.label}
-        </Link>
-      ))}
-    </>
+    <div className="space-y-4">
+      {/* Event Context Switcher Widget in Sidebar */}
+      <div className="px-1">
+        <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs">
+          <div className="flex items-center justify-between mb-1.5 text-muted-foreground font-medium text-[11px]">
+            <span>Acara Aktif</span>
+            <span className="badge badge-primary text-[9px] py-0 px-1.5">ID #{activeEventId}</span>
+          </div>
+          <select
+            value={activeEventId}
+            onChange={(e) => handleSwitchEvent(e.target.value)}
+            className="w-full bg-card/90 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary truncate"
+          >
+            {eventsList.map((ev) => (
+              <option key={ev.id} value={ev.id}>
+                {ev.title}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Nav items */}
+      <div className="space-y-1">
+        {navItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`sidebar-link ${item.isActive ? "active" : ""}`}
+            onClick={onNavigate}
+          >
+            {item.icon} {item.label}
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
 
 function NavFallback() {
   return (
     <div className="space-y-1">
-      {NAV_ITEMS.map((item) => (
-        <Link key={item.href} href={item.href} className="sidebar-link">
-          {item.icon} {item.label}
-        </Link>
-      ))}
+      <Link href="/dashboard/organizer" className="sidebar-link active">Dashboard</Link>
+      <Link href="/dashboard/organizer/events/new" className="sidebar-link">Buat Event</Link>
+      <Link href="/dashboard/organizer/events/1/floor-plan" className="sidebar-link">Floor Plan</Link>
     </div>
   );
 }

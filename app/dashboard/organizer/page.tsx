@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/components/AuthContext";
+import { setActiveOrganizerEventId } from "@/app/lib/event-defaults";
 
 type EventItem = {
   id: string;
@@ -40,9 +41,9 @@ type InboxMessage = {
 };
 
 const DEFAULT_EVENTS: EventItem[] = [
-  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", status: "active", boothsFilled: 42, boothsTotal: 60, organizerEmail: "demo-organizer@boothify.id" },
-  { id: "2", title: "Sustainable Living Fair", date: "5–7 Des 2026", status: "draft", boothsFilled: 0, boothsTotal: 40, organizerEmail: "demo-organizer@boothify.id" },
-  { id: "3", title: "Eco Market Bandung", date: "20–22 Des 2026", status: "active", boothsFilled: 28, boothsTotal: 35, organizerEmail: "demo-organizer@boothify.id" },
+  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", status: "active", boothsFilled: 5, boothsTotal: 14, organizerEmail: "demo-organizer@boothify.id" },
+  { id: "2", title: "Indonesia Food Festival 2026", date: "22–24 Nov 2026", status: "active", boothsFilled: 3, boothsTotal: 10, organizerEmail: "demo-organizer@boothify.id" },
+  { id: "3", title: "EduTech Innovation Fair 2026", date: "1–3 Des 2026", status: "active", boothsFilled: 2, boothsTotal: 8, organizerEmail: "demo-organizer@boothify.id" },
 ];
 
 const DEFAULT_BOOKINGS: BookingItem[] = [
@@ -280,13 +281,25 @@ export default function OrganizerDashboard() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Link href={`/events/${event.id}/guide`} className="btn btn-ghost btn-sm text-xs">
+                      <Link
+                        href={`/events/${event.id}/guide`}
+                        onClick={() => setActiveOrganizerEventId(event.id)}
+                        className="btn btn-ghost btn-sm text-xs"
+                      >
                         Lihat Panduan ↗
                       </Link>
-                      <Link href={`/dashboard/organizer/events/${event.id}/qr-code`} className="btn btn-secondary btn-sm text-xs">
+                      <Link
+                        href={`/dashboard/organizer/events/${event.id}/qr-code`}
+                        onClick={() => setActiveOrganizerEventId(event.id)}
+                        className="btn btn-secondary btn-sm text-xs"
+                      >
                         QR ↗
                       </Link>
-                      <Link href={`/dashboard/organizer/events/${event.id}/floor-plan`} className="btn btn-primary btn-sm text-xs">
+                      <Link
+                        href={`/dashboard/organizer/events/${event.id}/floor-plan`}
+                        onClick={() => setActiveOrganizerEventId(event.id)}
+                        className="btn btn-primary btn-sm text-xs"
+                      >
                         Denah Booth →
                       </Link>
                     </div>

@@ -132,6 +132,48 @@ export const DEFAULT_EVENTS_META: Record<string, EventDetail> = {
       "Beasiswa pendidikan untuk 500 pelajar",
     ],
   },
+  "4": {
+    id: "4",
+    title: "AutoMotive Show 2026",
+    date: "10–12 Desember 2026",
+    time: "10:00 – 21:00 WIB",
+    location: "JIEXPO Kemayoran, Hall C",
+    address: "Jl. Benyamin Sueb, Kemayoran, Jakarta Pusat",
+    category: "Automotive",
+    description: "Pameran otomotif masa depan menampilkan mobil listrik terbaru, modifikasi kreatif, dan aksesori otomotif premium.",
+    organizer: "PT. Event Kreasi Nusantara",
+    organizerEmail: "demo-organizer@boothify.id",
+    boothsFilled: 4,
+    boothsTotal: 12,
+    priceRange: "Rp 3.500.000 – Rp 5.000.000",
+    image: "🚗",
+    gradient: "from-blue-500/20 to-cyan-500/20",
+    zones: [
+      { name: "Zona V — Kendaraan & Mobil Listrik", booths: 6, color: "zone-automotive" },
+      { name: "Zona A — Aksesori & Sparepart", booths: 6, color: "zone-automotive" },
+    ],
+  },
+  "5": {
+    id: "5",
+    title: "Craft & Artisan Market 2026",
+    date: "18–20 Desember 2026",
+    time: "10:00 – 20:00 WIB",
+    location: "Bandung Creative Hub",
+    address: "Jl. Laswi No.7, Batununggal, Bandung",
+    category: "Craft",
+    description: "Pusat kreasi seni kriya, keramik buatan tangan, aksesoris kulit, dan produk handmade karya kreator lokal se-Jawa Barat.",
+    organizer: "PT. Event Kreasi Nusantara",
+    organizerEmail: "demo-organizer@boothify.id",
+    boothsFilled: 3,
+    boothsTotal: 10,
+    priceRange: "Rp 1.200.000 – Rp 2.200.000",
+    image: "🎨",
+    gradient: "from-pink-500/20 to-rose-500/20",
+    zones: [
+      { name: "Zona K — Kerajinan & Keramik", booths: 5, color: "zone-craft" },
+      { name: "Zona H — Handmade & Kulit", booths: 5, color: "zone-craft" },
+    ],
+  },
 };
 
 export const DEFAULT_EVENT_BOOTHS: Record<string, FloorPlanBooth[]> = {
@@ -324,6 +366,27 @@ export const DEFAULT_EVENT_TENANTS: Record<string, Record<string, EventTenantInf
   },
 };
 
+export function generateDefaultBoothsForEvent(eventId: string, category?: string): FloorPlanBooth[] {
+  const cat = (category || "").toLowerCase();
+  const zone = cat.includes("food") || cat.includes("fnb") || cat.includes("kuliner") ? "fnb"
+    : cat.includes("fash") || cat.includes("mode") ? "fashion"
+    : cat.includes("edu") || cat.includes("tech") ? "education"
+    : cat.includes("auto") ? "automotive"
+    : cat.includes("craft") || cat.includes("kriya") ? "craft"
+    : "general";
+
+  return [
+    { id: "A1", x: 40, y: 70, width: 85, height: 60, label: "A1", zone, price: 2500000 },
+    { id: "A2", x: 145, y: 70, width: 85, height: 60, label: "A2", zone, price: 2500000 },
+    { id: "A3", x: 250, y: 70, width: 85, height: 60, label: "A3", zone, price: 2500000 },
+    { id: "A4", x: 355, y: 70, width: 85, height: 60, label: "A4", zone, price: 2500000 },
+    { id: "B1", x: 40, y: 160, width: 85, height: 60, label: "B1", zone, price: 2000000 },
+    { id: "B2", x: 145, y: 160, width: 85, height: 60, label: "B2", zone, price: 2000000 },
+    { id: "B3", x: 250, y: 160, width: 85, height: 60, label: "B3", zone, price: 2000000 },
+    { id: "B4", x: 355, y: 160, width: 85, height: 60, label: "B4", zone, price: 2000000 },
+  ];
+}
+
 /**
  * Initialize event floor plan and tenants in localStorage if not already present.
  */
@@ -332,11 +395,15 @@ export function ensureEventFloorPlanInitialized(eventId: string): {
   tenants: Record<string, EventTenantInfo>;
   booked: string[];
 } {
+  const meta = DEFAULT_EVENTS_META[eventId];
+  const fallbackBooths = DEFAULT_EVENT_BOOTHS[eventId] || generateDefaultBoothsForEvent(eventId, meta?.category);
+  const fallbackTenants = DEFAULT_EVENT_TENANTS[eventId] || {};
+
   if (typeof window === "undefined") {
     return {
-      booths: DEFAULT_EVENT_BOOTHS[eventId] || DEFAULT_EVENT_BOOTHS["1"],
-      tenants: DEFAULT_EVENT_TENANTS[eventId] || {},
-      booked: Object.keys(DEFAULT_EVENT_TENANTS[eventId] || {}),
+      booths: fallbackBooths,
+      tenants: fallbackTenants,
+      booked: Object.keys(fallbackTenants),
     };
   }
 
@@ -347,7 +414,7 @@ export function ensureEventFloorPlanInitialized(eventId: string): {
     if (storedBoothsRaw) {
       booths = JSON.parse(storedBoothsRaw);
     } else {
-      booths = DEFAULT_EVENT_BOOTHS[eventId] || DEFAULT_EVENT_BOOTHS["1"];
+      booths = fallbackBooths;
       localStorage.setItem(`boothify_event_${eventId}_booths`, JSON.stringify(booths));
     }
 
@@ -357,7 +424,7 @@ export function ensureEventFloorPlanInitialized(eventId: string): {
     if (storedTenantsRaw) {
       tenants = JSON.parse(storedTenantsRaw);
     } else {
-      tenants = DEFAULT_EVENT_TENANTS[eventId] || {};
+      tenants = fallbackTenants;
       localStorage.setItem(`boothify_event_${eventId}_booth_tenants`, JSON.stringify(tenants));
     }
 
@@ -374,9 +441,103 @@ export function ensureEventFloorPlanInitialized(eventId: string): {
     return { booths, tenants, booked };
   } catch {
     return {
-      booths: DEFAULT_EVENT_BOOTHS[eventId] || DEFAULT_EVENT_BOOTHS["1"],
-      tenants: DEFAULT_EVENT_TENANTS[eventId] || {},
-      booked: Object.keys(DEFAULT_EVENT_TENANTS[eventId] || {}),
+      booths: fallbackBooths,
+      tenants: fallbackTenants,
+      booked: Object.keys(fallbackTenants),
     };
   }
 }
+
+/**
+ * Get unified event metadata (from localStorage if custom, or defaults)
+ */
+export function getEventMeta(eventId: string): EventDetail {
+  if (typeof window !== "undefined") {
+    try {
+      const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+      const found = storedEvents.find((e: { id: string }) => String(e.id) === String(eventId));
+      if (found) {
+        const base = DEFAULT_EVENTS_META[eventId] || DEFAULT_EVENTS_META["1"];
+        return {
+          ...base,
+          ...found,
+          highlights: base.highlights,
+          zones: base.zones,
+        };
+      }
+    } catch { /* ignore */ }
+  }
+  return (
+    DEFAULT_EVENTS_META[eventId] || {
+      id: eventId,
+      title: `Event #${eventId}`,
+      date: "Akan Datang 2026",
+      location: "Venue Pameran Terpilih",
+      category: "General",
+      description: "Pameran resmi dengan tata letak booth eksklusif dan terstruktur.",
+      organizer: "PT. Event Kreasi Nusantara",
+      organizerEmail: "demo-organizer@boothify.id",
+      boothsFilled: 0,
+      boothsTotal: 10,
+      priceRange: "Rp 2.000.000 – Rp 3.000.000",
+      image: "🎪",
+    }
+  );
+}
+
+/**
+ * Get all available events for Organizer management
+ */
+export function getAllOrganizerEvents(): Array<{ id: string; title: string; category: string; date: string }> {
+  const baseList = [
+    { id: "1", title: "Green Fashion Expo 2026", category: "Fashion", date: "15–17 Nov 2026" },
+    { id: "2", title: "Indonesia Food Festival 2026", category: "F&B", date: "22–24 Nov 2026" },
+    { id: "3", title: "EduTech Innovation Fair 2026", category: "Education", date: "1–3 Des 2026" },
+    { id: "4", title: "AutoMotive Show 2026", category: "Automotive", date: "10–12 Des 2026" },
+    { id: "5", title: "Craft & Artisan Market 2026", category: "Craft", date: "18–20 Des 2026" },
+  ];
+
+  if (typeof window !== "undefined") {
+    try {
+      const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+      if (Array.isArray(stored) && stored.length > 0) {
+        const custom = stored.map((e: { id: string; title: string; category?: string; date: string }) => ({
+          id: String(e.id),
+          title: e.title || `Event #${e.id}`,
+          category: e.category || "General",
+          date: e.date || "2026",
+        }));
+        const existingIds = new Set(custom.map((c: { id: string }) => c.id));
+        const rem = baseList.filter((b) => !existingIds.has(b.id));
+        return [...custom, ...rem];
+      }
+    } catch { /* ignore */ }
+  }
+
+  return baseList;
+}
+
+/**
+ * Get currently active event ID for organizer dashboard
+ */
+export function getActiveOrganizerEventId(): string {
+  if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem("boothify_active_organizer_event_id");
+      if (stored) return stored;
+    } catch { /* ignore */ }
+  }
+  return "1";
+}
+
+/**
+ * Set currently active event ID for organizer dashboard
+ */
+export function setActiveOrganizerEventId(id: string): void {
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem("boothify_active_organizer_event_id", id);
+    } catch { /* ignore */ }
+  }
+}
+

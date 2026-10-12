@@ -1,11 +1,17 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import QRCode from "qrcode";
+import {
+  getEventMeta,
+  getAllOrganizerEvents,
+  setActiveOrganizerEventId,
+} from "@/app/lib/event-defaults";
 
 function QRCodeContent() {
+  const router = useRouter();
   const params = useParams();
   const eventId = (params?.eventId as string) || "1";
   const [copied, setCopied] = useState(false);
@@ -15,6 +21,7 @@ function QRCodeContent() {
   const [printSize, setPrintSize] = useState("A4");
   const [eventTitle, setEventTitle] = useState("Green Fashion Expo 2026");
   const [eventDate, setEventDate] = useState("15–17 November 2026");
+  const [allEvents, setAllEvents] = useState<Array<{ id: string; title: string }>>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const eventPath = `/events/${eventId}/guide`;
@@ -22,12 +29,11 @@ function QRCodeContent() {
 
   useEffect(() => {
     try {
-      const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-      const found = storedEvents.find((e: { id: string; title: string; date: string }) => e.id === eventId);
-      if (found) {
-        setEventTitle(found.title);
-        if (found.date) setEventDate(found.date);
-      }
+      setActiveOrganizerEventId(eventId);
+      const meta = getEventMeta(eventId);
+      setEventTitle(meta.title);
+      if (meta.date) setEventDate(meta.date);
+      setAllEvents(getAllOrganizerEvents());
     } catch { /* ignore */ }
   }, [eventId]);
 
@@ -66,14 +72,16 @@ function QRCodeContent() {
 
   const downloadPNG = () => {
     if (!canvasRef.current) return;
+    const slug = eventTitle.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
     const link = document.createElement("a");
-    link.download = "boothify-qr-green-fashion-expo.png";
+    link.download = `boothify-qr-${eventId}-${slug}.png`;
     link.href = canvasRef.current.toDataURL("image/png");
     link.click();
   };
 
   const downloadSVG = () => {
     if (!eventUrl) return;
+    const slug = eventTitle.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
     QRCode.toString(eventUrl, {
       type: "svg",
       width: 512,
@@ -82,7 +90,7 @@ function QRCodeContent() {
     }).then((svgString) => {
       const blob = new Blob([svgString], { type: "image/svg+xml" });
       const link = document.createElement("a");
-      link.download = "boothify-qr-green-fashion-expo.svg";
+      link.download = `boothify-qr-${eventId}-${slug}.svg`;
       link.href = URL.createObjectURL(blob);
       link.click();
       URL.revokeObjectURL(link.href);
@@ -91,11 +99,42 @@ function QRCodeContent() {
 
   return (
     <div className="animate-fade-in" id="qr-code-page">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">QR Code Event</h1>
-        <p className="text-sm text-muted-foreground">
-          QR Code unik untuk event — cetak dan pasang di lokasi acara sebagai panduan pengunjung
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/[0.08]">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-bold">QR Code Event</h1>
+            <span className="badge badge-primary text-xs">Event #{eventId}</span>
+          </div>
+          <p className="text-sm text-primary-light font-medium">
+            🎯 {eventTitle} <span className="text-muted-foreground text-xs font-normal">({eventDate})</span>
+          </p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+            <span>Ganti Acara:</span>
+            <select
+              value={eventId}
+              onChange={(e) => {
+                setActiveOrganizerEventId(e.target.value);
+                router.push(`/dashboard/organizer/events/${e.target.value}/qr-code`);
+              }}
+              className="bg-card/90 border border-white/10 rounded-lg px-2 py-1 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:outline-none"
+            >
+              {allEvents.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title} (ID #{ev.id})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/events/${eventId}/guide`}
+            target="_blank"
+            className="btn btn-secondary btn-sm text-xs"
+          >
+            📱 Buka Panduan Digital ↗
+          </Link>
+        </div>
       </div>
 
       {/* Hidden canvas for high-res download */}
