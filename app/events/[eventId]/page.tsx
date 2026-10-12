@@ -444,11 +444,13 @@ function EventDetailContent() {
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Kirim Pesan Langsung</h4>
                 {contactSent ? (
                   <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-center animate-fade-in" id="contact-success-msg">
-                    <p className="text-sm font-semibold text-emerald-400 mb-1">✓ Pesan Berhasil Terkirim!</p>
-                    <p className="text-xs text-muted-foreground">Organizer akan membalas pertanyaan Anda via WhatsApp atau Email dalam 1x24 jam kerja.</p>
+                    <p className="text-sm font-semibold text-emerald-400 mb-1">✓ Pesan Berhasil Terkirim ke Organizer!</p>
+                    <p className="text-xs text-muted-foreground">
+                      Pesan Anda telah masuk ke <strong>Inbox Dashboard Organizer</strong> dan akan ditindaklanjuti via WhatsApp ({contactForm.phone || "nomor Anda"}) atau Email.
+                    </p>
                     <button
                       type="button"
-                      onClick={() => { setContactSent(false); setShowContactModal(false); }}
+                      onClick={() => { setContactSent(false); setShowContactModal(false); setContactForm({ name: "", email: "", phone: "", message: "" }); }}
                       className="btn btn-secondary btn-sm mt-3"
                     >
                       Selesai
@@ -458,6 +460,24 @@ function EventDetailContent() {
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
+                      try {
+                        const messages = JSON.parse(localStorage.getItem("boothify_organizer_inbox") || "[]");
+                        messages.unshift({
+                          id: "MSG-" + Date.now().toString().slice(-4),
+                          eventId,
+                          eventTitle: event.title,
+                          senderName: contactForm.name,
+                          senderEmail: contactForm.email,
+                          senderPhone: contactForm.phone || "-",
+                          message: contactForm.message,
+                          time: "Baru saja",
+                          date: "Hari ini",
+                          status: "unread",
+                        });
+                        localStorage.setItem("boothify_organizer_inbox", JSON.stringify(messages));
+                      } catch {
+                        // ignore
+                      }
                       setContactSent(true);
                     }}
                     className="space-y-3"

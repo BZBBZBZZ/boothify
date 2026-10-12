@@ -22,6 +22,7 @@ type VisitorOrderItem = {
   phone?: string;
   method: string;
   time: string;
+  status?: "pending" | "making" | "ready" | "done";
 };
 
 const DEFAULT_BOOKINGS: BookingItem[] = [
@@ -68,6 +69,16 @@ export default function TenantDashboard() {
   }, []);
 
   const uniqueEventsCount = new Set(bookings.map((b) => b.event)).size;
+
+  const updateOrderStatus = (orderId: string, newStatus: "pending" | "making" | "ready" | "done") => {
+    const updated = visitorOrders.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o));
+    setVisitorOrders(updated);
+    try {
+      localStorage.setItem("boothify_visitor_orders", JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+  };
 
   return (
     <div className="animate-fade-in" id="tenant-overview">
@@ -170,35 +181,97 @@ export default function TenantDashboard() {
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                   <h2 className="font-semibold text-foreground">Pesanan Masuk dari Pengunjung (Live)</h2>
                 </div>
-                <span className="badge badge-primary text-[10px]">{visitorOrders.length} Pesanan</span>
+                <div className="flex items-center gap-2">
+                  <span className="badge badge-primary text-[10px]">{visitorOrders.length} Pesanan</span>
+                  <Link href="/dashboard/tenant/bookings" className="btn btn-ghost btn-sm text-[11px] text-primary-light">
+                    Buka KDS Penuh →
+                  </Link>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground mb-4">
-                Pesanan yang dibuat oleh pengunjung melalui scan QR Code / Digital Guide di booth kamu.
+                Pesanan yang dibuat oleh pengunjung melalui scan QR Code / Digital Guide di booth kamu. Ubah status pesanan secara real-time.
               </p>
               <div className="space-y-3">
-                {visitorOrders.slice(0, 5).map((order) => (
-                  <div key={order.id} className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold font-mono text-primary-light">{order.id}</span>
-                        <span className="badge badge-secondary text-[9px]">{order.method}</span>
-                        <span className="text-[10px] text-muted-foreground">{order.time}</span>
+                {visitorOrders.slice(0, 5).map((order) => {
+                  const status = order.status || "pending";
+                  return (
+                    <div
+                      key={order.id}
+                      className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition ${
+                        status === "making"
+                          ? "bg-sky-500/[0.04] border-sky-500/30"
+                          : status === "ready"
+                          ? "bg-emerald-500/[0.04] border-emerald-500/40"
+                          : status === "done"
+                          ? "bg-white/[0.01] border-white/5 opacity-70"
+                          : "bg-amber-500/[0.03] border-amber-500/30"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold font-mono text-primary-light">{order.id}</span>
+                          <span className="badge badge-secondary text-[9px]">{order.method}</span>
+                          <span className="text-[10px] text-muted-foreground">{order.time}</span>
+                          {status === "pending" && (
+                            <span className="badge text-[9px] bg-amber-500/15 text-amber-400">🟡 Baru Masuk</span>
+                          )}
+                          {status === "making" && (
+                            <span className="badge text-[9px] bg-sky-500/15 text-sky-400 animate-pulse">🔵 Sedang Dibuat</span>
+                          )}
+                          {status === "ready" && (
+                            <span className="badge text-[9px] bg-emerald-500/15 text-emerald-400">🟢 Siap Diambil</span>
+                          )}
+                          {status === "done" && (
+                            <span className="badge text-[9px] bg-white/10 text-muted-foreground">✅ Selesai</span>
+                          )}
+                        </div>
+                        <p className="font-medium text-foreground mt-1">
+                          {order.customer} {order.phone && <span className="text-muted-foreground font-normal">({order.phone})</span>}
+                        </p>
+                        <p className="text-muted-foreground text-[11px] mt-0.5">
+                          {order.items.map((it) => `${it.qty}x ${it.name}`).join(", ")}
+                        </p>
                       </div>
-                      <p className="font-medium text-foreground mt-1">
-                        {order.customer} {order.phone && <span className="text-muted-foreground font-normal">({order.phone})</span>}
-                      </p>
-                      <p className="text-muted-foreground text-[11px] mt-0.5">
-                        {order.items.map((it) => `${it.qty}x ${it.name}`).join(", ")}
-                      </p>
+                      <div className="text-right flex sm:flex-col items-center sm:items-end justify-between gap-2">
+                        <span className="font-bold text-foreground text-sm">
+                          Rp {order.total.toLocaleString("id-ID")}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {status === "pending" && (
+                            <button
+                              onClick={() => updateOrderStatus(order.id, "making")}
+                              className="btn btn-primary btn-sm text-[11px] py-1 px-2.5"
+                              id={`dash-make-${order.id}`}
+                            >
+                              🍳 Buat
+                            </button>
+                          )}
+                          {status === "making" && (
+                            <button
+                              onClick={() => updateOrderStatus(order.id, "ready")}
+                              className="btn btn-sm text-[11px] py-1 px-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-medium"
+                              id={`dash-ready-${order.id}`}
+                            >
+                              🔔 Siap
+                            </button>
+                          )}
+                          {status === "ready" && (
+                            <button
+                              onClick={() => updateOrderStatus(order.id, "done")}
+                              className="btn btn-secondary btn-sm text-[11px] py-1 px-2.5"
+                              id={`dash-done-${order.id}`}
+                            >
+                              ✓ Selesai
+                            </button>
+                          )}
+                          {status === "done" && (
+                            <span className="text-muted-foreground text-[11px]">Selesai</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-right flex sm:flex-col items-center sm:items-end justify-between">
-                      <span className="font-bold text-foreground text-sm">
-                        Rp {order.total.toLocaleString("id-ID")}
-                      </span>
-                      <span className="text-emerald-400 text-[10px] font-medium">✓ Siap Disajikan</span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

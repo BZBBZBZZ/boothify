@@ -118,6 +118,12 @@ function EventGuideContent() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("QRIS");
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
+  const [activeOrder, setActiveOrder] = useState<{
+    id: string;
+    status?: string;
+    items?: { name: string; qty: number }[];
+    total?: number;
+  } | null>(null);
 
   useEffect(() => {
     try {
@@ -233,6 +239,7 @@ function EventGuideContent() {
         phone: user?.phone || guestPhone || "",
         method: selectedPaymentMethod,
         time: "Baru saja",
+        status: "pending",
       });
       localStorage.setItem("boothify_visitor_orders", JSON.stringify(orders));
 
@@ -244,6 +251,29 @@ function EventGuideContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentSuccess]);
+
+  // Poll order status updates from tenant
+  useEffect(() => {
+    const checkOrder = () => {
+      try {
+        const stored = localStorage.getItem("boothify_visitor_orders");
+        if (stored) {
+          const list = JSON.parse(stored);
+          if (Array.isArray(list) && list.length > 0) {
+            const found = list.find((o: { id: string }) => o.id === orderCode) || list[0];
+            if (found) {
+              setActiveOrder(found);
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
+    };
+    checkOrder();
+    const interval = setInterval(checkOrder, 2500);
+    return () => clearInterval(interval);
+  }, [orderCode]);
 
   const getBoothInfo = (row: string, col: number) => {
     const id = `${row}${col}`;
@@ -281,6 +311,74 @@ function EventGuideContent() {
           <h2 className="font-bold text-lg">{eventInfo.title}</h2>
           <p className="text-xs text-muted-foreground mt-1">{eventInfo.date} • {eventInfo.location}</p>
         </div>
+
+        {/* Live Order Tracker Banner */}
+        {activeOrder && (
+          <div
+            className={`card-base p-4 mb-6 border transition animate-fade-in ${
+              activeOrder.status === "making"
+                ? "bg-sky-500/10 border-sky-500/40"
+                : activeOrder.status === "ready"
+                ? "bg-emerald-500/15 border-emerald-500/50 shadow-lg shadow-emerald-500/10"
+                : activeOrder.status === "done"
+                ? "bg-white/[0.02] border-white/10"
+                : "bg-amber-500/10 border-amber-500/30"
+            }`}
+            id="visitor-order-tracker"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">
+                  {activeOrder.status === "making"
+                    ? "🍳"
+                    : activeOrder.status === "ready"
+                    ? "🔔"
+                    : activeOrder.status === "done"
+                    ? "✅"
+                    : "⏳"}
+                </span>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Status Pesanan #{activeOrder.id}
+                  </p>
+                  <p className="text-sm font-bold text-foreground">
+                    {activeOrder.status === "making"
+                      ? "Sedang Dibuat oleh Merchant"
+                      : activeOrder.status === "ready"
+                      ? "🎉 SIAP DIAMBIL DI BOOTH!"
+                      : activeOrder.status === "done"
+                      ? "Pesanan Telah Selesai"
+                      : "Menunggu Antrean Pembuatan"}
+                  </p>
+                </div>
+              </div>
+              <span
+                className={`badge text-[10px] ${
+                  activeOrder.status === "ready"
+                    ? "badge-primary animate-pulse"
+                    : activeOrder.status === "making"
+                    ? "badge-secondary"
+                    : "badge-accent"
+                }`}
+              >
+                {activeOrder.status === "ready"
+                  ? "SIAP!"
+                  : activeOrder.status === "making"
+                  ? "IN MAKING"
+                  : activeOrder.status === "done"
+                  ? "DONE"
+                  : "PENDING"}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {activeOrder.status === "ready"
+                ? "Silakan datangi meja booth Anda dan tunjukkan nomor pesanan untuk mengambil hidangan."
+                : activeOrder.status === "making"
+                ? "Pesanan Anda sedang dipersiapkan di dapur/booth tenant. Mohon bersabar."
+                : "Merchant telah menerima pesanan Anda dan akan segera memprosesnya."}
+            </p>
+          </div>
+        )}
 
         {/* Interactive Floor Plan */}
         <div className="card-base p-4 mb-6">
