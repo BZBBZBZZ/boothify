@@ -49,6 +49,7 @@ const DEFAULT_EVENTS: EventItem[] = [
 const DEFAULT_BOOKINGS: BookingItem[] = [
   { tenant: "EcoWear Studio", event: "Green Fashion Expo 2026", booth: "A1", amount: "Rp 2.500.000", time: "2 jam lalu", status: "paid" },
   { tenant: "EcoWear Studio — Koleksi Katun", event: "Green Fashion Expo 2026", booth: "A2", amount: "Rp 2.500.000", time: "5 jam lalu", status: "paid" },
+  { tenant: "Kopi Keliling Nusantara", event: "Green Fashion Expo 2026", booth: "B1", amount: "Rp 3.000.000", time: "8 jam lalu", status: "paid" },
   { tenant: "Kopi Keliling Nusantara", event: "Green Fashion Expo 2026", booth: "C1", amount: "Rp 3.000.000", time: "1 hari lalu", status: "paid" },
   { tenant: "EcoWear Craft & Totebag", event: "Green Fashion Expo 2026", booth: "C3", amount: "Rp 1.800.000", time: "2 hari lalu", status: "paid" },
 ];

@@ -277,16 +277,15 @@ export const DEFAULT_EVENT_TENANTS: Record<string, Record<string, EventTenantInf
     },
     "B1": {
       id: "B1",
-      name: "Nusantara Bites & Snacks",
+      name: "Kopi Keliling Nusantara",
       category: "F&B",
       zone: "B",
       type: "fnb",
-      desc: "Street food autentik Indonesia dengan bumbu rempah pilihan persembahan Kopi Keliling.",
+      desc: "Booth F&B Kopi Keliling Nusantara dengan kopi lokal, minuman segar, dan camilan untuk pengunjung expo.",
       tenantEmail: "kopi@boothify.id",
       menu: [
-        { name: "Nasi Goreng Kampung", price: 25000, image: "🍛", description: "Bumbu terasi tradisional, suwir ayam & kerupuk" },
-        { name: "Sate Ayam Madura", price: 20000, image: "🍢", description: "5 tusuk sate ayam lembut bumbu kacang gurih" },
-        { name: "Pisang Goreng Crispy", price: 15000, image: "🍌", description: "Pisang kepok renyah dengan taburan gula kelapa" },
+        { name: "Kopi Susu Gula Aren", price: 22000, image: "☕", description: "Espresso blend nusantara dengan gula aren murni dan susu segar" },
+        { name: "Butter Croissant", price: 18000, image: "🥐", description: "Croissant butter renyah untuk teman minum kopi" },
       ],
     },
     "C1": {
@@ -469,6 +468,24 @@ export function ensureEventFloorPlanInitialized(eventId: string): {
       tenants = JSON.parse(storedTenantsRaw);
     } else {
       tenants = fallbackTenants;
+      localStorage.setItem(`boothify_event_${eventId}_booth_tenants`, JSON.stringify(tenants));
+    }
+
+    // Booking records are the source of truth for who owns a booked booth.
+    const storedBookings = JSON.parse(localStorage.getItem("boothify_tenant_bookings") || "[]");
+    if (Array.isArray(storedBookings)) {
+      storedBookings
+        .filter((booking: { eventId?: string; booth?: string; tenantEmail?: string }) => String(booking.eventId) === String(eventId) && booking.booth && booking.tenantEmail)
+        .forEach((booking: { booth: string; tenantEmail: string; tenantName?: string }) => {
+          const current = tenants[booking.booth];
+          if (current) {
+            tenants[booking.booth] = {
+              ...current,
+              name: booking.tenantName || current.name,
+              tenantEmail: booking.tenantEmail,
+            };
+          }
+        });
       localStorage.setItem(`boothify_event_${eventId}_booth_tenants`, JSON.stringify(tenants));
     }
 

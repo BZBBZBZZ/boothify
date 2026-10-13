@@ -105,6 +105,15 @@ main,
   max-width: 100%;
 }
 
+.dashboard-mobile-header,
+.dashboard-mobile-drawer {
+  display: none;
+}
+
+.dashboard-desktop-sidebar {
+  display: flex;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--card); }
@@ -559,5 +568,74 @@ main,
   .modal-content {
     padding: 20px;
     border-radius: 16px;
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-mobile-header {
+    display: flex;
+  }
+
+  .dashboard-mobile-drawer {
+    display: block;
+  }
+
+  .dashboard-desktop-sidebar {
+    display: none;
+  }
+
+  #organizer-dashboard > .flex-1,
+  #tenant-dashboard > .flex-1 {
+    width: 100%;
+  }
+
+  #organizer-dashboard > .flex-1 > div,
+  #tenant-dashboard > .flex-1 > div {
+    max-width: 100%;
+    padding: 20px 16px 32px;
+  }
+
+  .sidebar-link {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .dashboard-mobile-drawer > div {
+    width: min(288px, 86vw);
+    padding: 18px 14px;
+  }
+
+  .dashboard-mobile-drawer .sidebar-link {
+    min-height: 40px;
+  }
+
+  h1 {
+    overflow-wrap: anywhere;
+  }
+
+  #organizer-dashboard h1,
+  #tenant-dashboard h1 {
+    font-size: clamp(1.35rem, 5vw, 1.8rem);
+    line-height: 1.2;
+  }
+
+  #organizer-dashboard h2,
+  #tenant-dashboard h2 {
+    font-size: clamp(1.05rem, 4vw, 1.35rem);
+    line-height: 1.25;
+  }
+
+  #organizer-dashboard p,
+  #tenant-dashboard p,
+  #organizer-dashboard label,
+  #tenant-dashboard label {
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+
+  #organizer-dashboard .btn,
+  #tenant-dashboard .btn {
+    font-size: 0.78rem;
+    padding: 8px 12px;
   }
 }

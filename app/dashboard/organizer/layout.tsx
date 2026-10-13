@@ -222,7 +222,7 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col md:flex-row" id="organizer-dashboard">
       {/* Mobile header */}
-      <div className="md:hidden glass sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
+      <div className="dashboard-mobile-header glass sticky top-0 z-40 px-4 py-3 items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
@@ -236,7 +236,7 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* Mobile nav drawer */}
       {sidebarOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setSidebarOpen(false)}>
+        <div className="dashboard-mobile-drawer fixed inset-0 z-50 bg-black/50" onClick={() => setSidebarOpen(false)}>
           <div className="w-64 h-full bg-card border-r border-border p-4 animate-slide-in-right" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2 mb-8 mt-2">
               <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
@@ -252,7 +252,7 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Desktop sidebar */}
-      <div className="hidden md:flex sidebar">
+      <div className="dashboard-desktop-sidebar sidebar">
         <Link href="/" className="flex items-center gap-2 mb-8 px-2">
           <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
