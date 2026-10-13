@@ -287,8 +287,8 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 min-h-screen">
-        <div className="p-6 sm:p-8 max-w-6xl">
+      <div className="flex-1 min-w-0 min-h-screen">
+        <div className="w-full max-w-6xl p-4 sm:p-8">
           {children}
         </div>
       </div>

@@ -6,14 +6,11 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 const ALL_EVENTS = [
-  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", location: "Jakarta Convention Center", category: "Fashion", boothsFilled: 42, boothsTotal: 60, price: "Rp 2.500.000", image: "🌿", gradient: "from-emerald-500/20 to-teal-500/20" },
-  { id: "2", title: "Indonesia Food Festival", date: "22–24 Nov 2026", location: "ICE BSD, Tangerang", category: "F&B", boothsFilled: 85, boothsTotal: 120, price: "Rp 3.000.000", image: "🍜", gradient: "from-orange-500/20 to-red-500/20" },
-  { id: "3", title: "EduTech Innovation Fair", date: "1–3 Des 2026", location: "Surabaya Grand City", category: "Education", boothsFilled: 28, boothsTotal: 50, price: "Rp 1.800.000", image: "📚", gradient: "from-violet-500/20 to-purple-500/20" },
-  { id: "4", title: "AutoMotive Show 2026", date: "10–12 Des 2026", location: "JIEXPO Kemayoran", category: "Automotive", boothsFilled: 65, boothsTotal: 80, price: "Rp 5.000.000", image: "🚗", gradient: "from-blue-500/20 to-cyan-500/20" },
-  { id: "5", title: "Craft & Artisan Market", date: "18–20 Des 2026", location: "Bandung Creative Hub", category: "Craft", boothsFilled: 30, boothsTotal: 45, price: "Rp 1.200.000", image: "🎨", gradient: "from-pink-500/20 to-rose-500/20" },
-  { id: "6", title: "Sustainable Living Expo", date: "5–7 Jan 2027", location: "Bali BNDCC", category: "Fashion", boothsFilled: 18, boothsTotal: 40, price: "Rp 4.000.000", image: "🌱", gradient: "from-green-500/20 to-lime-500/20" },
-  { id: "7", title: "Digital Startup Fair", date: "12–14 Jan 2027", location: "Jakarta Soehanna Hall", category: "Education", boothsFilled: 52, boothsTotal: 70, price: "Rp 3.500.000", image: "💻", gradient: "from-indigo-500/20 to-blue-500/20" },
-  { id: "8", title: "Culinary Festival Jogja", date: "20–22 Jan 2027", location: "Jogja Expo Center", category: "F&B", boothsFilled: 40, boothsTotal: 60, price: "Rp 2.000.000", image: "🍲", gradient: "from-amber-500/20 to-orange-500/20" },
+  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", location: "Jakarta Convention Center", category: "Fashion", boothsFilled: 5, boothsTotal: 14, price: "Rp 2.500.000", image: "🌿", gradient: "from-emerald-500/20 to-teal-500/20" },
+  { id: "2", title: "Indonesia Food Festival 2026", date: "22–24 Nov 2026", location: "ICE BSD, Tangerang", category: "F&B", boothsFilled: 3, boothsTotal: 10, price: "Rp 3.000.000", image: "🍜", gradient: "from-orange-500/20 to-red-500/20" },
+  { id: "3", title: "EduTech Innovation Fair 2026", date: "1–3 Des 2026", location: "Surabaya Grand City", category: "Education", boothsFilled: 2, boothsTotal: 8, price: "Rp 1.800.000", image: "📚", gradient: "from-violet-500/20 to-purple-500/20" },
+  { id: "4", title: "AutoMotive Show 2026", date: "10–12 Des 2026", location: "JIEXPO Kemayoran", category: "Automotive", boothsFilled: 4, boothsTotal: 12, price: "Rp 5.000.000", image: "🚗", gradient: "from-blue-500/20 to-cyan-500/20" },
+  { id: "5", title: "Craft & Artisan Market 2026", date: "18–20 Des 2026", location: "Bandung Creative Hub", category: "Craft", boothsFilled: 3, boothsTotal: 10, price: "Rp 1.200.000", image: "🎨", gradient: "from-pink-500/20 to-rose-500/20" },
 ];
 
 const CATEGORIES = ["Semua", "F&B", "Fashion", "Education", "Automotive", "Craft"];

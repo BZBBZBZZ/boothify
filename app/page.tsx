@@ -202,9 +202,9 @@ export default function HomePage() {
               {/* Stats */}
               <div className="animate-fade-in-up delay-500 mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto opacity-0">
                 {[
-                  { value: "500+", label: "Event Aktif" },
-                  { value: "12K+", label: "Tenant" },
-                  { value: "1M+", label: "Pengunjung" },
+                  { value: "5", label: "Event Demo" },
+                  { value: "2", label: "Tenant Demo" },
+                  { value: "1", label: "Akun Visitor" },
                 ].map((stat) => (
                   <div key={stat.label} className="text-center">
                     <div className="text-2xl sm:text-3xl font-bold gradient-text">{stat.value}</div>

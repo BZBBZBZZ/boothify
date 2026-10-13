@@ -196,9 +196,9 @@ export default function OrganizerProfilePage() {
         <h2 className="font-semibold mb-4">Portofolio &amp; Jejak Rekam Event</h2>
         <div className="space-y-3">
           {[
-            { name: "Green Fashion Expo 2025", date: "Nov 2025", attendees: "15,000+", status: "Selesai" },
-            { name: "Sustainable Living Fair 2025", date: "Jul 2025", attendees: "8,500+", status: "Selesai" },
-            { name: "Eco Market Jakarta 2024", date: "Des 2024", attendees: "12,000+", status: "Selesai" },
+            { name: "Green Fashion Expo 2026", date: "15–17 Nov 2026", attendees: "14 booth", status: "Aktif" },
+            { name: "Indonesia Food Festival 2026", date: "22–24 Nov 2026", attendees: "10 booth", status: "Aktif" },
+            { name: "EduTech Innovation Fair 2026", date: "1–3 Des 2026", attendees: "8 booth", status: "Aktif" },
           ].map((event) => (
             <div key={event.name} className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.02]">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary-light">
@@ -206,7 +206,7 @@ export default function OrganizerProfilePage() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium">{event.name}</p>
-                <p className="text-xs text-muted-foreground">{event.date} • {event.attendees} pengunjung</p>
+                <p className="text-xs text-muted-foreground">{event.date} • {event.attendees} tersedia</p>
               </div>
               <span className="badge badge-primary text-[10px]">{event.status}</span>
             </div>

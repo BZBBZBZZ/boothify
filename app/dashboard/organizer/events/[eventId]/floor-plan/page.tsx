@@ -35,6 +35,9 @@ const ZONES = [
   { value: "general", label: "Umum", color: "var(--zone-general)" },
 ];
 
+const WORKSPACE_WIDTH = 1200;
+const WORKSPACE_HEIGHT = 900;
+
 const INITIAL_BOOTHS: Booth[] = [
   { id: "1", x: 40, y: 80, width: 80, height: 60, label: "A1", zone: "fashion", price: 2500000 },
   { id: "2", x: 140, y: 80, width: 80, height: 60, label: "A2", zone: "fashion", price: 2500000 },
@@ -63,7 +66,6 @@ function FloorPlanContent() {
   const [activeZone, setActiveZone] = useState("fashion");
   const [zones, setZones] = useState<EventZone[]>(ZONES);
   const [newZone, setNewZone] = useState({ label: "", color: "#6b7280" });
-  const [canvasScale, setCanvasScale] = useState(1);
   const [saved, setSaved] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -122,7 +124,7 @@ function FloorPlanContent() {
           });
         }
       });
-      setBooths(newBooths);
+      setBooths(newBooths.map((booth) => ({ ...booth, sizeCm: booth.sizeCm || "300 x 300 cm" })));
       setSelectedBooth(null);
     } else if (type === "expo") {
       // Perimeter layout surrounding stage
@@ -136,10 +138,10 @@ function FloorPlanContent() {
         { id: "C1", x: 140, y: 280, width: 100, height: 65, label: "C1", zone: "education", price: 2500000 },
         { id: "C2", x: 260, y: 280, width: 100, height: 65, label: "C2", zone: "craft", price: 2200000 },
       ];
-      setBooths(newBooths);
+      setBooths(newBooths.map((booth) => ({ ...booth, sizeCm: booth.sizeCm || "300 x 300 cm" })));
       setSelectedBooth(null);
     } else {
-      setBooths(INITIAL_BOOTHS);
+      setBooths(INITIAL_BOOTHS.map((booth) => ({ ...booth, sizeCm: booth.sizeCm || "300 x 300 cm" })));
     }
   };
 
@@ -154,8 +156,8 @@ function FloorPlanContent() {
   const addBooth = () => {
     const newBooth: Booth = {
       id: nextId,
-      x: 40 + Math.random() * 200,
-      y: 80 + Math.random() * 200,
+      x: 40 + Math.random() * 300,
+      y: 80 + Math.random() * 300,
       width: 80,
       height: 60,
       rotation: 0,
@@ -190,8 +192,26 @@ function FloorPlanContent() {
   };
 
   const updateBooth = (id: string, updates: Partial<Booth>) => {
-    setBooths(booths.map((b) => (b.id === id ? { ...b, ...updates } : b)));
-    if (selectedBooth?.id === id) setSelectedBooth({ ...selectedBooth, ...updates });
+    const current = booths.find((booth) => booth.id === id);
+    if (!current) return;
+    const next = { ...current, ...updates };
+    const bounds = getBoothBounds(next);
+    next.x = Math.max(bounds.minX, Math.min(next.x, bounds.maxX));
+    next.y = Math.max(bounds.minY, Math.min(next.y, bounds.maxY));
+    setBooths(booths.map((booth) => (booth.id === id ? next : booth)));
+    if (selectedBooth?.id === id) setSelectedBooth(next);
+  };
+
+  const getBoothBounds = (booth: Booth) => {
+    const angle = ((booth.rotation || 0) * Math.PI) / 180;
+    const rotatedWidth = Math.abs(booth.width * Math.cos(angle)) + Math.abs(booth.height * Math.sin(angle));
+    const rotatedHeight = Math.abs(booth.width * Math.sin(angle)) + Math.abs(booth.height * Math.cos(angle));
+    return {
+      minX: Math.max(0, (rotatedWidth - booth.width) / 2),
+      maxX: Math.max(0, WORKSPACE_WIDTH - booth.width - (rotatedWidth - booth.width) / 2),
+      minY: Math.max(0, (rotatedHeight - booth.height) / 2),
+      maxY: Math.max(0, WORKSPACE_HEIGHT - booth.height - (rotatedHeight - booth.height) / 2),
+    };
   };
 
   const handleMouseDown = useCallback((e: React.MouseEvent, booth: Booth) => {
@@ -199,21 +219,23 @@ function FloorPlanContent() {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     setDragging(booth.id);
-    setDragOffset({ x: (e.clientX - rect.left) / canvasScale - booth.x, y: (e.clientY - rect.top) / canvasScale - booth.y });
+    setDragOffset({ x: e.clientX - rect.left - booth.x, y: e.clientY - rect.top - booth.y });
     setSelectedBooth(booth);
-  }, [canvasScale]);
+  }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!dragging || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const booth = booths.find((item) => item.id === dragging);
-    const x = Math.max(0, Math.min((e.clientX - rect.left) / canvasScale - dragOffset.x, 600 - (booth?.width || 80)));
-    const y = Math.max(0, Math.min((e.clientY - rect.top) / canvasScale - dragOffset.y, 460 - (booth?.height || 60)));
+    if (!booth) return;
+    const bounds = getBoothBounds(booth);
+    const x = Math.max(bounds.minX, Math.min(e.clientX - rect.left - dragOffset.x, bounds.maxX));
+    const y = Math.max(bounds.minY, Math.min(e.clientY - rect.top - dragOffset.y, bounds.maxY));
     // Snap to grid
     const snappedX = Math.round(x / 20) * 20;
     const snappedY = Math.round(y / 20) * 20;
     setBooths((prev) => prev.map((b) => (b.id === dragging ? { ...b, x: snappedX, y: snappedY } : b)));
-  }, [booths, canvasScale, dragging, dragOffset]);
+  }, [booths, dragging, dragOffset]);
 
   const handleMouseUp = useCallback(() => {
     setDragging(null);
@@ -459,10 +481,6 @@ function FloorPlanContent() {
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <p className="text-xs text-muted-foreground">🖱️ Drag booth untuk memindahkan • Klik untuk edit booth</p>
               <div className="flex items-center gap-2">
-                <label className="flex items-center gap-2 text-xs text-muted-foreground">Zoom
-                  <input type="range" min="0.6" max="1.8" step="0.1" value={canvasScale} onChange={(e) => setCanvasScale(Number(e.target.value))} className="w-24 accent-[var(--primary)]" aria-label="Zoom denah" />
-                  <span className="w-8">{Math.round(canvasScale * 100)}%</span>
-                </label>
                 <button onClick={saveFloorPlan} className="btn btn-secondary btn-sm" id="save-floor-plan">
                   {saved ? "✓ Tersimpan!" : "💾 Simpan Draft"}
                 </button>
@@ -480,11 +498,11 @@ function FloorPlanContent() {
             </div>
 
             <div className="overflow-auto max-h-[70vh] rounded-2xl" id="floor-plan-scroll-area">
-              <div style={{ width: 600 * canvasScale, height: 460 * canvasScale }}>
+              <div style={{ width: WORKSPACE_WIDTH, height: WORKSPACE_HEIGHT }}>
                 <div
                   ref={canvasRef}
                   className="floor-plan-canvas relative"
-                  style={{ width: 600, height: 460, minHeight: 460, zoom: canvasScale }}
+                  style={{ width: WORKSPACE_WIDTH, height: WORKSPACE_HEIGHT, minHeight: WORKSPACE_HEIGHT }}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
                   onMouseLeave={handleMouseUp}

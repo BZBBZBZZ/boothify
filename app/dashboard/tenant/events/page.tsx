@@ -4,13 +4,11 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 
 const EVENTS = [
-  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", location: "Jakarta Convention Center, Jakarta", category: "Fashion", price: "Rp 2.5Jt", match: "95%", booths: 18, image: "🌿", scope: "Lokal" },
-  { id: "2", title: "Indonesia Food Festival", date: "22–24 Nov 2026", location: "ICE BSD, Tangerang", category: "F&B", price: "Rp 3Jt", match: "72%", booths: 35, image: "🍜", scope: "Lokal" },
-  { id: "3", title: "EduTech Innovation Fair", date: "1–3 Des 2026", location: "Surabaya Grand City, Surabaya", category: "Education", price: "Rp 1.8Jt", match: "92%", booths: 22, image: "📚", scope: "Lokal" },
-  { id: "4", title: "AutoMotive Show 2026", date: "10–12 Des 2026", location: "JIEXPO Kemayoran, Jakarta", category: "Automotive", price: "Rp 5Jt", match: "45%", booths: 15, image: "🚗", scope: "Lokal" },
-  { id: "5", title: "Craft & Artisan Market", date: "18–20 Des 2026", location: "Bandung Creative Hub, Bandung", category: "Craft", price: "Rp 1.2Jt", match: "88%", booths: 15, image: "🎨", scope: "Lokal" },
-  { id: "6", title: "Sustainable Living Expo", date: "5–7 Jan 2027", location: "Bali BNDCC, Nusa Dua, Bali", category: "Fashion", price: "Rp 4Jt", match: "87%", booths: 22, image: "🌱", scope: "Lokal" },
-  { id: "7", title: "ASEAN Eco Lifestyle Summit 2027", date: "20–23 Feb 2027", location: "Marina Bay Sands, Singapore (Internasional)", category: "Fashion", price: "Rp 8.5Jt", match: "94%", booths: 40, image: "🌏", scope: "Internasional" },
+  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", location: "Jakarta Convention Center, Jakarta", category: "Fashion", price: "Rp 2.5Jt", match: "95%", booths: 9, image: "🌿", scope: "Lokal" },
+  { id: "2", title: "Indonesia Food Festival 2026", date: "22–24 Nov 2026", location: "ICE BSD, Tangerang", category: "F&B", price: "Rp 3Jt", match: "95%", booths: 7, image: "🍜", scope: "Lokal" },
+  { id: "3", title: "EduTech Innovation Fair 2026", date: "1–3 Des 2026", location: "Surabaya Grand City, Surabaya", category: "Education", price: "Rp 1.8Jt", match: "92%", booths: 6, image: "📚", scope: "Lokal" },
+  { id: "4", title: "AutoMotive Show 2026", date: "10–12 Des 2026", location: "JIEXPO Kemayoran, Jakarta", category: "Automotive", price: "Rp 5Jt", match: "45%", booths: 8, image: "🚗", scope: "Lokal" },
+  { id: "5", title: "Craft & Artisan Market 2026", date: "18–20 Des 2026", location: "Bandung Creative Hub, Bandung", category: "Craft", price: "Rp 1.2Jt", match: "88%", booths: 7, image: "🎨", scope: "Lokal" },
 ];
 
 export default function TenantEventsPage() {

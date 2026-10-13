@@ -93,8 +93,8 @@ const DEMO_TENANT_BOOKINGS: Record<string, BookingItem[]> = {
 };
 
 const RECOMMENDED_EVENTS = [
-  { id: "3", title: "EduTech Innovation Fair", date: "1–3 Des 2026", location: "Surabaya", match: "92%", reason: "Cocok dengan kategori Education" },
-  { id: "6", title: "Sustainable Living Expo", date: "5–7 Jan 2027", location: "Bali", match: "87%", reason: "Relevan dengan produk ramah lingkungan" },
+  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", location: "Jakarta", match: "95%", reason: "Relevan dengan EcoWear Studio" },
+  { id: "2", title: "Indonesia Food Festival 2026", date: "22–24 Nov 2026", location: "Tangerang", match: "95%", reason: "Cocok untuk Kopi Keliling Nusantara" },
 ];
 
 export default function TenantDashboard() {
