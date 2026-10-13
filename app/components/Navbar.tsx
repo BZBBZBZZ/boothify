@@ -85,7 +85,8 @@ export default function Navbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden btn btn-ghost btn-icon"
+            // PERBAIKAN: Gunakan md:!hidden untuk memaksa tombol hilang di desktop
+            className="md:!hidden btn btn-ghost btn-icon"
             id="mobile-menu-toggle"
             aria-label="Toggle menu"
             aria-expanded={mobileOpen}

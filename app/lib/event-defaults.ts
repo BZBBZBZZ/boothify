@@ -72,14 +72,14 @@ export const DEFAULT_EVENTS_META: Record<string, EventDetail> = {
     organizer: "PT. Event Kreasi Nusantara",
     organizerEmail: "demo-organizer@boothify.id",
     boothsFilled: 5,
-    boothsTotal: 14,
+    boothsTotal: 9,
     priceRange: "Rp 1.800.000 – Rp 3.000.000",
     image: "🌿",
     gradient: "from-emerald-500/20 to-teal-500/20",
     zones: [
-      { name: "Zona A — Sustainable Fashion", booths: 5, color: "zone-fashion" },
-      { name: "Zona B — F&B Corner & Kafe", booths: 5, color: "zone-fnb" },
-      { name: "Zona C — Craft & Aksesoris Etnik", booths: 4, color: "zone-craft" },
+      { name: "Zona A — Sustainable Fashion", booths: 4, color: "zone-fashion" },
+      { name: "Zona B — F&B Corner & Kafe", booths: 3, color: "zone-fnb" },
+      { name: "Zona C — Craft & Aksesoris Etnik", booths: 2, color: "zone-craft" },
     ],
     highlights: [
       "100+ brand busana ramah lingkungan",

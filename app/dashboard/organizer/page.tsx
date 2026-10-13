@@ -41,7 +41,7 @@ type InboxMessage = {
 };
 
 const DEFAULT_EVENTS: EventItem[] = [
-  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", status: "active", boothsFilled: 5, boothsTotal: 14, organizerEmail: "demo-organizer@boothify.id" },
+  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", status: "active", boothsFilled: 5, boothsTotal: 9, organizerEmail: "demo-organizer@boothify.id" },
   { id: "2", title: "Indonesia Food Festival 2026", date: "22–24 Nov 2026", status: "active", boothsFilled: 3, boothsTotal: 10, organizerEmail: "demo-organizer@boothify.id" },
   { id: "3", title: "EduTech Innovation Fair 2026", date: "1–3 Des 2026", status: "active", boothsFilled: 2, boothsTotal: 8, organizerEmail: "demo-organizer@boothify.id" },
 ];

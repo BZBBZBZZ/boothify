@@ -511,77 +511,91 @@ function EventGuideContent() {
           {/* Stage */}
           <div className="text-center mb-6">
             <div className="inline-block px-12 py-2 rounded-xl bg-gradient-to-r from-primary/20 via-secondary/20 to-primary/20 border border-primary/30 text-xs font-bold text-foreground">
-              🎤 PANGGUNG UTAMA
+              PANGGUNG UTAMA
             </div>
           </div>
 
           {/* Organizer-authored floor plan */}
-          <div className="overflow-auto rounded-2xl mb-4" id="guide-floor-plan-scroll-area">
-            <div className="floor-plan-canvas relative min-w-[600px] min-h-[460px]">
-            {booths.map((b) => {
-              const tenant = tenantsMap[b.label];
-              const isOccupied = !!tenant;
-              const zoneColor = getZoneBadgeColor(b.zone);
-              const matchesFilter =
-                categoryFilter === "Semua" ||
-                b.zone.toLowerCase().includes(categoryFilter.toLowerCase()) ||
-                (tenant && tenant.category.toLowerCase().includes(categoryFilter.toLowerCase()));
+<div className="overflow-auto rounded-2xl mb-4 w-full" id="guide-floor-plan-scroll-area">
+  {/* 
+    PERUBAHAN: 
+    1. min-w-[800px] memperbesar ukuran dasar map sehingga kotak-kotak otomatis lebih besar.
+    2. w-full dan aspect-[600/460] membuat map responsif menyesuaikan lebar layar desktop, 
+       dan bisa di-scroll (pan) dengan nyaman di mobile.
+  */}
+  <div className="floor-plan-canvas relative w-full min-w-[800px] aspect-[600/460]">
+  {booths.map((b) => {
+    const tenant = tenantsMap[b.label];
+    const isOccupied = !!tenant;
+    const zoneColor = getZoneBadgeColor(b.zone);
+    const matchesFilter =
+      categoryFilter === "Semua" ||
+      b.zone.toLowerCase().includes(categoryFilter.toLowerCase()) ||
+      (tenant && tenant.category.toLowerCase().includes(categoryFilter.toLowerCase()));
 
-              return (
-                <button
-                  key={b.id || b.label}
-                  type="button"
-                  onClick={() => {
-                    if (isOccupied) {
-                      setSelectedBooth(tenant);
-                    } else {
-                      setEmptyBoothSelected(b);
-                    }
-                  }}
-                  className={`absolute p-2 rounded-xl border text-left transition-all ${
-                    matchesFilter ? "opacity-100 scale-100" : "opacity-40"
-                  } ${
-                    isOccupied
-                      ? tenant.type === "fnb"
-                        ? "bg-amber-500/10 border-amber-500/30 hover:border-amber-500 hover:scale-[1.02]"
-                        : "bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500 hover:scale-[1.02]"
-                      : "bg-white/[0.02] border-white/5 hover:border-white/20"
-                  }`}
-                  style={{
-                    left: `${(b.x / 600) * 100}%`,
-                    top: `${(b.y / 460) * 100}%`,
-                    width: `${(b.width / 600) * 100}%`,
-                    height: `${(b.height / 460) * 100}%`,
-                    transform: `rotate(${b.rotation || 0}deg)`,
-                  }}
-                  id={`guide-booth-${b.label}`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-sm text-foreground">{b.label}</span>
-                    <span className={`badge text-[9px] border ${zoneColor}`}>
-                      {getZoneDisplay(b.zone)}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">Ukuran asli: {b.sizeCm || "Belum diatur"}</p>
+    return (
+      <button
+        key={b.id || b.label}
+        type="button"
+        onClick={() => {
+          if (isOccupied) {
+            setSelectedBooth(tenant);
+          } else {
+            setEmptyBoothSelected(b);
+          }
+        }}
+        // PERUBAHAN: Tambah `flex flex-col overflow-hidden p-1.5` (padding sedikit dikurangi agar text punya lebih banyak ruang)
+        className={`public-floor-plan-booth absolute p-1.5 sm:p-2 flex flex-col overflow-hidden rounded-xl border text-left transition-all ${
+          matchesFilter ? "opacity-100 scale-100" : "opacity-40"
+        } ${
+          isOccupied
+            ? tenant.type === "fnb"
+              ? "bg-amber-500/10 border-amber-500/30 hover:border-amber-500 hover:scale-[1.02]"
+              : "bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500 hover:scale-[1.02]"
+            : "bg-white/[0.02] border-white/5 hover:border-white/20"
+        }`}
+        style={{
+          left: `${(b.x / 600) * 100}%`,
+          top: `${(b.y / 460) * 100}%`,
+          width: `${(b.width / 600) * 100}%`,
+          height: `${(b.height / 460) * 100}%`,
+          transform: `rotate(${b.rotation || 0}deg)`,
+        }}
+        id={`guide-booth-${b.label}`}
+      >
+        <div className="public-floor-plan-booth-header flex items-center justify-between gap-1 mb-0.5 w-full min-w-0">
+          <span className="public-floor-plan-booth-label font-bold text-xs sm:text-sm text-foreground truncate">
+            {b.label}
+          </span>
+          <span className={`public-floor-plan-booth-zone badge text-[8px] sm:text-[9px] border truncate flex-shrink-0 max-w-[50%] ${zoneColor}`}>
+            {getZoneDisplay(b.zone)}
+          </span>
+        </div>
+        
+        {/* PERUBAHAN: Teks dipendekkan & ditambah truncate w-full */}
+        <p className="public-floor-plan-booth-size text-[9px] sm:text-[10px] text-muted-foreground truncate w-full">
+          Ukuran: {b.sizeCm || "-"}
+        </p>
 
-                  {isOccupied ? (
-                    <div>
-                      <p className="text-xs font-semibold text-foreground truncate">{tenant.name}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">
-                        {tenant.type === "fnb" ? "🍜 Menu Tersedia" : "📁 Brosur &amp; Website"}
-                      </p>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-xs text-muted-foreground">Booth Kosong</p>
-                      <p className="text-[10px] text-primary-light">Tersedia disewa</p>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-            </div>
+        {/* PERUBAHAN: mt-auto menekan status ke bawah kotak, w-full dan truncate menjaga text */}
+        {isOccupied ? (
+          <div className="public-floor-plan-booth-status mt-auto w-full pt-1 min-w-0">
+            <p className="text-[10px] sm:text-xs font-semibold text-foreground truncate w-full">{tenant.name}</p>
+            <p className="text-[8px] sm:text-[10px] text-muted-foreground truncate w-full">
+              {tenant.type === "fnb" ? "🍜 Menu" : "📁 Info"}
+            </p>
           </div>
+        ) : (
+          <div className="public-floor-plan-booth-status mt-auto w-full pt-1 min-w-0">
+            <p className="text-[10px] sm:text-xs text-muted-foreground truncate w-full">Kosong</p>
+            <p className="text-[8px] sm:text-[10px] text-primary-light truncate w-full">Tersedia</p>
+          </div>
+        )}
+      </button>
+    );
+  })}
+  </div>
+</div>
 
           {/* Legend */}
           <div className="flex flex-wrap items-center justify-center gap-4 text-[10px] text-muted-foreground pt-3 border-t border-white/5">

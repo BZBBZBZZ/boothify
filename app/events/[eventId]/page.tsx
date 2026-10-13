@@ -170,7 +170,7 @@ function EventDetailContent() {
                       className="btn btn-secondary btn-sm text-xs"
                       id="edit-floor-plan-btn"
                     >
-                      ✏️ Edit Denah di Floor Plan Builder
+                      Edit Denah
                     </Link>
                   )}
                 </div>
@@ -357,13 +357,14 @@ function EventDetailContent() {
                     {/* Stage Banner */}
                     <div className="text-center mb-8">
                       <div className="inline-block px-14 py-2.5 rounded-xl bg-gradient-to-r from-primary/20 via-secondary/20 to-primary/20 border border-primary/30 text-xs font-bold text-foreground shadow-sm">
-                        🎤 PANGGUNG UTAMA &amp; AREA ATRAKSI
+                        PANGGUNG UTAMA &amp; AREA ATRAKSI
                       </div>
                     </div>
 
                     {/* Organizer-authored floor plan */}
-                    <div className="overflow-auto rounded-2xl" id="public-floor-plan-scroll-area">
-                      <div className="floor-plan-canvas relative min-w-[600px] min-h-[460px]">
+                    <div className="overflow-auto rounded-2xl w-full" id="public-floor-plan-scroll-area">
+                      {/* PERUBAHAN: min-w-[900px] membuat semua kotak 1.5x lebih besar, aspect ratio menjaga skala layout */}
+                      <div className="floor-plan-canvas relative w-full min-w-[900px] aspect-[600/460]">
                       {booths.map((b) => {
                         const isTaken = takenBooths.includes(b.label);
                         const isSelected = selectedBoothLabels.includes(b.label);
@@ -374,7 +375,8 @@ function EventDetailContent() {
                           <div
                             key={b.id || b.label}
                             onClick={() => !isTaken && toggleBooth(b.label)}
-                            className={`absolute p-2 rounded-xl border text-left transition-all ${
+                            // PERUBAHAN: Tambah `flex flex-col overflow-hidden` dan kurangi padding ke p-1.5/p-2
+                            className={`public-floor-plan-booth absolute p-1.5 sm:p-2 flex flex-col overflow-hidden rounded-xl border text-left transition-all ${
                               isTaken
                                 ? "bg-white/[0.02] border-white/5 opacity-60 cursor-not-allowed"
                                 : isSelected
@@ -390,32 +392,36 @@ function EventDetailContent() {
                             }}
                             id={`booth-card-${b.label}`}
                           >
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-bold text-base text-foreground">{b.label}</span>
-                              <span className={`badge text-[9px] border ${zoneBadge}`}>
+                            <div className="public-floor-plan-booth-header flex items-center justify-between gap-1 mb-0.5 w-full min-w-0">
+                              <span className="public-floor-plan-booth-label font-bold text-xs sm:text-sm text-foreground truncate">{b.label}</span>
+                              <span className={`public-floor-plan-booth-zone badge text-[8px] sm:text-[9px] border truncate flex-shrink-0 max-w-[50%] ${zoneBadge}`}>
                                 {getZoneDisplay(b.zone)}
                               </span>
                             </div>
 
-                            <p className="text-xs font-semibold text-primary-light mb-1">
+                            {/* PERUBAHAN: Penambahan truncate, w-full, dan leading-tight agar teks rapat dan tidak meluber */}
+                            <p className="public-floor-plan-booth-price text-[10px] sm:text-xs font-semibold text-primary-light mb-0.5 truncate w-full leading-tight">
                               Rp {(b.price || 2500000).toLocaleString("id-ID")}
                             </p>
-                            <p className="text-[10px] text-muted-foreground">Ukuran asli: {b.sizeCm || "Belum diatur"}</p>
+                            <p className="public-floor-plan-booth-size text-[8px] sm:text-[9px] text-muted-foreground truncate w-full leading-tight">
+                              Ukuran: {b.sizeCm || "-"}
+                            </p>
 
+                            {/* PERUBAHAN: mt-auto memastikan status selalu nempel di bawah kotak */}
                             {isTaken ? (
-                              <div className="mt-2 pt-2 border-t border-white/5">
-                                <span className="text-[10px] text-muted-foreground block truncate">
+                              <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-white/5 w-full min-w-0">
+                                <span className="text-[8px] sm:text-[9px] text-muted-foreground block truncate w-full leading-tight">
                                   ✓ Terisi: {tenant?.name || "Tenant"}
                                 </span>
                               </div>
                             ) : isSelected ? (
-                              <div className="mt-2 pt-2 border-t border-primary/30 flex items-center justify-between text-xs font-medium text-emerald-400">
+                              <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-primary/30 flex items-center justify-between text-[9px] sm:text-[10px] font-medium text-emerald-400 w-full min-w-0 leading-tight">
                                 <span>Dipilih</span>
                                 <span>✓</span>
                               </div>
                             ) : (
-                              <div className="mt-2 pt-2 border-t border-white/5 text-[10px] text-muted-foreground">
-                                Klik untuk pilih
+                              <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-white/5 text-[8px] sm:text-[9px] text-muted-foreground truncate w-full leading-tight">
+                                Pilih booth
                               </div>
                             )}
                           </div>

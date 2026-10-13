@@ -6,7 +6,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 const ALL_EVENTS = [
-  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", location: "Jakarta Convention Center", category: "Fashion", boothsFilled: 5, boothsTotal: 14, price: "Rp 2.500.000", image: "🌿", gradient: "from-emerald-500/20 to-teal-500/20" },
+  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", location: "Jakarta Convention Center", category: "Fashion", boothsFilled: 5, boothsTotal: 9, price: "Rp 2.500.000", image: "🌿", gradient: "from-emerald-500/20 to-teal-500/20" },
   { id: "2", title: "Indonesia Food Festival 2026", date: "22–24 Nov 2026", location: "ICE BSD, Tangerang", category: "F&B", boothsFilled: 3, boothsTotal: 10, price: "Rp 3.000.000", image: "🍜", gradient: "from-orange-500/20 to-red-500/20" },
   { id: "3", title: "EduTech Innovation Fair 2026", date: "1–3 Des 2026", location: "Surabaya Grand City", category: "Education", boothsFilled: 2, boothsTotal: 8, price: "Rp 1.800.000", image: "📚", gradient: "from-violet-500/20 to-purple-500/20" },
   { id: "4", title: "AutoMotive Show 2026", date: "10–12 Des 2026", location: "JIEXPO Kemayoran", category: "Automotive", boothsFilled: 4, boothsTotal: 12, price: "Rp 5.000.000", image: "🚗", gradient: "from-blue-500/20 to-cyan-500/20" },
@@ -64,44 +64,28 @@ export default function EventsPage() {
 
           {/* Search & Filters */}
           <div className="flex flex-col lg:flex-row gap-4 mb-8">
-            <div className="relative flex-1">
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+            <div className="relative flex-1 flex items-center">
+              <svg 
+                className="absolute left-4 z-10 pointer-events-none text-muted-foreground" 
+                width="18" 
+                height="18" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
               <input
                 type="text"
-                className="input-base pl-11"
+                className="input-base !pl-12 w-full"
                 placeholder="Cari event berdasarkan nama atau lokasi..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 id="event-search"
               />
             </div>
-            <select
-              className="input-base w-auto min-w-[160px]"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              id="event-sort"
-            >
-              <option value="newest">Terbaru</option>
-              <option value="popular">Terpopuler</option>
-              <option value="price-low">Harga: Rendah–Tinggi</option>
-              <option value="price-high">Harga: Tinggi–Rendah</option>
-            </select>
-          </div>
-
-          {/* Category tabs */}
-          <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`btn btn-sm whitespace-nowrap ${
-                  selectedCategory === cat ? "btn-primary" : "btn-secondary"
-                }`}
-                id={`filter-${cat.toLowerCase()}`}
-              >
-                {cat}
-              </button>
-            ))}
           </div>
 
           {/* Results count */}
