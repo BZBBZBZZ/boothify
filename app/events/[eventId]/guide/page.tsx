@@ -66,8 +66,7 @@ function EventGuideContent() {
     | null
   >(null);
 
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [orderCode, setOrderCode] = useState("BF-ORDER-8821");
+  const [orderCode, setOrderCode] = useState<string>("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("QRIS");
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
@@ -240,69 +239,91 @@ function EventGuideContent() {
 
   const totalCart = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
 
-  // Handle Order Placement
-  useEffect(() => {
-    if (!paymentSuccess) return;
-    const generatedCode = "BF-ORDER-" + Date.now().toString().slice(-4);
-    setOrderCode(generatedCode);
-    try {
-      const firstBoothId = cart[0]?.boothId || "A1";
-      const targetTenant = firstBoothId ? tenantsMap[firstBoothId] : undefined;
-      let targetTenantEmail = targetTenant?.tenantEmail || "";
+  // Handle Order Placement directly upon checkout confirmation
+  const handleConfirmPayment = () => {
+    if (cart.length === 0) return;
 
-      if (!targetTenantEmail) {
-        if (firstBoothId === "A1" || firstBoothId === "A2") {
-          targetTenantEmail = "demo-tenant@boothify.id";
-        } else if (firstBoothId === "C1") {
-          targetTenantEmail = "kopi@boothify.id";
-        } else {
-          try {
-            const tBookings = JSON.parse(localStorage.getItem("boothify_tenant_bookings") || "[]");
-            const foundB = tBookings.find(
-              (b: { eventId?: string; booth?: string; tenantEmail?: string }) =>
-                b.eventId === eventId && b.booth === firstBoothId
-            );
-            if (foundB?.tenantEmail) targetTenantEmail = foundB.tenantEmail;
-          } catch {
-            // ignore
-          }
+    const generatedCode = "BF-ORDER-" + Math.floor(1000 + Math.random() * 9000);
+    setOrderCode(generatedCode);
+
+    // 1. Snapshot cart items & total BEFORE clearing cart
+    const purchasedItems = cart.map((i) => ({ ...i }));
+    const rawTotal = purchasedItems.reduce((sum, i) => sum + i.price * i.qty, 0);
+    const purchasedTotal = rawTotal > 0 ? rawTotal : 185000;
+
+    // 2. Identify target booth & tenant
+    const firstBoothId = purchasedItems[0]?.boothId || "A1";
+    const targetTenant = tenantsMap[firstBoothId];
+    let targetTenantEmail = targetTenant?.tenantEmail || "";
+
+    if (!targetTenantEmail) {
+      if (firstBoothId === "A1" || firstBoothId === "A2" || firstBoothId === "C3") {
+        targetTenantEmail = "demo-tenant@boothify.id";
+      } else if (firstBoothId === "C1" || firstBoothId === "B1" || firstBoothId === "F2") {
+        targetTenantEmail = "kopi@boothify.id";
+      } else {
+        try {
+          const tBookings = JSON.parse(localStorage.getItem("boothify_tenant_bookings") || "[]");
+          const foundB = tBookings.find(
+            (b: { eventId?: string; booth?: string; tenantEmail?: string }) =>
+              String(b.eventId) === String(eventId) && b.booth === firstBoothId
+          );
+          if (foundB?.tenantEmail) targetTenantEmail = foundB.tenantEmail;
+        } catch {
+          // ignore
         }
       }
+    }
 
+    const currentEventTitle =
+      eventInfo?.title && eventInfo.title.length > 2
+        ? eventInfo.title
+        : DEFAULT_EVENTS_META[eventId]?.title || "Green Fashion Expo 2026";
+
+    const newOrder = {
+      id: generatedCode,
+      eventId: String(eventId),
+      event: currentEventTitle,
+      booth: firstBoothId,
+      items: purchasedItems,
+      total: purchasedTotal,
+      customer: user?.name || guestName || "Andi Pengunjung",
+      phone: user?.phone || guestPhone || "+62 811 2233 4455",
+      method: selectedPaymentMethod,
+      time: "Baru saja",
+      status: "pending" as const,
+      tenantEmail: targetTenantEmail,
+      tenantName: targetTenant?.name || (firstBoothId === "A1" ? "EcoWear Studio" : `Booth ${firstBoothId}`),
+    };
+
+    try {
       const orders = JSON.parse(localStorage.getItem("boothify_visitor_orders") || "[]");
-      const newOrder = {
-        id: generatedCode,
-        eventId,
-        event: eventInfo?.title || `Event #${eventId}`,
-        booth: firstBoothId,
-        items: cart,
-        total: totalCart,
-        customer: user?.name || guestName || "Pengunjung Tamu",
-        phone: user?.phone || guestPhone || "",
-        method: selectedPaymentMethod,
-        time: "Baru saja",
-        status: "pending",
-        tenantEmail: targetTenantEmail,
-        tenantName: targetTenant?.name || `Booth ${firstBoothId}`,
-      };
-      orders.unshift(newOrder);
-      localStorage.setItem("boothify_visitor_orders", JSON.stringify(orders));
+      const cleanedOrders = Array.isArray(orders) ? orders : [];
+      cleanedOrders.unshift(newOrder);
+      localStorage.setItem("boothify_visitor_orders", JSON.stringify(cleanedOrders));
+      localStorage.setItem("boothify_my_order_code", generatedCode);
       setActiveOrder(newOrder);
     } catch {
       // ignore
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentSuccess]);
+
+    // 3. Clear cart and close modal
+    setCart([]);
+    setShowCheckout(false);
+  };
 
   // Live polling for order status
   useEffect(() => {
+    const targetCode = orderCode || (typeof window !== "undefined" ? localStorage.getItem("boothify_my_order_code") : "");
+    if (!targetCode) return;
+
     const checkOrder = () => {
       try {
         const stored = localStorage.getItem("boothify_visitor_orders");
         if (stored) {
           const list = JSON.parse(stored);
           if (Array.isArray(list) && list.length > 0) {
-            const found = list.find((o: { id: string }) => o.id === orderCode) || list[0];
+            const found = list.find((o: { id: string }) => o.id === targetCode);
             if (found) {
               setActiveOrder(found);
             }
@@ -979,11 +1000,7 @@ function EventGuideContent() {
             </div>
 
             <button
-              onClick={() => {
-                setShowCheckout(false);
-                setCart([]);
-                setPaymentSuccess(true);
-              }}
+              onClick={handleConfirmPayment}
               className="btn btn-primary w-full btn-sm mb-2"
               id="confirm-pay-btn"
             >

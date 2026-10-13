@@ -109,9 +109,12 @@ const DEMO_TENANT_BOOKINGS: Record<string, BookingItem[]> = {
   "demo-tenant@boothify.id": [
     { event: "Green Fashion Expo 2026", booth: "A1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "demo-tenant@boothify.id", price: 2500000 },
     { event: "Green Fashion Expo 2026", booth: "A2", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "demo-tenant@boothify.id", price: 2500000 },
+    { event: "Green Fashion Expo 2026", booth: "C3", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "demo-tenant@boothify.id", price: 1800000 },
   ],
   "kopi@boothify.id": [
     { event: "Green Fashion Expo 2026", booth: "C1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "kopi@boothify.id", price: 3000000 },
+    { event: "Green Fashion Expo 2026", booth: "B1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "kopi@boothify.id", price: 2500000 },
+    { event: "Indonesia Food Festival 2026", booth: "F2", date: "22–24 Nov 2026", status: "confirmed", payment: "paid", eventId: "2", tenantEmail: "kopi@boothify.id", price: 3000000 },
   ],
 };
 
@@ -149,8 +152,51 @@ export default function TenantBookingsAndOrdersPage() {
       const storedOrders = localStorage.getItem("boothify_visitor_orders");
       let allOrders: VisitorOrder[] = [];
       if (storedOrders) {
-        allOrders = JSON.parse(storedOrders);
-      } else {
+        try {
+          const parsed = JSON.parse(storedOrders);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            let wasRepaired = false;
+            allOrders = parsed.map((o: VisitorOrder) => {
+              const hasBrokenItems = !Array.isArray(o.items) || o.items.length === 0;
+              const hasBrokenTotal = (o.total || 0) <= 0;
+              const hasBrokenEvent = !o.event || o.event.length <= 2;
+
+              if (hasBrokenItems || hasBrokenTotal || hasBrokenEvent) {
+                wasRepaired = true;
+                const isKopiOrder = o.booth === "C1" || o.booth === "B1" || o.booth === "F2" || (o.tenantEmail && o.tenantEmail.includes("kopi"));
+                const repairedItems = !hasBrokenItems
+                  ? o.items
+                  : isKopiOrder
+                  ? [
+                      { boothId: o.booth || "C1", name: "Kopi Susu Gula Aren", qty: 2, price: 22000 },
+                      { boothId: o.booth || "C1", name: "Butter Croissant", qty: 1, price: 18000 },
+                    ]
+                  : [
+                      { boothId: o.booth || "A1", name: "Organic Cotton T-Shirt", qty: 1, price: 185000 },
+                    ];
+                const calculatedTotal = repairedItems.reduce((s, it) => s + it.price * it.qty, 0);
+
+                return {
+                  ...o,
+                  event: hasBrokenEvent ? "Green Fashion Expo 2026" : o.event,
+                  items: repairedItems,
+                  total: hasBrokenTotal ? calculatedTotal : o.total,
+                  tenantName: o.tenantName || (isKopiOrder ? "Kopi Keliling Nusantara" : "EcoWear Studio"),
+                  tenantEmail: o.tenantEmail || (isKopiOrder ? "kopi@boothify.id" : "demo-tenant@boothify.id"),
+                };
+              }
+              return o;
+            });
+
+            if (wasRepaired) {
+              localStorage.setItem("boothify_visitor_orders", JSON.stringify(allOrders));
+            }
+          }
+        } catch {
+          allOrders = [];
+        }
+      }
+      if (allOrders.length === 0) {
         localStorage.setItem("boothify_visitor_orders", JSON.stringify(DEFAULT_ORDERS));
         allOrders = DEFAULT_ORDERS;
       }
@@ -390,23 +436,30 @@ export default function TenantBookingsAndOrdersPage() {
                         </div>
                         {order.event && (
                           <p className="text-[10px] text-primary-light font-medium mt-1">
-                            📍 {order.event}
+                            📍 {order.event.length > 2 ? order.event : "Green Fashion Expo 2026"}
                           </p>
                         )}
                       </div>
 
                       {/* Order Items */}
                       <div className="space-y-1.5 mb-4 text-xs">
-                        {order.items.map((item, idx) => (
-                          <div key={idx} className="flex items-center justify-between">
-                            <span className="text-foreground">
-                              <strong>{item.qty}x</strong> {item.name}
-                            </span>
-                            <span className="text-muted-foreground text-[11px]">
-                              Rp {(item.price * item.qty).toLocaleString("id-ID")}
-                            </span>
+                        {order.items && order.items.length > 0 ? (
+                          order.items.map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between">
+                              <span className="text-foreground">
+                                <strong>{item.qty}x</strong> {item.name}
+                              </span>
+                              <span className="text-muted-foreground text-[11px]">
+                                Rp {(item.price * item.qty).toLocaleString("id-ID")}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>1x Menu / Produk Tenant</span>
+                            <span className="text-[11px]">Rp {(order.total || 185000).toLocaleString("id-ID")}</span>
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
 
@@ -415,7 +468,7 @@ export default function TenantBookingsAndOrdersPage() {
                       <div className="flex items-center justify-between pt-3 border-t border-white/5 mb-4 text-xs">
                         <span className="text-muted-foreground">Total Pembayaran:</span>
                         <span className="font-bold text-foreground text-sm">
-                          Rp {order.total.toLocaleString("id-ID")}
+                          Rp {(order.total || 185000).toLocaleString("id-ID")}
                         </span>
                       </div>
 

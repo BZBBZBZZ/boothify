@@ -217,6 +217,29 @@ export default function TenantProfilePage() {
           {saved ? "✓ Tersimpan!" : "Simpan Perubahan"}
         </button>
       </form>
+
+      {/* Reset Demo Data */}
+      <div className="card-base p-6 mt-6 border border-amber-500/20 bg-amber-500/[0.02]">
+        <h2 className="font-semibold text-sm mb-1 text-foreground flex items-center gap-2">
+          <span>🔄</span> Reset Data Uji Coba
+        </h2>
+        <p className="text-xs text-muted-foreground mb-4">
+          Ingin mengulang pengujian dari awal? Menekan tombol ini akan menghapus semua data input pengujian (perubahan katalog, mini website kustom, riwayat pesanan buatan Anda) dan mengembalikan seluruh akun &amp; data ke kondisi demo awal bawaan.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm("Reset semua input pengujian dan kembalikan ke data demo awal? Semua akun demo (Organizer, Tenant, Pengunjung) dan event bawaan akan tetap ada.")) {
+              localStorage.clear();
+              window.location.reload();
+            }
+          }}
+          className="btn btn-sm text-xs bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 font-medium cursor-pointer"
+          id="btn-reset-demo-tenant"
+        >
+          Reset ke Data Demo Awal
+        </button>
+      </div>
     </div>
   );
 }

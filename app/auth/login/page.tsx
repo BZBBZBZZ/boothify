@@ -216,6 +216,23 @@ export default function LoginPage() {
             <p className="text-[10px] text-muted-foreground mt-2 text-center">
               💡 Tiap akun memiliki data, booth, dan katalog terpisah di Local Storage.
             </p>
+            <div className="mt-3 pt-3 border-t border-white/5 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm("Reset semua data input pengujian dan kembalikan ke data demo awal? Semua akun demo (Organizer, Tenant, Pengunjung) dan event bawaan akan tetap ada.")) {
+                    localStorage.clear();
+                    window.location.reload();
+                  }
+                }}
+                className="text-[11px] text-muted-foreground hover:text-amber-400 transition inline-flex items-center gap-1.5 cursor-pointer font-medium"
+                title="Hapus data input pengujian dan kembalikan ke kondisi default demo"
+                id="reset-demo-data-btn"
+              >
+                <span>🔄</span>
+                <span>Reset ke Data Demo Awal</span>
+              </button>
+            </div>
           </div>
 
           {/* Register link */}

@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/app/components/AuthContext";
+import { DEFAULT_EVENTS_META } from "@/app/lib/event-defaults";
 
 interface CheckoutItem {
   booth: string;
@@ -42,10 +43,14 @@ function CheckoutContent() {
 
       // Load event details
       const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-      const found = storedEvents.find((e: { id: string; title: string; date: string }) => e.id === eventId);
+      const found = storedEvents.find((e: { id: string; title: string; date: string }) => String(e.id) === String(eventId));
       if (found) {
         setEventTitle(found.title);
         if (found.date) setEventDate(found.date);
+      } else {
+        const fallback = DEFAULT_EVENTS_META[eventId] || DEFAULT_EVENTS_META["1"];
+        setEventTitle(fallback.title);
+        setEventDate(fallback.date);
       }
     } catch {
       // ignore
