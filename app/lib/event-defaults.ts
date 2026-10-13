@@ -4,9 +4,16 @@ export type FloorPlanBooth = {
   y: number;
   width: number;
   height: number;
+  rotation?: number;
   label: string;
   zone: string; // "fashion" | "fnb" | "craft" | "education" | "automotive" | "general"
   price: number;
+};
+
+export type EventZone = {
+  value: string;
+  label: string;
+  color: string;
 };
 
 export type EventTenantInfo = {

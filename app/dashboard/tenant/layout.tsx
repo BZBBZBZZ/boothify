@@ -49,7 +49,7 @@ function TenantLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!isLoading && (!user || user.role !== "tenant")) {
       router.push("/auth/login");
     }
   }, [isLoading, user, router]);

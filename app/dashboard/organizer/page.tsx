@@ -180,9 +180,7 @@ export default function OrganizerDashboard() {
     const cleanNum = Number(b.amount.replace(/[^0-9]/g, ""));
     return sum + (isNaN(cleanNum) ? 0 : cleanNum);
   }, 0);
-  const formattedRevenue = isDemoOrg && totalRevenueNumber === 0
-    ? "Rp 317.5 Jt"
-    : `Rp ${(totalRevenueNumber / 1000000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} Jt`;
+  const formattedRevenue = `Rp ${(totalRevenueNumber / 1000000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} Jt`;
 
   return (
     <div className="animate-fade-in" id="organizer-overview">
@@ -215,7 +213,7 @@ export default function OrganizerDashboard() {
             <span className="text-2xl">🏪</span>
             <span className="text-[11px] text-primary-light font-medium">Terisi</span>
           </div>
-          <div className="text-2xl font-bold mb-1">{isDemoOrg ? Math.max(127, totalBoothsFilled) : totalBoothsFilled}</div>
+          <div className="text-2xl font-bold mb-1">{totalBoothsFilled}</div>
           <div className="text-xs text-muted-foreground">Total Booth Tersewa</div>
         </div>
 

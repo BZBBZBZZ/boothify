@@ -80,7 +80,7 @@ export default function CatalogPage() {
       if (storedType === "fnb" || storedType === "non-fnb") {
         setCatalogType(storedType);
       } else {
-        setCatalogType(isKopi ? "fnb" : isEcoWear ? "non-fnb" : user?.category === "fnb" ? "fnb" : "non-fnb");
+        setCatalogType(isKopi ? "fnb" : isEcoWear ? "non-fnb" : user?.businessCategory === "fnb" || user?.category === "fnb" ? "fnb" : "non-fnb");
       }
 
       // 2. Menu items

@@ -36,7 +36,7 @@ const getZoneDisplay = (zone: string) => {
   if (z.includes("craft")) return "Craft";
   if (z.includes("edu")) return "Education";
   if (z.includes("auto")) return "Automotive";
-  return "Umum";
+  return zone;
 };
 
 function EventGuideContent() {
@@ -55,6 +55,7 @@ function EventGuideContent() {
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
+  const [cartToast, setCartToast] = useState<string | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [showMiniWebsite, setShowMiniWebsite] = useState(false);
@@ -217,6 +218,8 @@ function EventGuideContent() {
       }
       return [...prev, { boothId, name, price, qty: 1 }];
     });
+    setCartToast(`${name} berhasil ditambahkan ke keranjang`);
+    window.setTimeout(() => setCartToast(null), 3500);
   };
 
   const removeFromCart = (boothId: string, name: string) => {
@@ -474,6 +477,13 @@ function EventGuideContent() {
           </div>
         </div>
 
+        {cartToast && (
+          <button type="button" onClick={() => { setCartToast(null); setShowCart(true); }} className="w-full text-left p-3 rounded-xl mb-4 bg-primary/10 border border-primary/30 text-sm animate-fade-in" id="cart-toast">
+            <span className="font-semibold text-primary-light">✓ Produk berhasil ditambahkan ke keranjang.</span>
+            <span className="block text-xs text-muted-foreground mt-1">Ketuk untuk melihat keranjang Anda →</span>
+          </button>
+        )}
+
         {/* ========== DENAH ACARA INTERAKTIF ========== */}
         <div className="card-base p-4 sm:p-5 mb-6" id="denah-section">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
@@ -512,8 +522,8 @@ function EventGuideContent() {
             </div>
           </div>
 
-          {/* Dynamic Booth Grid from Organizer Floor Plan */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+          {/* Organizer-authored floor plan */}
+          <div className="floor-plan-canvas relative min-h-[360px] sm:min-h-[460px] overflow-hidden mb-4">
             {booths.map((b) => {
               const tenant = tenantsMap[b.label];
               const isOccupied = !!tenant;
@@ -534,7 +544,7 @@ function EventGuideContent() {
                       setEmptyBoothSelected(b);
                     }
                   }}
-                  className={`p-3 rounded-xl border text-left transition-all ${
+                  className={`absolute p-2 rounded-xl border text-left transition-all ${
                     matchesFilter ? "opacity-100 scale-100" : "opacity-40"
                   } ${
                     isOccupied
@@ -543,6 +553,13 @@ function EventGuideContent() {
                         : "bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500 hover:scale-[1.02]"
                       : "bg-white/[0.02] border-white/5 hover:border-white/20"
                   }`}
+                  style={{
+                    left: `${(b.x / 600) * 100}%`,
+                    top: `${(b.y / 460) * 100}%`,
+                    width: `${(b.width / 600) * 100}%`,
+                    height: `${(b.height / 460) * 100}%`,
+                    transform: `rotate(${b.rotation || 0}deg)`,
+                  }}
                   id={`guide-booth-${b.label}`}
                 >
                   <div className="flex items-center justify-between mb-1">
@@ -551,6 +568,7 @@ function EventGuideContent() {
                       {getZoneDisplay(b.zone)}
                     </span>
                   </div>
+                  <p className="text-[10px] text-muted-foreground">{b.width} × {b.height} px</p>
 
                   {isOccupied ? (
                     <div>

@@ -31,7 +31,7 @@ const getZoneDisplay = (zone: string) => {
   if (z.includes("craft")) return "Craft";
   if (z.includes("edu")) return "Education";
   if (z.includes("auto")) return "Automotive";
-  return "Umum";
+  return zone;
 };
 
 function EventDetailContent() {
@@ -96,6 +96,10 @@ function EventDetailContent() {
 
   const handleProceedCheckout = () => {
     if (selectedBoothsData.length === 0) return;
+    if (user?.role !== "tenant") {
+      router.push("/auth/login");
+      return;
+    }
     const items = selectedBoothsData.map((b) => ({
       booth: b.label,
       zone: getZoneDisplay(b.zone),
@@ -357,8 +361,8 @@ function EventDetailContent() {
                       </div>
                     </div>
 
-                    {/* Dynamic Booth Grid from Floor Plan */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {/* Organizer-authored floor plan */}
+                    <div className="floor-plan-canvas relative min-h-[360px] sm:min-h-[460px] overflow-hidden">
                       {booths.map((b) => {
                         const isTaken = takenBooths.includes(b.label);
                         const isSelected = selectedBoothLabels.includes(b.label);
@@ -369,13 +373,20 @@ function EventDetailContent() {
                           <div
                             key={b.id || b.label}
                             onClick={() => !isTaken && toggleBooth(b.label)}
-                            className={`p-3.5 rounded-xl border text-left transition-all relative ${
+                            className={`absolute p-2 rounded-xl border text-left transition-all ${
                               isTaken
                                 ? "bg-white/[0.02] border-white/5 opacity-60 cursor-not-allowed"
                                 : isSelected
                                 ? "bg-primary/10 border-2 border-primary shadow-lg shadow-primary/10 cursor-pointer scale-[1.02]"
                                 : "bg-card hover:bg-white/[0.04] border-border hover:border-primary/50 cursor-pointer"
                             }`}
+                            style={{
+                              left: `${(b.x / 600) * 100}%`,
+                              top: `${(b.y / 460) * 100}%`,
+                              width: `${(b.width / 600) * 100}%`,
+                              height: `${(b.height / 460) * 100}%`,
+                              transform: `rotate(${b.rotation || 0}deg)`,
+                            }}
                             id={`booth-card-${b.label}`}
                           >
                             <div className="flex items-center justify-between mb-2">
@@ -388,6 +399,7 @@ function EventDetailContent() {
                             <p className="text-xs font-semibold text-primary-light mb-1">
                               Rp {(b.price || 2500000).toLocaleString("id-ID")}
                             </p>
+                            <p className="text-[10px] text-muted-foreground">Ukuran {b.width} × {b.height} px</p>
 
                             {isTaken ? (
                               <div className="mt-2 pt-2 border-t border-white/5">

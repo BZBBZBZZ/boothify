@@ -9,6 +9,7 @@ import {
   getAllOrganizerEvents,
   setActiveOrganizerEventId,
   EventDetail,
+  EventZone,
 } from "@/app/lib/event-defaults";
 import { useAuth } from "@/app/components/AuthContext";
 
@@ -18,6 +19,7 @@ type Booth = {
   y: number;
   width: number;
   height: number;
+  rotation?: number;
   label: string;
   zone: string;
   price: number;
@@ -58,10 +60,10 @@ function FloorPlanContent() {
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [activeZone, setActiveZone] = useState("fashion");
-  const [blueprintBg, setBlueprintBg] = useState<string | null>(null);
+  const [zones, setZones] = useState<EventZone[]>(ZONES);
+  const [newZone, setNewZone] = useState({ value: "", label: "", color: "#6b7280" });
   const [saved, setSaved] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load from localStorage on mount & when eventId changes
   useEffect(() => {
@@ -71,8 +73,8 @@ function FloorPlanContent() {
       setAllEvents(getAllOrganizerEvents(user?.email));
       const initialized = ensureEventFloorPlanInitialized(eventId);
       setBooths(initialized.booths);
-      const storedBg = localStorage.getItem(`boothify_floor_plan_bg_${eventId}`) || localStorage.getItem("boothify_floor_plan_bg");
-      if (storedBg) setBlueprintBg(storedBg);
+      const storedZones = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_zones`) || "null");
+      setZones(Array.isArray(storedZones) && storedZones.length > 0 ? storedZones : ZONES);
     } catch { /* ignore */ }
   }, [eventId, user?.email]);
 
@@ -80,10 +82,7 @@ function FloorPlanContent() {
     try {
       localStorage.setItem(`boothify_event_${eventId}_booths`, JSON.stringify(booths));
       localStorage.setItem("boothify_floor_plan", JSON.stringify(booths));
-      if (blueprintBg) {
-        localStorage.setItem(`boothify_floor_plan_bg_${eventId}`, blueprintBg);
-        localStorage.setItem("boothify_floor_plan_bg", blueprintBg);
-      }
+      localStorage.setItem(`boothify_event_${eventId}_zones`, JSON.stringify(zones));
       // Update boothsTotal on event
       const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
       const updatedEvents = storedEvents.map((ev: { id: string; boothsTotal: number; status: string }) =>
@@ -98,19 +97,6 @@ function FloorPlanContent() {
   const handlePublishAndGetQR = () => {
     saveFloorPlan();
     router.push(`/dashboard/organizer/events/${eventId}/qr-code`);
-  };
-
-  const handleUploadBlueprint = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const url = event.target?.result as string;
-        setBlueprintBg(url);
-        localStorage.setItem("boothify_floor_plan_bg", url);
-      };
-      reader.readAsDataURL(file);
-    }
   };
 
   const applyTemplate = (type: "cinema" | "expo" | "cluster") => {
@@ -170,12 +156,29 @@ function FloorPlanContent() {
       y: 80 + Math.random() * 200,
       width: 80,
       height: 60,
+      rotation: 0,
       label: nextLabel,
       zone: activeZone,
       price: 2500000,
     };
     setBooths([...booths, newBooth]);
     setSelectedBooth(newBooth);
+  };
+
+  const addZone = () => {
+    const value = newZone.value.trim().toLowerCase().replace(/\s+/g, "-");
+    const label = newZone.label.trim();
+    if (!value || !label || zones.some((zone) => zone.value === value)) return;
+    const createdZone = { ...newZone, value, label };
+    setZones((prev) => [...prev, createdZone]);
+    setActiveZone(value);
+    setNewZone({ value: "", label: "", color: "#6b7280" });
+  };
+
+  const removeZone = (value: string) => {
+    if (zones.length <= 1 || booths.some((booth) => booth.zone === value)) return;
+    setZones((prev) => prev.filter((zone) => zone.value !== value));
+    if (activeZone === value) setActiveZone(zones[0].value);
   };
 
   const removeBooth = (id: string) => {
@@ -200,13 +203,14 @@ function FloorPlanContent() {
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!dragging || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = Math.max(0, Math.min(e.clientX - rect.left - dragOffset.x, rect.width - 80));
-    const y = Math.max(0, Math.min(e.clientY - rect.top - dragOffset.y, rect.height - 60));
+    const booth = booths.find((item) => item.id === dragging);
+    const x = Math.max(0, Math.min(e.clientX - rect.left - dragOffset.x, rect.width - (booth?.width || 80)));
+    const y = Math.max(0, Math.min(e.clientY - rect.top - dragOffset.y, rect.height - (booth?.height || 60)));
     // Snap to grid
     const snappedX = Math.round(x / 20) * 20;
     const snappedY = Math.round(y / 20) * 20;
     setBooths((prev) => prev.map((b) => (b.id === dragging ? { ...b, x: snappedX, y: snappedY } : b)));
-  }, [dragging, dragOffset]);
+  }, [booths, dragging, dragOffset]);
 
   const handleMouseUp = useCallback(() => {
     setDragging(null);
@@ -250,7 +254,7 @@ function FloorPlanContent() {
     );
   }
 
-  const getZoneColor = (zone: string) => ZONES.find((z) => z.value === zone)?.color || "var(--zone-general)";
+  const getZoneColor = (zone: string) => zones.find((item) => item.value === zone)?.color || "var(--zone-general)";
 
   return (
     <div className="animate-fade-in" id="floor-plan-builder">
@@ -333,10 +337,10 @@ function FloorPlanContent() {
             </div>
           </div>
 
-          {/* Canva-style Templates & Blueprint Upload */}
+          {/* Layout templates */}
           <div className="card-base p-4">
-            <h3 className="font-semibold text-sm mb-2">Template & Blueprint</h3>
-            <p className="text-[11px] text-muted-foreground mb-3">Terapkan tata letak instan ala bioskop atau unggah denah venue arsitektur.</p>
+            <h3 className="font-semibold text-sm mb-2">Template Tata Letak</h3>
+            <p className="text-[11px] text-muted-foreground mb-3">Terapkan tata letak instan lalu sesuaikan posisi setiap booth.</p>
             <div className="space-y-2">
               <button
                 type="button"
@@ -359,43 +363,37 @@ function FloorPlanContent() {
               >
                 🎪 Reset Template Awal
               </button>
-
-              <div className="pt-2 border-t border-border">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept="image/*"
-                  onChange={handleUploadBlueprint}
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="btn btn-secondary w-full btn-sm text-xs"
-                >
-                  📐 {blueprintBg ? "Ganti Denah/Blueprint" : "Unggah Blueprint Venue"}
-                </button>
-                {blueprintBg && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBlueprintBg(null);
-                      localStorage.removeItem("boothify_floor_plan_bg");
-                    }}
-                    className="text-[10px] text-error hover:underline block text-center mt-1 w-full"
-                  >
-                    Hapus gambar blueprint
-                  </button>
-                )}
-              </div>
             </div>
+          </div>
+
+          {/* Zone CRUD */}
+          <div className="card-base p-4">
+            <h3 className="font-semibold text-sm mb-1">Kategori Zona</h3>
+            <p className="text-[11px] text-muted-foreground mb-3">Kelola kategori zona yang dipakai booth event ini.</p>
+            <div className="space-y-2 mb-3">
+              {zones.map((zone) => (
+                <div key={zone.value} className="flex items-center gap-2 p-2 rounded-lg bg-white/[0.03] border border-white/5">
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: zone.color }} />
+                  <span className="text-xs flex-1 truncate">{zone.label}</span>
+                  <button type="button" onClick={() => removeZone(zone.value)} className="text-[10px] text-error disabled:opacity-40" disabled={zones.length <= 1 || booths.some((booth) => booth.zone === zone.value)} aria-label={`Hapus zona ${zone.label}`}>
+                    Hapus
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+              <input className="input-base text-xs px-2" placeholder="ID zona" value={newZone.value} onChange={(e) => setNewZone({ ...newZone, value: e.target.value })} />
+              <input className="input-base text-xs px-2" placeholder="Nama zona" value={newZone.label} onChange={(e) => setNewZone({ ...newZone, label: e.target.value })} />
+              <input className="w-10 h-10 rounded-lg bg-card border border-border p-1" type="color" value={newZone.color} onChange={(e) => setNewZone({ ...newZone, color: e.target.value })} aria-label="Warna zona" />
+            </div>
+            <button type="button" onClick={addZone} className="btn btn-secondary btn-sm w-full mt-2">+ Tambah Zona</button>
           </div>
 
           {/* Zone legend */}
           <div className="card-base p-4">
             <h3 className="font-semibold text-sm mb-3">Zona Warna</h3>
             <div className="space-y-2">
-              {ZONES.map((z) => (
+              {zones.map((z) => (
                 <div key={z.value} className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded" style={{ backgroundColor: z.color }} />
                   <span className="text-xs">{z.label}</span>
@@ -433,6 +431,14 @@ function FloorPlanContent() {
                   <label className="text-xs text-muted-foreground mb-1 block">Harga Sewa (Rp)</label>
                   <input type="number" className="input-base text-sm" value={selectedBooth.price} onChange={(e) => updateBooth(selectedBooth.id, { price: Number(e.target.value) })} />
                 </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Rotasi Booth</label>
+                  <div className="flex items-center gap-2">
+                    <input type="range" min="0" max="359" step="15" className="w-full accent-[var(--primary)]" value={selectedBooth.rotation || 0} onChange={(e) => updateBooth(selectedBooth.id, { rotation: Number(e.target.value) })} />
+                    <span className="text-xs w-12 text-right">{selectedBooth.rotation || 0}°</span>
+                  </div>
+                </div>
+                <button type="button" onClick={() => updateBooth(selectedBooth.id, { rotation: ((selectedBooth.rotation || 0) + 90) % 360 })} className="btn btn-secondary btn-sm w-full">↻ Putar 90°</button>
                 <button onClick={() => removeBooth(selectedBooth.id)} className="btn btn-sm w-full bg-error/10 text-error hover:bg-error/20 border-none">
                   Hapus Booth
                 </button>
@@ -468,11 +474,6 @@ function FloorPlanContent() {
               className="floor-plan-canvas relative"
               style={{
                 minHeight: 460,
-                backgroundImage: blueprintBg
-                  ? `linear-gradient(rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.88)), url(${blueprintBg})`
-                  : undefined,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
               }}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
@@ -488,6 +489,7 @@ function FloorPlanContent() {
                     top: booth.y,
                     width: booth.width,
                     height: booth.height,
+                    transform: `rotate(${booth.rotation || 0}deg)`,
                     borderColor: getZoneColor(booth.zone),
                     backgroundColor: `color-mix(in srgb, ${getZoneColor(booth.zone)} 15%, transparent)`,
                     color: getZoneColor(booth.zone),
@@ -497,7 +499,7 @@ function FloorPlanContent() {
                 >
                   <div className="text-center">
                     <div className="font-bold text-xs">{booth.label}</div>
-                    <div className="text-[9px] opacity-70">{ZONES.find((z) => z.value === booth.zone)?.label}</div>
+                    <div className="text-[9px] opacity-70">{zones.find((z) => z.value === booth.zone)?.label}</div>
                   </div>
                 </div>
               ))}

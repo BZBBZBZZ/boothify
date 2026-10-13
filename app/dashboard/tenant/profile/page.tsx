@@ -10,7 +10,7 @@ export default function TenantProfilePage() {
 
   const [profile, setProfile] = useState({
     brandName: user?.businessName || (isKopi ? "Kopi Keliling Nusantara" : "EcoWear Studio"),
-    category: user?.category || (isKopi ? "fnb" : "fashion"),
+    category: user?.businessCategory || user?.category || (isKopi ? "fnb" : "fashion"),
     email: user?.email || "demo-tenant@boothify.id",
     phone: user?.phone || (isKopi ? "+62 812 3456 7890" : "+62 812 9876 5432"),
     description: user?.description || (isKopi
@@ -32,7 +32,7 @@ export default function TenantProfilePage() {
       } else if (user) {
         setProfile({
           brandName: user.businessName || (isKopi ? "Kopi Keliling Nusantara" : "EcoWear Studio"),
-          category: user.category || (isKopi ? "fnb" : "fashion"),
+          category: user.businessCategory || user.category || (isKopi ? "fnb" : "fashion"),
           email: user.email,
           phone: user.phone || (isKopi ? "+62 812 3456 7890" : "+62 812 9876 5432"),
           description: user.description || (isKopi

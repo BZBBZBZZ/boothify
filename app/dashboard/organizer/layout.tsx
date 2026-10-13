@@ -209,7 +209,7 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Auth guard
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!isLoading && (!user || user.role !== "organizer")) {
       router.push("/auth/login");
     }
   }, [isLoading, user, router]);

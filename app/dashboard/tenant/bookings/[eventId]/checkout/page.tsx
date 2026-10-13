@@ -12,16 +12,11 @@ interface CheckoutItem {
   price: number;
 }
 
-const DEFAULT_ITEMS: CheckoutItem[] = [
-  { booth: "A2", zone: "Fashion", price: 2500000 },
-  { booth: "A4", zone: "Fashion", price: 2500000 },
-];
-
 function CheckoutContent() {
   const params = useParams();
   const eventId = (params?.eventId as string) || "1";
   const { user } = useAuth();
-  const [items, setItems] = useState<CheckoutItem[]>(DEFAULT_ITEMS);
+  const [items, setItems] = useState<CheckoutItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -57,6 +52,14 @@ function CheckoutContent() {
     }
   }, [eventId]);
 
+  if (user && user.role !== "tenant") {
+    return <div className="card-base p-8 text-center"><h1 className="text-xl font-bold mb-2">Akses khusus tenant</h1><p className="text-sm text-muted-foreground">Silakan masuk menggunakan akun tenant untuk menyewa booth.</p><Link href="/events" className="btn btn-primary btn-sm mt-5">Kembali ke Event</Link></div>;
+  }
+
+  if (!user || items.length === 0) {
+    return <div className="card-base p-8 text-center"><h1 className="text-xl font-bold mb-2">Belum ada booth dipilih</h1><p className="text-sm text-muted-foreground mb-5">Pilih booth dari halaman event sebelum melanjutkan pembayaran.</p><Link href={`/events/${eventId}`} className="btn btn-primary btn-sm">Pilih Booth</Link></div>;
+  }
+
   const subtotal = items.reduce((s, i) => s + i.price, 0);
   const serviceFee = 50000;
   const total = subtotal + serviceFee;
@@ -88,9 +91,9 @@ function CheckoutContent() {
             id: item.booth,
             name: tenantBrand,
             tenantEmail: tenantEmail,
-            category: user?.category || tenantProfile.category || item.zone || "Fashion",
+            category: user?.businessCategory || user?.category || tenantProfile.category || item.zone || "Fashion",
             zone: item.zone || item.booth.charAt(0),
-            type: (user?.category === "fnb" || item.zone === "F&B" || tenantEmail === "kopi@boothify.id") ? "fnb" : "non-fnb",
+            type: (user?.businessCategory === "fnb" || user?.category === "fnb" || item.zone === "F&B" || tenantEmail === "kopi@boothify.id") ? "fnb" : "non-fnb",
             desc: tenantProfile.description || `${tenantBrand} terdaftar resmi di event ini.`,
           };
         });
@@ -129,6 +132,8 @@ function CheckoutContent() {
           });
         });
         localStorage.setItem("boothify_recent_bookings", JSON.stringify(recentBookings));
+        localStorage.removeItem("boothify_checkout_items");
+        localStorage.removeItem("boothify_checkout_eventId");
 
         // Update organizer events stats: increase boothsFilled
         const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
