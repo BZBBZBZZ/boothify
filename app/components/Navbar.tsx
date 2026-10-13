@@ -116,6 +116,12 @@ export default function Navbar() {
             <Link href="/events" className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-white/5 transition" onClick={() => setMobileOpen(false)}>
               Jelajahi Event
             </Link>
+            <Link href="/#features" className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-white/5 transition" onClick={() => setMobileOpen(false)}>
+              Fitur
+            </Link>
+            <Link href="/#how-it-works" className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-white/5 transition" onClick={() => setMobileOpen(false)}>
+              Cara Kerja
+            </Link>
             {user ? (
               <>
                 <Link href={dashboardLink} className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-white/5 transition" onClick={() => setMobileOpen(false)}>

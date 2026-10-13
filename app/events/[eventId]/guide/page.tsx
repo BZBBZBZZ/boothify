@@ -477,13 +477,6 @@ function EventGuideContent() {
           </div>
         </div>
 
-        {cartToast && (
-          <button type="button" onClick={() => { setCartToast(null); setShowCart(true); }} className="w-full text-left p-3 rounded-xl mb-4 bg-primary/10 border border-primary/30 text-sm animate-fade-in" id="cart-toast">
-            <span className="font-semibold text-primary-light">✓ Produk berhasil ditambahkan ke keranjang.</span>
-            <span className="block text-xs text-muted-foreground mt-1">Ketuk untuk melihat keranjang Anda →</span>
-          </button>
-        )}
-
         {/* ========== DENAH ACARA INTERAKTIF ========== */}
         <div className="card-base p-4 sm:p-5 mb-6" id="denah-section">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
@@ -523,7 +516,8 @@ function EventGuideContent() {
           </div>
 
           {/* Organizer-authored floor plan */}
-          <div className="floor-plan-canvas relative min-h-[360px] sm:min-h-[460px] overflow-hidden mb-4">
+          <div className="overflow-auto rounded-2xl mb-4" id="guide-floor-plan-scroll-area">
+            <div className="floor-plan-canvas relative min-w-[600px] min-h-[460px]">
             {booths.map((b) => {
               const tenant = tenantsMap[b.label];
               const isOccupied = !!tenant;
@@ -568,7 +562,7 @@ function EventGuideContent() {
                       {getZoneDisplay(b.zone)}
                     </span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground">{b.width} × {b.height} px</p>
+                  <p className="text-[10px] text-muted-foreground">Ukuran asli: {b.sizeCm || "Belum diatur"}</p>
 
                   {isOccupied ? (
                     <div>
@@ -586,6 +580,7 @@ function EventGuideContent() {
                 </button>
               );
             })}
+            </div>
           </div>
 
           {/* Legend */}
@@ -683,6 +678,13 @@ function EventGuideContent() {
             </div>
 
             <p className="text-xs text-muted-foreground mb-5 leading-relaxed">{selectedBooth.desc}</p>
+
+            {cartToast && (
+              <button type="button" onClick={() => { setCartToast(null); setShowCart(true); }} className="w-full text-left p-3 rounded-xl mb-5 bg-primary/10 border border-primary/30 text-sm animate-fade-in" id="cart-toast">
+                <span className="font-semibold text-primary-light">✓ Produk berhasil ditambahkan ke keranjang.</span>
+                <span className="block text-xs text-muted-foreground mt-1">Ketuk untuk melihat keranjang Anda →</span>
+              </button>
+            )}
 
             {/* Products & Menu Catalog for ANY tenant with products */}
             {selectedBooth.menu && selectedBooth.menu.length > 0 && (
@@ -903,6 +905,13 @@ function EventGuideContent() {
                 ✕
               </button>
             </div>
+
+            {cartToast && (
+              <div className="p-3 rounded-xl mb-4 bg-primary/10 border border-primary/30 text-sm animate-fade-in" id="cart-toast-drawer">
+                <p className="font-semibold text-primary-light">✓ Produk berhasil ditambahkan ke keranjang.</p>
+                <p className="text-xs text-muted-foreground mt-1">Pesanan Anda sudah tercatat di keranjang ini.</p>
+              </div>
+            )}
 
             <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
               {cart.map((item) => (

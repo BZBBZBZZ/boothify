@@ -20,6 +20,7 @@ type Booth = {
   width: number;
   height: number;
   rotation?: number;
+  sizeCm?: string;
   label: string;
   zone: string;
   price: number;
@@ -61,7 +62,8 @@ function FloorPlanContent() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [activeZone, setActiveZone] = useState("fashion");
   const [zones, setZones] = useState<EventZone[]>(ZONES);
-  const [newZone, setNewZone] = useState({ value: "", label: "", color: "#6b7280" });
+  const [newZone, setNewZone] = useState({ label: "", color: "#6b7280" });
+  const [canvasScale, setCanvasScale] = useState(1);
   const [saved, setSaved] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -157,6 +159,7 @@ function FloorPlanContent() {
       width: 80,
       height: 60,
       rotation: 0,
+      sizeCm: "300 x 300 cm",
       label: nextLabel,
       zone: activeZone,
       price: 2500000,
@@ -166,13 +169,13 @@ function FloorPlanContent() {
   };
 
   const addZone = () => {
-    const value = newZone.value.trim().toLowerCase().replace(/\s+/g, "-");
     const label = newZone.label.trim();
-    if (!value || !label || zones.some((zone) => zone.value === value)) return;
+    const value = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || `zona-${zones.length + 1}`;
+    if (!label || zones.some((zone) => zone.label.toLowerCase() === label.toLowerCase())) return;
     const createdZone = { ...newZone, value, label };
     setZones((prev) => [...prev, createdZone]);
     setActiveZone(value);
-    setNewZone({ value: "", label: "", color: "#6b7280" });
+    setNewZone({ label: "", color: "#6b7280" });
   };
 
   const removeZone = (value: string) => {
@@ -196,21 +199,21 @@ function FloorPlanContent() {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     setDragging(booth.id);
-    setDragOffset({ x: e.clientX - rect.left - booth.x, y: e.clientY - rect.top - booth.y });
+    setDragOffset({ x: (e.clientX - rect.left) / canvasScale - booth.x, y: (e.clientY - rect.top) / canvasScale - booth.y });
     setSelectedBooth(booth);
-  }, []);
+  }, [canvasScale]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!dragging || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const booth = booths.find((item) => item.id === dragging);
-    const x = Math.max(0, Math.min(e.clientX - rect.left - dragOffset.x, rect.width - (booth?.width || 80)));
-    const y = Math.max(0, Math.min(e.clientY - rect.top - dragOffset.y, rect.height - (booth?.height || 60)));
+    const x = Math.max(0, Math.min((e.clientX - rect.left) / canvasScale - dragOffset.x, 600 - (booth?.width || 80)));
+    const y = Math.max(0, Math.min((e.clientY - rect.top) / canvasScale - dragOffset.y, 460 - (booth?.height || 60)));
     // Snap to grid
     const snappedX = Math.round(x / 20) * 20;
     const snappedY = Math.round(y / 20) * 20;
     setBooths((prev) => prev.map((b) => (b.id === dragging ? { ...b, x: snappedX, y: snappedY } : b)));
-  }, [booths, dragging, dragOffset]);
+  }, [booths, canvasScale, dragging, dragOffset]);
 
   const handleMouseUp = useCallback(() => {
     setDragging(null);
@@ -326,7 +329,7 @@ function FloorPlanContent() {
                   onChange={(e) => setActiveZone(e.target.value)}
                   id="zone-selector"
                 >
-                  {ZONES.map((z) => (
+                  {zones.map((z) => (
                     <option key={z.value} value={z.value}>{z.label}</option>
                   ))}
                 </select>
@@ -382,8 +385,7 @@ function FloorPlanContent() {
               ))}
             </div>
             <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
-              <input className="input-base text-xs px-2" placeholder="ID zona" value={newZone.value} onChange={(e) => setNewZone({ ...newZone, value: e.target.value })} />
-              <input className="input-base text-xs px-2" placeholder="Nama zona" value={newZone.label} onChange={(e) => setNewZone({ ...newZone, label: e.target.value })} />
+              <input className="input-base text-xs px-2 col-span-2" placeholder="Nama zona" value={newZone.label} onChange={(e) => setNewZone({ ...newZone, label: e.target.value })} />
               <input className="w-10 h-10 rounded-lg bg-card border border-border p-1" type="color" value={newZone.color} onChange={(e) => setNewZone({ ...newZone, color: e.target.value })} aria-label="Warna zona" />
             </div>
             <button type="button" onClick={addZone} className="btn btn-secondary btn-sm w-full mt-2">+ Tambah Zona</button>
@@ -414,7 +416,7 @@ function FloorPlanContent() {
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Zona</label>
                   <select className="input-base text-sm" value={selectedBooth.zone} onChange={(e) => updateBooth(selectedBooth.id, { zone: e.target.value })}>
-                    {ZONES.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
+                    {zones.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -430,6 +432,10 @@ function FloorPlanContent() {
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Harga Sewa (Rp)</label>
                   <input type="number" className="input-base text-sm" value={selectedBooth.price} onChange={(e) => updateBooth(selectedBooth.id, { price: Number(e.target.value) })} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Ukuran Asli Booth (cm)</label>
+                  <input type="text" className="input-base text-sm" placeholder="Contoh: 300 x 300 cm" value={selectedBooth.sizeCm || ""} onChange={(e) => updateBooth(selectedBooth.id, { sizeCm: e.target.value })} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Rotasi Booth</label>
@@ -451,8 +457,12 @@ function FloorPlanContent() {
         <div className="lg:col-span-3">
           <div className="card-base p-4">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <p className="text-xs text-muted-foreground">🖱️ Drag booth untuk memindahkan • Klik untuk edit harga & zona</p>
+              <p className="text-xs text-muted-foreground">🖱️ Drag booth untuk memindahkan • Klik untuk edit booth</p>
               <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">Zoom
+                  <input type="range" min="0.6" max="1.8" step="0.1" value={canvasScale} onChange={(e) => setCanvasScale(Number(e.target.value))} className="w-24 accent-[var(--primary)]" aria-label="Zoom denah" />
+                  <span className="w-8">{Math.round(canvasScale * 100)}%</span>
+                </label>
                 <button onClick={saveFloorPlan} className="btn btn-secondary btn-sm" id="save-floor-plan">
                   {saved ? "✓ Tersimpan!" : "💾 Simpan Draft"}
                 </button>
@@ -469,18 +479,18 @@ function FloorPlanContent() {
               </div>
             </div>
 
-            <div
-              ref={canvasRef}
-              className="floor-plan-canvas relative"
-              style={{
-                minHeight: 460,
-              }}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-              id="floor-plan-canvas"
-            >
-              {booths.map((booth) => (
+            <div className="overflow-auto max-h-[70vh] rounded-2xl" id="floor-plan-scroll-area">
+              <div style={{ width: 600 * canvasScale, height: 460 * canvasScale }}>
+                <div
+                  ref={canvasRef}
+                  className="floor-plan-canvas relative"
+                  style={{ width: 600, height: 460, minHeight: 460, zoom: canvasScale }}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  id="floor-plan-canvas"
+                >
+                  {booths.map((booth) => (
                 <div
                   key={booth.id}
                   className={`floor-plan-booth ${dragging === booth.id ? "dragging" : ""} ${selectedBooth?.id === booth.id ? "ring-2 ring-primary" : ""}`}
@@ -502,7 +512,9 @@ function FloorPlanContent() {
                     <div className="text-[9px] opacity-70">{zones.find((z) => z.value === booth.zone)?.label}</div>
                   </div>
                 </div>
-              ))}
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>

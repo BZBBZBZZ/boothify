@@ -83,14 +83,26 @@
 
 html {
   scroll-behavior: smooth;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+#main-navbar,
+main,
+#__next {
+  width: 100%;
+  max-width: 100%;
 }
 
 /* Scrollbar */

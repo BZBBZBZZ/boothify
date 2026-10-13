@@ -362,7 +362,8 @@ function EventDetailContent() {
                     </div>
 
                     {/* Organizer-authored floor plan */}
-                    <div className="floor-plan-canvas relative min-h-[360px] sm:min-h-[460px] overflow-hidden">
+                    <div className="overflow-auto rounded-2xl" id="public-floor-plan-scroll-area">
+                      <div className="floor-plan-canvas relative min-w-[600px] min-h-[460px]">
                       {booths.map((b) => {
                         const isTaken = takenBooths.includes(b.label);
                         const isSelected = selectedBoothLabels.includes(b.label);
@@ -399,7 +400,7 @@ function EventDetailContent() {
                             <p className="text-xs font-semibold text-primary-light mb-1">
                               Rp {(b.price || 2500000).toLocaleString("id-ID")}
                             </p>
-                            <p className="text-[10px] text-muted-foreground">Ukuran {b.width} × {b.height} px</p>
+                            <p className="text-[10px] text-muted-foreground">Ukuran asli: {b.sizeCm || "Belum diatur"}</p>
 
                             {isTaken ? (
                               <div className="mt-2 pt-2 border-t border-white/5">
@@ -420,6 +421,7 @@ function EventDetailContent() {
                           </div>
                         );
                       })}
+                      </div>
                     </div>
                   </div>
                 </div>

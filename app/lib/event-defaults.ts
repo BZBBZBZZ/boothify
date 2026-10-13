@@ -5,6 +5,7 @@ export type FloorPlanBooth = {
   width: number;
   height: number;
   rotation?: number;
+  sizeCm?: string;
   label: string;
   zone: string; // "fashion" | "fnb" | "craft" | "education" | "automotive" | "general"
   price: number;
@@ -437,10 +438,14 @@ export function ensureEventFloorPlanInitialized(eventId: string): {
   const meta = DEFAULT_EVENTS_META[eventId];
   const fallbackBooths = DEFAULT_EVENT_BOOTHS[eventId] || generateDefaultBoothsForEvent(eventId, meta?.category);
   const fallbackTenants = DEFAULT_EVENT_TENANTS[eventId] || {};
+  const normalizeBooths = (items: FloorPlanBooth[]) => items.map((booth) => ({
+    ...booth,
+    sizeCm: booth.sizeCm || "300 x 300 cm",
+  }));
 
   if (typeof window === "undefined") {
     return {
-      booths: fallbackBooths,
+      booths: normalizeBooths(fallbackBooths),
       tenants: fallbackTenants,
       booked: Object.keys(fallbackTenants),
     };
@@ -451,9 +456,9 @@ export function ensureEventFloorPlanInitialized(eventId: string): {
     const storedBoothsRaw = localStorage.getItem(`boothify_event_${eventId}_booths`);
     let booths: FloorPlanBooth[];
     if (storedBoothsRaw) {
-      booths = JSON.parse(storedBoothsRaw);
+      booths = normalizeBooths(JSON.parse(storedBoothsRaw));
     } else {
-      booths = fallbackBooths;
+      booths = normalizeBooths(fallbackBooths);
       localStorage.setItem(`boothify_event_${eventId}_booths`, JSON.stringify(booths));
     }
 
@@ -480,7 +485,7 @@ export function ensureEventFloorPlanInitialized(eventId: string): {
     return { booths, tenants, booked };
   } catch {
     return {
-      booths: fallbackBooths,
+      booths: normalizeBooths(fallbackBooths),
       tenants: fallbackTenants,
       booked: Object.keys(fallbackTenants),
     };
