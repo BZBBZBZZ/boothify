@@ -7,11 +7,13 @@ import {
   getAllOrganizerEvents,
   setActiveOrganizerEventId,
 } from "@/app/lib/event-defaults";
+import { useAuth } from "@/app/components/AuthContext";
 
 function AICampaignContent() {
   const router = useRouter();
   const params = useParams();
   const eventId = (params?.eventId as string) || "1";
+  const { user } = useAuth();
 
   const [topic, setTopic] = useState("");
   const [eventTitle, setEventTitle] = useState("Green Fashion Expo 2026");
@@ -31,7 +33,7 @@ function AICampaignContent() {
       const meta = getEventMeta(eventId);
       setEventTitle(meta.title);
       setEventCategory(meta.category);
-      setAllEvents(getAllOrganizerEvents());
+      setAllEvents(getAllOrganizerEvents(user?.email));
 
       // Set intelligent default topic based on event category
       const cat = (meta.category || "").toLowerCase();
@@ -47,7 +49,7 @@ function AICampaignContent() {
         setTopic("Sustainable Fashion & Circular Lifestyle");
       }
     } catch { /* ignore */ }
-  }, [eventId]);
+  }, [eventId, user?.email]);
 
   const handleGenerate = () => {
     setIsGenerating(true);

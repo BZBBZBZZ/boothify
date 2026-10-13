@@ -58,7 +58,13 @@ function EventGuideContent() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [showAuthGate, setShowAuthGate] = useState(false);
   const [showMiniWebsite, setShowMiniWebsite] = useState(false);
-  const [activeMiniWebsite, setActiveMiniWebsite] = useState<EventTenantInfo["branding"] | null>(null);
+  const [activeMiniWebsite, setActiveMiniWebsite] = useState<
+    | (EventTenantInfo["branding"] & {
+        menu?: Array<{ name: string; price: number; image?: string; description?: string }>;
+        boothId?: string;
+      })
+    | null
+  >(null);
 
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [orderCode, setOrderCode] = useState("BF-ORDER-8821");
@@ -97,25 +103,87 @@ function EventGuideContent() {
 
       // Hydrate tenants with scoped catalog if available in localStorage
       const updatedTenants = { ...initialized.tenants };
+
+      // 1. Merge any booked booths from boothify_tenant_bookings
+      try {
+        const storedBookings = JSON.parse(localStorage.getItem("boothify_tenant_bookings") || "[]");
+        if (Array.isArray(storedBookings)) {
+          storedBookings.forEach((b: { eventId?: string; booth?: string; tenantEmail?: string; tenantName?: string }) => {
+            if (b.eventId === eventId && b.booth) {
+              const bEmail = b.tenantEmail || "";
+              if (!updatedTenants[b.booth]) {
+                updatedTenants[b.booth] = {
+                  id: b.booth,
+                  name: b.tenantName || "Tenant Mitra",
+                  category: "Mitra Pameran",
+                  zone: b.booth.charAt(0),
+                  type: "non-fnb",
+                  desc: `${b.tenantName || "Tenant"} terdaftar resmi di event ini.`,
+                  tenantEmail: bEmail,
+                };
+              } else if (bEmail && !updatedTenants[b.booth].tenantEmail) {
+                updatedTenants[b.booth].tenantEmail = bEmail;
+              }
+            }
+          });
+        }
+      } catch {
+        // ignore
+      }
+
+      // 2. Hydrate each tenant's catalog menu & branding from localStorage
       Object.keys(updatedTenants).forEach((bId) => {
         const tenant = updatedTenants[bId];
         const email = tenant.tenantEmail;
-        if (email) {
-          const scopedMenu = JSON.parse(localStorage.getItem(`boothify_catalog_menu_${email}`) || "[]");
-          if (scopedMenu.length > 0) tenant.menu = scopedMenu;
+        let scopedMenu: Array<{ name: string; price: number; image?: string; description?: string }> = [];
 
-          const scopedWeb = JSON.parse(localStorage.getItem(`boothify_catalog_website_${email}`) || "null");
-          if (scopedWeb) {
-            tenant.branding = {
-              headline: scopedWeb.headline || tenant.name,
-              tagline: scopedWeb.tagline || "Brand Pilihan",
-              aboutText: scopedWeb.aboutText || tenant.desc,
-              primaryColor: scopedWeb.primaryColor || "#10b981",
-              instagram: scopedWeb.socialLinks?.instagram || "@brand",
-              website: scopedWeb.socialLinks?.website || "https://boothify.id",
-              highlights: ["Katalog Resmi", "Verified Tenant", "Garansi Kualitas"],
-            };
+        if (email) {
+          scopedMenu = JSON.parse(localStorage.getItem(`boothify_catalog_menu_${email}`) || "[]");
+        }
+
+        // Fallbacks for demo accounts or brand names
+        if (!scopedMenu || scopedMenu.length === 0) {
+          if (tenant.name?.toLowerCase().includes("ecowear") || email === "demo-tenant@boothify.id" || email === "tenant@boothify.id") {
+            scopedMenu = JSON.parse(
+              localStorage.getItem("boothify_catalog_menu_demo-tenant@boothify.id") ||
+              localStorage.getItem("boothify_catalog_menu_tenant@boothify.id") ||
+              localStorage.getItem("boothify_catalog_menu") ||
+              "[]"
+            );
+          } else if (tenant.name?.toLowerCase().includes("kopi") || email === "kopi@boothify.id") {
+            scopedMenu = JSON.parse(
+              localStorage.getItem("boothify_catalog_menu_kopi@boothify.id") ||
+              "[]"
+            );
           }
+        }
+
+        if (scopedMenu && scopedMenu.length > 0) {
+          tenant.menu = scopedMenu;
+        }
+
+        // Hydrate website branding
+        let scopedWeb = null;
+        if (email) {
+          scopedWeb = JSON.parse(localStorage.getItem(`boothify_catalog_website_${email}`) || "null");
+        }
+        if (!scopedWeb && (tenant.name?.toLowerCase().includes("ecowear") || email === "demo-tenant@boothify.id")) {
+          scopedWeb = JSON.parse(
+            localStorage.getItem("boothify_catalog_website_demo-tenant@boothify.id") ||
+            localStorage.getItem("boothify_catalog_website") ||
+            "null"
+          );
+        }
+        if (scopedWeb) {
+          tenant.branding = {
+            headline: scopedWeb.headline || tenant.name,
+            tagline: scopedWeb.tagline || "Brand Pilihan",
+            aboutText: scopedWeb.aboutText || tenant.desc,
+            primaryColor: scopedWeb.primaryColor || "#10b981",
+            instagram: scopedWeb.socialLinks?.instagram || "@brand",
+            website: scopedWeb.socialLinks?.website || "https://boothify.id",
+            highlights: ["Katalog Resmi", "Verified Tenant", "Garansi Kualitas"],
+          };
         }
       });
 
@@ -178,14 +246,35 @@ function EventGuideContent() {
     const generatedCode = "BF-ORDER-" + Date.now().toString().slice(-4);
     setOrderCode(generatedCode);
     try {
-      const firstBoothId = cart[0]?.boothId;
+      const firstBoothId = cart[0]?.boothId || "A1";
       const targetTenant = firstBoothId ? tenantsMap[firstBoothId] : undefined;
-      const targetTenantEmail = targetTenant?.tenantEmail || "";
+      let targetTenantEmail = targetTenant?.tenantEmail || "";
+
+      if (!targetTenantEmail) {
+        if (firstBoothId === "A1" || firstBoothId === "A2") {
+          targetTenantEmail = "demo-tenant@boothify.id";
+        } else if (firstBoothId === "C1") {
+          targetTenantEmail = "kopi@boothify.id";
+        } else {
+          try {
+            const tBookings = JSON.parse(localStorage.getItem("boothify_tenant_bookings") || "[]");
+            const foundB = tBookings.find(
+              (b: { eventId?: string; booth?: string; tenantEmail?: string }) =>
+                b.eventId === eventId && b.booth === firstBoothId
+            );
+            if (foundB?.tenantEmail) targetTenantEmail = foundB.tenantEmail;
+          } catch {
+            // ignore
+          }
+        }
+      }
 
       const orders = JSON.parse(localStorage.getItem("boothify_visitor_orders") || "[]");
       const newOrder = {
         id: generatedCode,
         eventId,
+        event: eventInfo?.title || `Event #${eventId}`,
+        booth: firstBoothId,
         items: cart,
         total: totalCart,
         customer: user?.name || guestName || "Pengunjung Tamu",
@@ -194,6 +283,7 @@ function EventGuideContent() {
         time: "Baru saja",
         status: "pending",
         tenantEmail: targetTenantEmail,
+        tenantName: targetTenant?.name || `Booth ${firstBoothId}`,
       };
       orders.unshift(newOrder);
       localStorage.setItem("boothify_visitor_orders", JSON.stringify(orders));
@@ -555,19 +645,21 @@ function EventGuideContent() {
 
             <p className="text-xs text-muted-foreground mb-5 leading-relaxed">{selectedBooth.desc}</p>
 
-            {/* F&B Menu Ordering */}
-            {selectedBooth.type === "fnb" && selectedBooth.menu && (
+            {/* Products & Menu Catalog for ANY tenant with products */}
+            {selectedBooth.menu && selectedBooth.menu.length > 0 && (
               <div className="mb-6">
-                <h3 className="font-semibold text-sm mb-3 flex items-center justify-between">
-                  <span>📋 Menu Sajian — Pesan Langsung</span>
-                  <span className="text-[10px] text-muted-foreground">Bisa ambil di booth</span>
-                </h3>
-                <div className="space-y-3">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-sm flex items-center gap-1.5 text-foreground">
+                    <span>{selectedBooth.type === "fnb" ? "📋 Menu Sajian — Pesan Langsung" : "🛍️ Katalog Produk & Merchandise — Pesan Langsung"}</span>
+                  </h3>
+                  <span className="badge badge-primary text-[10px]">{selectedBooth.menu.length} Item</span>
+                </div>
+                <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
                   {selectedBooth.menu.map((item) => (
-                    <div key={item.name} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                      <span className="text-2xl">{item.image}</span>
+                    <div key={item.name} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
+                      <span className="text-2xl">{item.image || (selectedBooth.type === "fnb" ? "☕" : "🛍️")}</span>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium">{item.name}</h4>
+                        <h4 className="text-sm font-medium text-foreground truncate">{item.name}</h4>
                         {item.description && <p className="text-[11px] text-muted-foreground truncate">{item.description}</p>}
                         <p className="text-xs text-primary-light font-semibold">
                           Rp {item.price.toLocaleString("id-ID")}
@@ -575,8 +667,8 @@ function EventGuideContent() {
                       </div>
                       <button
                         onClick={() => addToCart(selectedBooth.id, item.name, item.price)}
-                        className="btn btn-primary btn-sm text-xs"
-                        id={`add-${item.name.replace(/\s+/g, "-")}`}
+                        className="btn btn-primary btn-sm text-xs px-3"
+                        id={`add-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
                       >
                         + Pesan
                       </button>
@@ -586,42 +678,51 @@ function EventGuideContent() {
               </div>
             )}
 
-            {/* Non-F&B Mini Website & Media Showcase */}
-            {selectedBooth.type === "non-fnb" && (
-              <div className="space-y-4 mb-4">
-                {selectedBooth.branding && (
-                  <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="badge badge-primary text-[10px]">MINI WEBSITE RESMI</span>
-                    </div>
-                    <h4 className="text-sm font-bold text-foreground mb-1">{selectedBooth.branding.headline}</h4>
-                    <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{selectedBooth.branding.aboutText}</p>
-                    <button
-                      onClick={() => {
-                        setActiveMiniWebsite(selectedBooth.branding || null);
-                        setShowMiniWebsite(true);
-                      }}
-                      className="btn btn-primary btn-sm w-full text-xs"
-                      id="open-mini-website-btn"
-                    >
-                      🌐 Kunjungi Mini Website Brand
-                    </button>
-                  </div>
-                )}
+            {/* Mini Website & Media Showcase */}
+            {selectedBooth.branding && (
+              <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="badge badge-primary text-[10px]">MINI WEBSITE RESMI</span>
+                  <span className="text-[11px] text-primary-light font-medium">Verified Tenant</span>
+                </div>
+                <h4 className="text-sm font-bold text-foreground mb-1">{selectedBooth.branding.headline}</h4>
+                <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{selectedBooth.branding.aboutText}</p>
+                <button
+                  onClick={() => {
+                    if (selectedBooth.branding) {
+                      setActiveMiniWebsite({
+                        headline: selectedBooth.branding.headline,
+                        tagline: selectedBooth.branding.tagline,
+                        aboutText: selectedBooth.branding.aboutText,
+                        primaryColor: selectedBooth.branding.primaryColor,
+                        instagram: selectedBooth.branding.instagram,
+                        website: selectedBooth.branding.website,
+                        highlights: selectedBooth.branding.highlights,
+                        menu: selectedBooth.menu,
+                        boothId: selectedBooth.id,
+                      });
+                      setShowMiniWebsite(true);
+                    }
+                  }}
+                  className="btn btn-primary btn-sm w-full text-xs"
+                  id="open-mini-website-btn"
+                >
+                  🌐 Kunjungi Mini Website Brand
+                </button>
+              </div>
+            )}
 
-                {selectedBooth.media && selectedBooth.media.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold text-xs mb-2">📁 Brosur &amp; Media Digital</h3>
-                    <div className="space-y-2">
-                      {selectedBooth.media.map((med) => (
-                        <div key={med} className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-xs">
-                          <span className="truncate">{med}</span>
-                          <span className="text-primary-light font-medium cursor-pointer">Lihat ↗</span>
-                        </div>
-                      ))}
+            {selectedBooth.media && selectedBooth.media.length > 0 && (
+              <div className="mb-2">
+                <h3 className="font-semibold text-xs mb-2">📁 Brosur &amp; Media Digital</h3>
+                <div className="space-y-2">
+                  {selectedBooth.media.map((med) => (
+                    <div key={med} className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-xs">
+                      <span className="truncate">{med}</span>
+                      <span className="text-primary-light font-medium cursor-pointer">Lihat ↗</span>
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -702,6 +803,45 @@ function EventGuideContent() {
                       ✓ {h}
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* Products Catalog Inside Mini Website */}
+              {activeMiniWebsite.menu && activeMiniWebsite.menu.length > 0 && (
+                <div className="mb-6 text-left">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-3 text-center">
+                    🛍️ Produk &amp; Layanan Resmi
+                  </h4>
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {activeMiniWebsite.menu.map((prod) => (
+                      <div
+                        key={prod.name}
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/5 text-xs"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-xl">{prod.image || "🛍️"}</span>
+                          <div>
+                            <div className="font-semibold text-foreground">{prod.name}</div>
+                            <div className="text-[11px] font-bold" style={{ color: activeMiniWebsite.primaryColor }}>
+                              Rp {prod.price.toLocaleString("id-ID")}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (activeMiniWebsite.boothId) {
+                              addToCart(activeMiniWebsite.boothId, prod.name, prod.price);
+                              setShowMiniWebsite(false);
+                              setShowCart(true);
+                            }
+                          }}
+                          className="btn btn-primary btn-sm text-[11px] py-1 px-3 h-auto"
+                        >
+                          + Beli
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

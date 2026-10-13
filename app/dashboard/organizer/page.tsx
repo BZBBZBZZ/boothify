@@ -95,8 +95,11 @@ export default function OrganizerDashboard() {
       const storedEvents: EventItem[] = storedEventsRaw ? JSON.parse(storedEventsRaw) : [];
 
       if (isDemoOrg) {
-        // For demo organizer: show default events merged with any newly added ones
-        const combined = [...storedEvents];
+        // For demo organizer: show default events merged with events created by demo organizer
+        const myStored = storedEvents.filter(
+          (e) => !e.organizerEmail || e.organizerEmail === "demo-organizer@boothify.id" || e.organizerEmail === "organizer@boothify.id"
+        );
+        const combined = [...myStored];
         DEFAULT_EVENTS.forEach((defEv) => {
           if (!combined.some((e) => e.id === defEv.id)) {
             combined.push(defEv);
@@ -104,8 +107,8 @@ export default function OrganizerDashboard() {
         });
         setEvents(combined);
       } else {
-        // For newly registered organizer: only show events created by this organizer
-        const myEvents = storedEvents.filter((e) => e.organizerEmail === email);
+        // For newly registered organizer: strictly only show events created by this organizer
+        const myEvents = storedEvents.filter((e) => e.organizerEmail?.toLowerCase() === email.toLowerCase());
         setEvents(myEvents);
       }
 

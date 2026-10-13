@@ -162,10 +162,49 @@ export default function CatalogPage() {
         localStorage.setItem("boothify_catalog_media", JSON.stringify(mediaItems));
         localStorage.setItem("boothify_catalog_website", JSON.stringify(websiteConfig));
       }
+
+      // Synchronize changes directly to all events where this tenant is registered
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("boothify_event_") && key.endsWith("_booth_tenants")) {
+          const tenantsRaw = localStorage.getItem(key);
+          if (tenantsRaw) {
+            const tenants = JSON.parse(tenantsRaw);
+            let modified = false;
+            Object.keys(tenants).forEach((bLabel) => {
+              const t = tenants[bLabel];
+              const isMatch =
+                (t.tenantEmail && t.tenantEmail.toLowerCase() === email.toLowerCase()) ||
+                (isEcoWear && t.name?.toLowerCase().includes("ecowear")) ||
+                (isKopi && t.name?.toLowerCase().includes("kopi")) ||
+                (user?.businessName && t.name?.toLowerCase() === user.businessName.toLowerCase());
+
+              if (isMatch) {
+                t.menu = menuItems;
+                t.media = mediaItems.map((m) => m.name);
+                t.type = catalogType;
+                t.branding = {
+                  headline: websiteConfig.headline || t.name,
+                  tagline: websiteConfig.tagline,
+                  aboutText: websiteConfig.aboutText,
+                  primaryColor: websiteConfig.primaryColor,
+                  instagram: websiteConfig.socialLinks.instagram,
+                  website: websiteConfig.socialLinks.website,
+                  highlights: ["Katalog Resmi", "Verified Tenant", "Garansi Kualitas"],
+                };
+                modified = true;
+              }
+            });
+            if (modified) {
+              localStorage.setItem(key, JSON.stringify(tenants));
+            }
+          }
+        }
+      }
     } catch {
       // ignore
     }
-  }, [menuItems, mediaItems, websiteConfig, catalogType, isLoaded, email, isEcoWear]);
+  }, [menuItems, mediaItems, websiteConfig, catalogType, isLoaded, email, isEcoWear, isKopi, user?.businessName]);
 
   const addMenuItem = () => {
     if (!newMenu.name) return;

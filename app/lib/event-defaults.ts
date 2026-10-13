@@ -19,7 +19,7 @@ export type EventTenantInfo = {
   tenantEmail?: string;
   website?: string;
   media?: string[];
-  menu?: Array<{ name: string; price: number; image: string; description?: string }>;
+  menu?: Array<{ name: string; price: number; image?: string; description?: string }>;
   branding?: {
     headline: string;
     tagline: string;
@@ -237,6 +237,11 @@ export const DEFAULT_EVENT_TENANTS: Record<string, Record<string, EventTenantInf
         website: "https://ecowear.id",
         highlights: ["100% Daur Ulang", "Pewarna Alami", "Fair Trade Verified", "Zero Waste Packaging"],
       },
+      menu: [
+        { name: "Organic Cotton T-Shirt", price: 185000, image: "👕", description: "Kaos berbahan 100% serat katun organik tanpa pestisida" },
+        { name: "Linen Outerwear Bandung", price: 320000, image: "🧥", description: "Outer santai bahan linen natural hasil tenun perajin lokal" },
+        { name: "Upcycled Denim Totebag", price: 95000, image: "👜", description: "Tas jinjing daur ulang perca denim berkualitas tinggi" },
+      ],
     },
     "A2": {
       id: "A2",
@@ -248,6 +253,10 @@ export const DEFAULT_EVENT_TENANTS: Record<string, Record<string, EventTenantInf
       tenantEmail: "greenthreads@boothify.id",
       website: "https://greenthreads.co",
       media: ["katalog-katun-organik.pdf"],
+      menu: [
+        { name: "GOTS Certified Shirt", price: 210000, image: "👔", description: "Kemeja katun bersertifikat organik ramah kulit sensitif" },
+        { name: "Eco Linen Trousers", price: 275000, image: "👖", description: "Celana panjang bahan linen breathable" },
+      ],
     },
     "B1": {
       id: "B1",
@@ -305,6 +314,10 @@ export const DEFAULT_EVENT_TENANTS: Record<string, Record<string, EventTenantInf
         website: "https://crafthouse.id",
         highlights: ["Anyaman Bambu Alami", "Dibuat Manual dengan Tangan", "Pemberdayaan Pengrajin"],
       },
+      menu: [
+        { name: "Anyaman Bambu Lamp Stand", price: 145000, image: "🏮", description: "Lampu meja kap anyaman bambu artistik" },
+        { name: "Rattan Coaster Set (4 pcs)", price: 65000, image: "🪵", description: "Tatakan cangkir rotan alami tahan panas" },
+      ],
     },
   },
   "2": {
@@ -486,35 +499,52 @@ export function getEventMeta(eventId: string): EventDetail {
 }
 
 /**
- * Get all available events for Organizer management
+ * Get available events for Organizer management, filtered strictly by owner organizer
  */
-export function getAllOrganizerEvents(): Array<{ id: string; title: string; category: string; date: string }> {
-  const baseList = [
+export function getAllOrganizerEvents(organizerEmail?: string): Array<{ id: string; title: string; category: string; date: string }> {
+  const isDemo = !organizerEmail || organizerEmail === "demo-organizer@boothify.id" || organizerEmail === "organizer@boothify.id";
+  
+  // Default events owned by the demo organizer (PT. Event Kreasi Nusantara)
+  const demoEvents = [
     { id: "1", title: "Green Fashion Expo 2026", category: "Fashion", date: "15–17 Nov 2026" },
     { id: "2", title: "Indonesia Food Festival 2026", category: "F&B", date: "22–24 Nov 2026" },
     { id: "3", title: "EduTech Innovation Fair 2026", category: "Education", date: "1–3 Des 2026" },
-    { id: "4", title: "AutoMotive Show 2026", category: "Automotive", date: "10–12 Des 2026" },
-    { id: "5", title: "Craft & Artisan Market 2026", category: "Craft", date: "18–20 Des 2026" },
   ];
 
   if (typeof window !== "undefined") {
     try {
       const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-      if (Array.isArray(stored) && stored.length > 0) {
-        const custom = stored.map((e: { id: string; title: string; category?: string; date: string }) => ({
-          id: String(e.id),
-          title: e.title || `Event #${e.id}`,
-          category: e.category || "General",
-          date: e.date || "2026",
-        }));
-        const existingIds = new Set(custom.map((c: { id: string }) => c.id));
-        const rem = baseList.filter((b) => !existingIds.has(b.id));
-        return [...custom, ...rem];
+      if (Array.isArray(stored)) {
+        if (isDemo) {
+          // For demo organizer: show demo events + any events created by demo organizer
+          const myCustom = stored
+            .filter((e) => !e.organizerEmail || e.organizerEmail === "demo-organizer@boothify.id")
+            .map((e) => ({
+              id: String(e.id),
+              title: e.title || `Event #${e.id}`,
+              category: e.category || "General",
+              date: e.date || "2026",
+            }));
+          const existingIds = new Set(myCustom.map((c) => c.id));
+          const remDemo = demoEvents.filter((d) => !existingIds.has(d.id));
+          return [...myCustom, ...remDemo];
+        } else {
+          // For newly registered organizer: ONLY show events created by this organizer
+          const myEvents = stored
+            .filter((e) => e.organizerEmail?.toLowerCase() === organizerEmail.toLowerCase())
+            .map((e) => ({
+              id: String(e.id),
+              title: e.title || `Event #${e.id}`,
+              category: e.category || "General",
+              date: e.date || "2026",
+            }));
+          return myEvents;
+        }
       }
     } catch { /* ignore */ }
   }
 
-  return baseList;
+  return isDemo ? demoEvents : [];
 }
 
 /**

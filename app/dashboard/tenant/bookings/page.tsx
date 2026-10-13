@@ -9,6 +9,8 @@ export type OrderStatus = "pending" | "making" | "ready" | "done";
 export type VisitorOrder = {
   id: string;
   eventId?: string;
+  event?: string;
+  booth?: string;
   items: { boothId?: string; name: string; qty: number; price: number }[];
   total: number;
   customer: string;
@@ -17,6 +19,7 @@ export type VisitorOrder = {
   time: string;
   status?: OrderStatus;
   tenantEmail?: string;
+  tenantName?: string;
 };
 
 export type BookingItem = {
@@ -32,46 +35,72 @@ export type BookingItem = {
 
 const DEFAULT_ORDERS: VisitorOrder[] = [
   {
-    id: "BF-ORDER-8821",
+    id: "BF-ORDER-9931",
     eventId: "1",
-    customer: "Rian Pratama",
+    event: "Green Fashion Expo 2026",
+    booth: "A1",
+    customer: "Rizky Pratama",
     phone: "081299887766",
     method: "QRIS",
     time: "5 menit lalu",
+    total: 185000,
+    status: "pending",
+    tenantEmail: "demo-tenant@boothify.id",
+    tenantName: "EcoWear Studio",
+    items: [
+      { boothId: "A1", name: "Organic Cotton T-Shirt", qty: 1, price: 185000 },
+    ],
+  },
+  {
+    id: "BF-ORDER-8821",
+    eventId: "1",
+    event: "Green Fashion Expo 2026",
+    booth: "C1",
+    customer: "Rian Pratama",
+    phone: "081299887766",
+    method: "QRIS",
+    time: "15 menit lalu",
     total: 75000,
     status: "making",
     tenantEmail: "kopi@boothify.id",
+    tenantName: "Kopi Keliling Nusantara",
     items: [
-      { name: "Kopi Susu Gula Aren", qty: 2, price: 25000 },
-      { name: "Croissant Almond", qty: 1, price: 25000 },
+      { boothId: "C1", name: "Kopi Susu Gula Aren", qty: 2, price: 25000 },
+      { boothId: "C1", name: "Croissant Almond", qty: 1, price: 25000 },
     ],
   },
   {
     id: "BF-ORDER-4512",
     eventId: "1",
+    event: "Green Fashion Expo 2026",
+    booth: "C1",
     customer: "Siti Rahma",
     phone: "085712345678",
     method: "GoPay",
-    time: "12 menit lalu",
+    time: "25 menit lalu",
     total: 35000,
     status: "ready",
     tenantEmail: "kopi@boothify.id",
+    tenantName: "Kopi Keliling Nusantara",
     items: [
-      { name: "Matcha Latte Oat", qty: 1, price: 35000 },
+      { boothId: "C1", name: "Matcha Latte Oat", qty: 1, price: 35000 },
     ],
   },
   {
     id: "BF-ORDER-2190",
     eventId: "1",
+    event: "Green Fashion Expo 2026",
+    booth: "C1",
     customer: "Dimas Aditya",
     phone: "081344556677",
     method: "QRIS",
-    time: "25 menit lalu",
+    time: "35 menit lalu",
     total: 50000,
     status: "done",
     tenantEmail: "kopi@boothify.id",
+    tenantName: "Kopi Keliling Nusantara",
     items: [
-      { name: "Americano Cold Brew", qty: 2, price: 25000 },
+      { boothId: "C1", name: "Americano Cold Brew", qty: 2, price: 25000 },
     ],
   },
 ];
@@ -82,7 +111,7 @@ const DEMO_TENANT_BOOKINGS: Record<string, BookingItem[]> = {
     { event: "Green Fashion Expo 2026", booth: "A2", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "demo-tenant@boothify.id", price: 2500000 },
   ],
   "kopi@boothify.id": [
-    { event: "Green Fashion Expo 2026", booth: "C3", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "kopi@boothify.id", price: 3000000 },
+    { event: "Green Fashion Expo 2026", booth: "C1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "kopi@boothify.id", price: 3000000 },
   ],
 };
 
@@ -98,7 +127,10 @@ export default function TenantBookingsAndOrdersPage() {
   useEffect(() => {
     try {
       const email = user?.email || "demo-tenant@boothify.id";
-      const initialDemo = DEMO_TENANT_BOOKINGS[email] || [];
+      const isEcoWear = email === "demo-tenant@boothify.id" || email === "tenant@boothify.id";
+      const isKopi = email === "kopi@boothify.id";
+
+      const initialDemo = DEMO_TENANT_BOOKINGS[email] || (isEcoWear ? DEMO_TENANT_BOOKINGS["demo-tenant@boothify.id"] : []);
 
       // 1. Load tenant bookings first to get booked booths
       const storedBookings = localStorage.getItem("boothify_tenant_bookings");
@@ -123,11 +155,44 @@ export default function TenantBookingsAndOrdersPage() {
         allOrders = DEFAULT_ORDERS;
       }
 
-      let tenantOrders: VisitorOrder[] = [];
-      if (email === "kopi@boothify.id") {
-        tenantOrders = allOrders.filter(
-          (o) =>
-            o.tenantEmail === email ||
+      // Robust matching: by email, booth ID, business name, or demo keywords
+      const tenantOrders = allOrders.filter((o) => {
+        // 1. Direct tenant email match
+        if (o.tenantEmail && (o.tenantEmail.toLowerCase() === email.toLowerCase() || (isEcoWear && o.tenantEmail === "demo-tenant@boothify.id"))) {
+          return true;
+        }
+        // 2. Direct booth match from current bookings
+        if (o.booth && bookedBoothIds.includes(o.booth)) {
+          return true;
+        }
+        if (o.items && o.items.some((i) => Boolean(i.boothId && bookedBoothIds.includes(i.boothId)))) {
+          return true;
+        }
+        // 3. Business name match
+        if (user?.businessName && o.tenantName && o.tenantName.toLowerCase() === user.businessName.toLowerCase()) {
+          return true;
+        }
+        // 4. Fallback for demo tenant accounts
+        if (isEcoWear) {
+          if (o.booth === "A1" || o.booth === "A2") return true;
+          if (
+            o.items?.some(
+              (i) =>
+                i.boothId === "A1" ||
+                i.boothId === "A2" ||
+                i.name.toLowerCase().includes("t-shirt") ||
+                i.name.toLowerCase().includes("outer") ||
+                i.name.toLowerCase().includes("denim") ||
+                i.name.toLowerCase().includes("totebag") ||
+                i.name.toLowerCase().includes("ecowear")
+            )
+          ) {
+            return true;
+          }
+        }
+        if (isKopi) {
+          if (o.booth === "C1") return true;
+          if (
             o.items?.some(
               (i) =>
                 i.boothId === "C1" ||
@@ -135,27 +200,12 @@ export default function TenantBookingsAndOrdersPage() {
                 i.name.toLowerCase().includes("matcha") ||
                 i.name.toLowerCase().includes("croissant")
             )
-        );
-      } else if (email === "demo-tenant@boothify.id" || email === "tenant@boothify.id") {
-        tenantOrders = allOrders.filter(
-          (o) =>
-            o.tenantEmail === email ||
-            o.items?.some(
-              (i) =>
-                i.boothId === "A1" ||
-                i.boothId === "A2" ||
-                i.name.toLowerCase().includes("t-shirt") ||
-                i.name.toLowerCase().includes("outer")
-            )
-        );
-      } else {
-        // Newly registered tenant: only see orders matching their email or their booked booths
-        tenantOrders = allOrders.filter(
-          (o) =>
-            o.tenantEmail === email ||
-            (bookedBoothIds.length > 0 && o.items?.some((i) => Boolean(i.boothId && bookedBoothIds.includes(i.boothId))))
-        );
-      }
+          ) {
+            return true;
+          }
+        }
+        return false;
+      });
 
       setOrders(tenantOrders.map((o) => ({ ...o, status: o.status || "pending" })));
     } catch {
@@ -300,9 +350,14 @@ export default function TenantBookingsAndOrdersPage() {
                     <div>
                       {/* Top Bar */}
                       <div className="flex items-center justify-between mb-3">
-                        <span className="font-mono font-bold text-sm text-primary-light">
-                          {order.id}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-sm text-primary-light">
+                            {order.id}
+                          </span>
+                          <span className="badge badge-secondary text-[10px] font-semibold">
+                            🏪 Booth {order.booth || order.items[0]?.boothId || "A1"}
+                          </span>
+                        </div>
                         {currentStatus === "pending" && (
                           <span className="badge text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/30">
                             🟡 Baru Masuk
@@ -333,6 +388,11 @@ export default function TenantBookingsAndOrdersPage() {
                           <span>• {order.method}</span>
                           <span>• {order.time}</span>
                         </div>
+                        {order.event && (
+                          <p className="text-[10px] text-primary-light font-medium mt-1">
+                            📍 {order.event}
+                          </p>
+                        )}
                       </div>
 
                       {/* Order Items */}
@@ -409,54 +469,67 @@ export default function TenantBookingsAndOrdersPage() {
       {/* ========== TAB 2: BOOTH SAYA & RIWAYAT SEWA ========== */}
       {activeTab === "booths" && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {bookings.map((booking, i) => (
-              <div key={i} className="card-base p-6 border border-white/5 hover:border-primary/30 transition flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center font-bold text-white text-base">
-                      {booking.booth}
+          {bookings.length === 0 ? (
+            <div className="card-base p-8 text-center border-dashed border-white/10">
+              <span className="text-4xl block mb-2">🏪</span>
+              <h3 className="font-bold text-sm mb-1 text-foreground">Belum Ada Booth yang Disewa</h3>
+              <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto">
+                Akun brand ini belum memiliki sewa booth aktif di event mana pun. Cari event dan daftarkan booth impianmu sekarang!
+              </p>
+              <Link href="/dashboard/tenant/events" className="btn btn-primary btn-sm">
+                Jelajahi Event Pameran →
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {bookings.map((booking, i) => (
+                <div key={i} className="card-base p-6 border border-white/5 hover:border-primary/30 transition flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center font-bold text-white text-base">
+                        {booking.booth}
+                      </div>
+                      <span className={`badge text-[10px] ${booking.payment === "paid" ? "badge-primary" : "badge-accent"}`}>
+                        {booking.payment === "paid" ? "✓ Lunas" : "⏳ Pending"}
+                      </span>
                     </div>
-                    <span className={`badge text-[10px] ${booking.payment === "paid" ? "badge-primary" : "badge-accent"}`}>
-                      {booking.payment === "paid" ? "✓ Lunas" : "⏳ Pending"}
-                    </span>
+
+                    <h3 className="font-bold text-base text-foreground mb-1">{booking.event}</h3>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      📅 {booking.date} • Booth {booking.booth}
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed mb-4">
+                      Status sewa aktif. Booth ini telah terpetakan di Denah Pengunjung digital event.
+                    </p>
                   </div>
 
-                  <h3 className="font-bold text-base text-foreground mb-1">{booking.event}</h3>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    📅 {booking.date} • Booth {booking.booth}
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed mb-4">
-                    Status sewa aktif. Booth ini telah terpetakan di Denah Pengunjung digital event.
-                  </p>
-                </div>
-
-                <div className="space-y-2 pt-3 border-t border-white/5">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link
-                      href={`/events/${booking.eventId || "1"}/guide`}
-                      className="btn btn-secondary btn-sm text-xs flex items-center justify-center gap-1"
+                  <div className="space-y-2 pt-3 border-t border-white/5">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        href={`/events/${booking.eventId || "1"}/guide`}
+                        className="btn btn-secondary btn-sm text-xs flex items-center justify-center gap-1"
+                      >
+                        🗺️ Buka Denah
+                      </Link>
+                      <Link
+                        href="/dashboard/tenant/catalog"
+                        className="btn btn-secondary btn-sm text-xs flex items-center justify-center gap-1"
+                      >
+                        📦 Atur Menu
+                      </Link>
+                    </div>
+                    <button
+                      onClick={() => setSelectedPass(booking)}
+                      className="btn btn-primary btn-sm w-full text-xs flex items-center justify-center gap-1"
+                      id={`open-pass-${booking.booth}`}
                     >
-                      🗺️ Buka Denah
-                    </Link>
-                    <Link
-                      href="/dashboard/tenant/catalog"
-                      className="btn btn-secondary btn-sm text-xs flex items-center justify-center gap-1"
-                    >
-                      📦 Atur Menu
-                    </Link>
+                      🎫 Lihat E-Pass Booth
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setSelectedPass(booking)}
-                    className="btn btn-primary btn-sm w-full text-xs flex items-center justify-center gap-1"
-                    id={`open-pass-${booking.booth}`}
-                  >
-                    🎫 Lihat E-Pass Booth
-                  </button>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

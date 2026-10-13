@@ -9,11 +9,13 @@ import {
   getAllOrganizerEvents,
   setActiveOrganizerEventId,
 } from "@/app/lib/event-defaults";
+import { useAuth } from "@/app/components/AuthContext";
 
 function QRCodeContent() {
   const router = useRouter();
   const params = useParams();
   const eventId = (params?.eventId as string) || "1";
+  const { user } = useAuth();
   const [copied, setCopied] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [showLogo, setShowLogo] = useState(true);
@@ -33,9 +35,9 @@ function QRCodeContent() {
       const meta = getEventMeta(eventId);
       setEventTitle(meta.title);
       if (meta.date) setEventDate(meta.date);
-      setAllEvents(getAllOrganizerEvents());
+      setAllEvents(getAllOrganizerEvents(user?.email));
     } catch { /* ignore */ }
-  }, [eventId]);
+  }, [eventId, user?.email]);
 
   useEffect(() => {
     // Set URL based on actual origin (works with port forwarding)

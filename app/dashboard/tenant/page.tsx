@@ -18,6 +18,8 @@ type BookingItem = {
 type VisitorOrderItem = {
   id: string;
   eventId?: string;
+  event?: string;
+  booth?: string;
   items: { boothId?: string; name: string; qty: number; price: number }[];
   total: number;
   customer: string;
@@ -26,7 +28,56 @@ type VisitorOrderItem = {
   time: string;
   status?: "pending" | "making" | "ready" | "done";
   tenantEmail?: string;
+  tenantName?: string;
 };
+
+const DEFAULT_ORDERS: VisitorOrderItem[] = [
+  {
+    id: "BF-ORDER-9931",
+    eventId: "1",
+    event: "Green Fashion Expo 2026",
+    booth: "A1",
+    customer: "Rizky Pratama",
+    phone: "081299887766",
+    method: "QRIS",
+    time: "5 menit lalu",
+    total: 185000,
+    status: "pending",
+    tenantEmail: "demo-tenant@boothify.id",
+    tenantName: "EcoWear Studio",
+    items: [{ boothId: "A1", name: "Organic Cotton T-Shirt", qty: 1, price: 185000 }],
+  },
+  {
+    id: "BF-ORDER-8821",
+    eventId: "1",
+    event: "Green Fashion Expo 2026",
+    booth: "C1",
+    customer: "Budi Santoso",
+    phone: "081234567890",
+    method: "QRIS",
+    time: "15 menit lalu",
+    total: 44000,
+    status: "pending",
+    tenantEmail: "kopi@boothify.id",
+    tenantName: "Kopi Keliling Nusantara",
+    items: [{ boothId: "C1", name: "Kopi Susu Gula Aren", qty: 2, price: 22000 }],
+  },
+  {
+    id: "BF-ORDER-4512",
+    eventId: "1",
+    event: "Green Fashion Expo 2026",
+    booth: "C1",
+    customer: "Siti Rahma",
+    phone: "085712345678",
+    method: "GoPay",
+    time: "25 menit lalu",
+    total: 35000,
+    status: "ready",
+    tenantEmail: "kopi@boothify.id",
+    tenantName: "Kopi Keliling Nusantara",
+    items: [{ boothId: "C1", name: "Matcha Latte Oat", qty: 1, price: 35000 }],
+  },
+];
 
 const DEMO_TENANT_BOOKINGS: Record<string, BookingItem[]> = {
   "demo-tenant@boothify.id": [
@@ -51,7 +102,10 @@ export default function TenantDashboard() {
   useEffect(() => {
     try {
       const email = user?.email || "demo-tenant@boothify.id";
-      const initialDemo = DEMO_TENANT_BOOKINGS[email] || [];
+      const isEcoWear = email === "demo-tenant@boothify.id" || email === "tenant@boothify.id";
+      const isKopi = email === "kopi@boothify.id";
+
+      const initialDemo = DEMO_TENANT_BOOKINGS[email] || (isEcoWear ? DEMO_TENANT_BOOKINGS["demo-tenant@boothify.id"] : []);
 
       const stored = localStorage.getItem("boothify_tenant_bookings");
       let allBookings: BookingItem[] = [];
@@ -68,44 +122,67 @@ export default function TenantDashboard() {
 
       // Load visitor orders scoped to this tenant
       const storedOrders = localStorage.getItem("boothify_visitor_orders");
+      let allOrders: VisitorOrderItem[] = [];
       if (storedOrders) {
-        const parsedOrders: VisitorOrderItem[] = JSON.parse(storedOrders);
-        if (Array.isArray(parsedOrders)) {
-          let tenantOrders: VisitorOrderItem[] = [];
-          if (email === "kopi@boothify.id") {
-            tenantOrders = parsedOrders.filter(
-              (o) =>
-                o.tenantEmail === email ||
-                o.items?.some(
-                  (i) =>
-                    i.boothId === "C1" ||
-                    i.name.toLowerCase().includes("kopi") ||
-                    i.name.toLowerCase().includes("matcha") ||
-                    i.name.toLowerCase().includes("croissant")
-                )
-            );
-          } else if (email === "demo-tenant@boothify.id" || email === "tenant@boothify.id") {
-            tenantOrders = parsedOrders.filter(
-              (o) =>
-                o.tenantEmail === email ||
-                o.items?.some(
-                  (i) =>
-                    i.boothId === "A1" ||
-                    i.boothId === "A2" ||
-                    i.name.toLowerCase().includes("t-shirt") ||
-                    i.name.toLowerCase().includes("outer")
-                )
-            );
-          } else {
-            tenantOrders = parsedOrders.filter(
-              (o) =>
-                o.tenantEmail === email ||
-                (bookedBoothIds.length > 0 && o.items?.some((i) => Boolean(i.boothId && bookedBoothIds.includes(i.boothId))))
-            );
-          }
-          setVisitorOrders(tenantOrders);
-        }
+        allOrders = JSON.parse(storedOrders);
+      } else {
+        allOrders = DEFAULT_ORDERS;
+        localStorage.setItem("boothify_visitor_orders", JSON.stringify(DEFAULT_ORDERS));
       }
+
+      // Robust matching: by email, booth ID, business name, or demo keywords
+      const tenantOrders = allOrders.filter((o) => {
+        // 1. Direct tenant email match
+        if (o.tenantEmail && (o.tenantEmail.toLowerCase() === email.toLowerCase() || (isEcoWear && o.tenantEmail === "demo-tenant@boothify.id"))) {
+          return true;
+        }
+        // 2. Direct booth match from current bookings
+        if (o.booth && bookedBoothIds.includes(o.booth)) {
+          return true;
+        }
+        if (o.items && o.items.some((i) => Boolean(i.boothId && bookedBoothIds.includes(i.boothId)))) {
+          return true;
+        }
+        // 3. Business name match
+        if (user?.businessName && o.tenantName && o.tenantName.toLowerCase() === user.businessName.toLowerCase()) {
+          return true;
+        }
+        // 4. Fallback for demo tenant accounts
+        if (isEcoWear) {
+          if (o.booth === "A1" || o.booth === "A2") return true;
+          if (
+            o.items?.some(
+              (i) =>
+                i.boothId === "A1" ||
+                i.boothId === "A2" ||
+                i.name.toLowerCase().includes("t-shirt") ||
+                i.name.toLowerCase().includes("outer") ||
+                i.name.toLowerCase().includes("denim") ||
+                i.name.toLowerCase().includes("totebag") ||
+                i.name.toLowerCase().includes("ecowear")
+            )
+          ) {
+            return true;
+          }
+        }
+        if (isKopi) {
+          if (o.booth === "C1") return true;
+          if (
+            o.items?.some(
+              (i) =>
+                i.boothId === "C1" ||
+                i.name.toLowerCase().includes("kopi") ||
+                i.name.toLowerCase().includes("matcha") ||
+                i.name.toLowerCase().includes("croissant")
+            )
+          ) {
+            return true;
+          }
+        }
+        return false;
+      });
+
+      setVisitorOrders(tenantOrders);
     } catch {
       // ignore
     }
@@ -232,26 +309,36 @@ export default function TenantDashboard() {
           </div>
 
           {/* Incoming Orders from Visitors */}
-          {visitorOrders.length > 0 && (
-            <div className="card-base p-6 border-primary/20">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <h2 className="font-semibold text-foreground">Pesanan Masuk dari Pengunjung (Live)</h2>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="badge badge-primary text-[10px]">{visitorOrders.length} Pesanan</span>
-                  <Link href="/dashboard/tenant/bookings" className="btn btn-ghost btn-sm text-[11px] text-primary-light">
-                    Buka KDS Penuh →
-                  </Link>
-                </div>
+          <div className="card-base p-6 border-primary/20">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <h2 className="font-semibold text-foreground">Pesanan Masuk dari Pengunjung (Live)</h2>
               </div>
-              <p className="text-xs text-muted-foreground mb-4">
-                Pesanan yang dibuat oleh pengunjung melalui scan QR Code / Digital Guide di booth kamu. Ubah status pesanan secara real-time.
-              </p>
+              <div className="flex items-center gap-2">
+                <span className="badge badge-primary text-[10px]">{visitorOrders.length} Pesanan</span>
+                <Link href="/dashboard/tenant/bookings" className="btn btn-ghost btn-sm text-[11px] text-primary-light">
+                  Buka KDS Penuh →
+                </Link>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">
+              Pesanan yang dibuat oleh pengunjung melalui scan QR Code / Digital Guide di booth kamu. Ubah status pesanan secara real-time.
+            </p>
+
+            {visitorOrders.length === 0 ? (
+              <div className="p-6 rounded-xl bg-white/[0.02] border border-dashed border-white/10 text-center">
+                <span className="text-3xl block mb-2">📋</span>
+                <p className="font-semibold text-xs text-foreground mb-1">Belum Ada Pesanan Masuk</p>
+                <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
+                  Saat pengunjung memindai QR Code di booth kamu atau memesan produk via Panduan Digital, pesanan baru akan langsung masuk ke sini secara otomatis.
+                </p>
+              </div>
+            ) : (
               <div className="space-y-3">
                 {visitorOrders.slice(0, 5).map((order) => {
                   const status = order.status || "pending";
+                  const boothLabel = order.booth || order.items[0]?.boothId || "A1";
                   return (
                     <div
                       key={order.id}
@@ -268,6 +355,9 @@ export default function TenantDashboard() {
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold font-mono text-primary-light">{order.id}</span>
+                          <span className="badge badge-secondary text-[10px] font-semibold">
+                            🏪 Booth {boothLabel}
+                          </span>
                           <span className="badge badge-secondary text-[9px]">{order.method}</span>
                           <span className="text-[10px] text-muted-foreground">{order.time}</span>
                           {status === "pending" && (
@@ -331,8 +421,8 @@ export default function TenantDashboard() {
                   );
                 })}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Right Column: AI Recommended Events */}

@@ -68,13 +68,13 @@ function FloorPlanContent() {
     try {
       setActiveOrganizerEventId(eventId);
       setEventMeta(getEventMeta(eventId));
-      setAllEvents(getAllOrganizerEvents());
+      setAllEvents(getAllOrganizerEvents(user?.email));
       const initialized = ensureEventFloorPlanInitialized(eventId);
       setBooths(initialized.booths);
       const storedBg = localStorage.getItem(`boothify_floor_plan_bg_${eventId}`) || localStorage.getItem("boothify_floor_plan_bg");
       if (storedBg) setBlueprintBg(storedBg);
     } catch { /* ignore */ }
-  }, [eventId]);
+  }, [eventId, user?.email]);
 
   const saveFloorPlan = () => {
     try {

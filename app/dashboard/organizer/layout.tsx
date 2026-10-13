@@ -14,24 +14,37 @@ import {
 function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { user } = useAuth();
   const [activeEventId, setActiveEventId] = useState("1");
   const [eventsList, setEventsList] = useState<Array<{ id: string; title: string; category: string }>>([]);
 
   useEffect(() => {
-    // 1. Detect eventId from pathname if present
+    // 1. Load events list strictly owned by this organizer
+    const list = getAllOrganizerEvents(user?.email);
+    setEventsList(list);
+
+    // 2. Detect eventId from pathname if present
     const match = pathname.match(/\/events\/([^/]+)/);
     if (match && match[1] && match[1] !== "new") {
       setActiveEventId(match[1]);
       setActiveOrganizerEventId(match[1]);
     } else {
-      setActiveEventId(getActiveOrganizerEventId());
+      const stored = getActiveOrganizerEventId();
+      if (list.length > 0 && !list.some((e) => e.id === stored)) {
+        setActiveEventId(list[0].id);
+        setActiveOrganizerEventId(list[0].id);
+      } else {
+        setActiveEventId(stored || (list[0]?.id || "1"));
+      }
     }
-
-    // 2. Load events list for switcher
-    setEventsList(getAllOrganizerEvents());
-  }, [pathname]);
+  }, [pathname, user?.email]);
 
   const handleSwitchEvent = (newEventId: string) => {
+    if (newEventId === "new") {
+      router.push("/dashboard/organizer/events/new");
+      if (onNavigate) onNavigate();
+      return;
+    }
     setActiveEventId(newEventId);
     setActiveOrganizerEventId(newEventId);
 
@@ -149,11 +162,15 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
             onChange={(e) => handleSwitchEvent(e.target.value)}
             className="w-full bg-card/90 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary truncate"
           >
-            {eventsList.map((ev) => (
-              <option key={ev.id} value={ev.id}>
-                {ev.title}
-              </option>
-            ))}
+            {eventsList.length === 0 ? (
+              <option value="new">+ Buat Acara Pertama</option>
+            ) : (
+              eventsList.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title}
+                </option>
+              ))
+            )}
           </select>
         </div>
       </div>
