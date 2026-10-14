@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #06080a;
+  --background: #08100f;
   --foreground: #e8edf3;
-  --card: #0d1117;
-  --card-hover: #151b24;
-  --border: #1e2a3a;
-  --border-light: #2a3a4e;
-  --muted: #8b99ad;
-  --muted-foreground: #6b7a8d;
+  --card: #0d1816;
+  --card-hover: #12221e;
+  --border: #1d3430;
+  --border-light: #2b4a42;
+  --muted: #a1b5ae;
+  --muted-foreground: #78918a;
 
   /* Primary - Emerald/Teal */
   --primary: #10b981;
@@ -17,10 +17,10 @@
   --primary-glow: rgba(16, 185, 129, 0.15);
   --primary-glow-strong: rgba(16, 185, 129, 0.3);
 
-  /* Secondary - Violet */
-  --secondary: #8b5cf6;
-  --secondary-light: #a78bfa;
-  --secondary-dark: #7c3aed;
+  /* Secondary - restrained sea green for supporting states */
+  --secondary: #2b8f83;
+  --secondary-light: #61c5b4;
+  --secondary-dark: #206e65;
 
   /* Accent - Amber */
   --accent: #f59e0b;
@@ -96,6 +96,16 @@ body {
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--primary);
+  color: #04100d;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 3px;
 }
 
 #main-navbar,
@@ -184,11 +194,8 @@ main,
 
 /* ===== GLASS ===== */
 .glass {
-  background: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
+  background: rgba(8, 16, 15, 0.94);
+  border-bottom: 1px solid var(--border);
 }
 
 .glass-light {
@@ -236,7 +243,7 @@ main,
 .card-base {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 12px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -250,7 +257,7 @@ main,
 .card-interactive {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -269,25 +276,24 @@ main,
   justify-content: center;
   gap: 8px;
   padding: 10px 24px;
-  border-radius: 12px;
+  min-height: 44px;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 14px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   border: none;
-  outline: none;
   text-decoration: none;
   white-space: nowrap;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: white;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+  background: var(--primary);
+  color: #04100d;
+  box-shadow: none;
 }
 .btn-primary:hover {
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
-  transform: translateY(-1px);
+  background: var(--primary-light);
 }
 
 .btn-secondary {
@@ -311,13 +317,13 @@ main,
 }
 
 .btn-lg {
-  padding: 14px 32px;
+  padding: 14px 28px;
   font-size: 16px;
-  border-radius: 14px;
+  border-radius: 8px;
 }
 
 .btn-sm {
-  padding: 6px 16px;
+  padding: 8px 16px;
   font-size: 13px;
   border-radius: 8px;
 }
@@ -333,11 +339,10 @@ main,
   padding: 12px 16px;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 8px;
   color: var(--foreground);
   font-size: 14px;
   transition: all 0.2s ease;
-  outline: none;
 }
 
 .input-base::placeholder {
@@ -355,10 +360,42 @@ main,
   align-items: center;
   gap: 4px;
   padding: 4px 12px;
-  border-radius: 100px;
+  border-radius: 5px;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+.section-kicker {
+  color: var(--primary-light);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.event-art {
+  min-height: 10rem;
+  display: flex;
+  align-items: flex-end;
+  padding: 1.25rem;
+  background:
+    linear-gradient(135deg, rgba(52, 211, 153, 0.18), transparent 60%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 14px),
+    #102621;
+}
+
+.event-mark {
+  color: var(--primary-light);
+  font-size: clamp(2.5rem, 7vw, 4rem);
+  font-weight: 800;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
+}
+
+.home-section {
+  border-top: 1px solid rgba(43, 74, 66, 0.45);
 }
 
 .badge-primary {
@@ -580,6 +617,15 @@ main,
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
+  .home-section {
+    padding-top: 4.5rem;
+    padding-bottom: 4.5rem;
+  }
+
+  .btn-lg {
+    width: 100%;
+  }
+
   .sidebar {
     width: 100%;
     min-height: auto;
