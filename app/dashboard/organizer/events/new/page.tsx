@@ -4,6 +4,28 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/components/AuthContext";
 
+const EVENT_CATEGORIES = [
+  "Kuliner (Food & Beverage)",
+  "Fashion, Beauty & Lifestyle",
+  "Hobi, Pop Culture & Hiburan",
+  "Properti, Interior & Home Living",
+  "Pariwisata (Tour, Travel & Hospitality)",
+  "Wedding & Event Organizer",
+  "Otomotif (Automotive)",
+  "Teknologi, Elektronik & Sains (Tech, Electronic & Science Innovation)",
+  "Edukasi & Karir (Education & Career)",
+  "Seni & Kriya (Art, Craft & Culture)",
+  "Keluarga & Anak (Mom, Baby & Kids)",
+  "Kesehatan, Olahraga & Kebugaran (Health, Fitness & Wellness)",
+  "Agrikultur, Flora & Fauna (Pets & Plants)",
+  "Bisnis, Keuangan & Jasa Profesi (B2B, Finance & Services)",
+  "Lingkungan & Dampak Sosial (Specific SDGs / Green Expo)",
+  "Manufaktur, Industri & Mesin (Industrial & Manufacturing)",
+  "Pemerintah & Pelayanan Publik (Government & Civic)",
+  "Religi, Spiritual & Halal Lifestyle",
+  "Maritim, Aviasi & Transportasi Berat",
+] as const;
+
 export default function CreateEventPage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -23,6 +45,7 @@ export default function CreateEventPage() {
     description: "",
     theme: "",
     guidelines: "",
+    categories: [] as string[],
   });
 
   const handleSaveDraft = () => {
@@ -53,23 +76,15 @@ export default function CreateEventPage() {
     const eventId = String(Date.now());
     try {
       const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-      const categoryFromTheme = formData.theme.toLowerCase().includes("food") || formData.theme.toLowerCase().includes("kuliner")
-        ? "F&B"
-        : formData.theme.toLowerCase().includes("edu") || formData.theme.toLowerCase().includes("tech")
-        ? "Education"
-        : formData.theme.toLowerCase().includes("auto") || formData.theme.toLowerCase().includes("motor")
-        ? "Automotive"
-        : formData.theme.toLowerCase().includes("craft") || formData.theme.toLowerCase().includes("seni")
-        ? "Craft"
-        : "Fashion";
+      const categoryFromTheme = formData.categories.filter((category) => category !== "all").join(", ") || "Umum";
 
       const newEvent = {
         id: eventId,
         title: formData.name || "Event Baru",
         date: formData.date_start ? `${formData.date_start} s/d ${formData.date_end || formData.date_start}` : "Nov 2026",
-        time: `${formData.time_start} – ${formData.time_end} WIB`,
         status: "active",
         category: categoryFromTheme,
+          categories: formData.categories,
         boothsFilled: 0,
         boothsTotal: 30,
         location: formData.location || "Venue Acara",
@@ -90,7 +105,7 @@ export default function CreateEventPage() {
     }
   };
 
-  const update = (key: string, value: string) =>
+  const update = (key: string, value: string | string[]) =>
     setFormData((prev) => ({ ...prev, [key]: value }));
 
   return (
@@ -138,6 +153,29 @@ export default function CreateEventPage() {
             <label htmlFor="event-location" className="block text-sm font-medium mb-2">Nama Venue *</label>
             <input id="event-location" type="text" className="input-base" placeholder="Jakarta Convention Center, Hall A" value={formData.location} onChange={(e) => update("location", e.target.value)} required />
           </div>
+
+          <fieldset>
+            <legend className="block text-sm font-medium mb-2">Kategori Event *</legend>
+            <label className="flex items-center gap-2 p-3 rounded-xl border border-primary/30 bg-primary/5 cursor-pointer mb-3">
+              <input type="checkbox" checked={formData.categories.includes("all")} onChange={(e) => update("categories", e.target.checked ? ["all", ...EVENT_CATEGORIES] : [])} />
+              <span className="text-sm font-semibold">All (semua kategori)</span>
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {EVENT_CATEGORIES.map((category) => (
+                <label key={category} className="flex items-start gap-2 p-3 rounded-xl border border-border hover:border-primary/40 cursor-pointer text-xs leading-relaxed">
+                  <input
+                    type="checkbox"
+                    checked={formData.categories.includes("all") || formData.categories.includes(category)}
+                    onChange={(e) => setFormData((prev) => {
+                      const next = e.target.checked ? [...prev.categories.filter((item) => item !== "all"), category] : prev.categories.filter((item) => item !== category && item !== "all");
+                      return { ...prev, categories: next };
+                    })}
+                  />
+                  <span>{category}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
           <div>
             <label htmlFor="event-address" className="block text-sm font-medium mb-2">Alamat Lengkap</label>

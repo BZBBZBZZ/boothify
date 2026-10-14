@@ -26,13 +26,37 @@ type Booth = {
   price: number;
 };
 
+type LayoutObject = {
+  id: string;
+  type: "line" | "box" | "ellipse" | "circle" | "text";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation?: number;
+  text?: string;
+};
+
 const ZONES = [
-  { value: "fnb", label: "F&B", color: "var(--zone-fnb)" },
-  { value: "fashion", label: "Fashion", color: "var(--zone-fashion)" },
-  { value: "automotive", label: "Automotive", color: "var(--zone-automotive)" },
-  { value: "education", label: "Education", color: "var(--zone-education)" },
-  { value: "craft", label: "Craft", color: "var(--zone-craft)" },
-  { value: "general", label: "Umum", color: "var(--zone-general)" },
+  { value: "fnb", label: "Kuliner (Food & Beverage)", color: "var(--zone-fnb)" },
+  { value: "fashion", label: "Fashion, Beauty & Lifestyle", color: "var(--zone-fashion)" },
+  { value: "hobby", label: "Hobi, Pop Culture & Hiburan", color: "var(--zone-hobby)" },
+  { value: "property", label: "Properti, Interior & Home Living", color: "var(--zone-property)" },
+  { value: "tourism", label: "Pariwisata (Tour, Travel & Hospitality)", color: "var(--zone-tourism)" },
+  { value: "wedding", label: "Wedding & Event Organizer", color: "var(--zone-wedding)" },
+  { value: "automotive", label: "Otomotif (Automotive)", color: "var(--zone-automotive)" },
+  { value: "tech", label: "Teknologi, Elektronik & Sains (Tech, Electronic & Science Innovation)", color: "var(--zone-tech)" },
+  { value: "education", label: "Edukasi & Karir (Education & Career)", color: "var(--zone-education)" },
+  { value: "craft", label: "Seni & Kriya (Art, Craft & Culture)", color: "var(--zone-craft)" },
+  { value: "family", label: "Keluarga & Anak (Mom, Baby & Kids)", color: "var(--zone-family)" },
+  { value: "health", label: "Kesehatan, Olahraga & Kebugaran (Health, Fitness & Wellness)", color: "var(--zone-health)" },
+  { value: "agriculture", label: "Agrikultur, Flora & Fauna (Pets & Plants)", color: "var(--zone-agriculture)" },
+  { value: "business", label: "Bisnis, Keuangan & Jasa Profesi (B2B, Finance & Services)", color: "var(--zone-business)" },
+  { value: "environment", label: "Lingkungan & Dampak Sosial (Specific SDGs / Green Expo)", color: "var(--zone-environment)" },
+  { value: "industrial", label: "Manufaktur, Industri & Mesin (Industrial & Manufacturing)", color: "var(--zone-industrial)" },
+  { value: "government", label: "Pemerintah & Pelayanan Publik (Government & Civic)", color: "var(--zone-government)" },
+  { value: "religion", label: "Religi, Spiritual & Halal Lifestyle", color: "var(--zone-religion)" },
+  { value: "maritime", label: "Maritim, Aviasi & Transportasi Berat", color: "var(--zone-maritime)" },
 ];
 
 const WORKSPACE_WIDTH = 1200;
@@ -66,6 +90,11 @@ function FloorPlanContent() {
   const [activeZone, setActiveZone] = useState("fashion");
   const [zones, setZones] = useState<EventZone[]>(ZONES);
   const [newZone, setNewZone] = useState({ label: "", color: "#6b7280" });
+  const [layoutObjects, setLayoutObjects] = useState<LayoutObject[]>([]);
+  const [selectedObject, setSelectedObject] = useState<LayoutObject | null>(null);
+  const [draggingObject, setDraggingObject] = useState<string | null>(null);
+  const [boothQuantity, setBoothQuantity] = useState(1);
+  const [openPanels, setOpenPanels] = useState<Record<string, boolean>>({});
   const [saved, setSaved] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -79,6 +108,8 @@ function FloorPlanContent() {
       setBooths(initialized.booths);
       const storedZones = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_zones`) || "null");
       setZones(Array.isArray(storedZones) && storedZones.length > 0 ? storedZones : ZONES);
+      const storedObjects = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_objects`) || "[]");
+      setLayoutObjects(Array.isArray(storedObjects) ? storedObjects : []);
     } catch { /* ignore */ }
   }, [eventId, user?.email]);
 
@@ -87,6 +118,7 @@ function FloorPlanContent() {
       localStorage.setItem(`boothify_event_${eventId}_booths`, JSON.stringify(booths));
       localStorage.setItem("boothify_floor_plan", JSON.stringify(booths));
       localStorage.setItem(`boothify_event_${eventId}_zones`, JSON.stringify(zones));
+      localStorage.setItem(`boothify_event_${eventId}_objects`, JSON.stringify(layoutObjects));
       // Update boothsTotal on event
       const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
       const updatedEvents = storedEvents.map((ev: { id: string; boothsTotal: number; status: string }) =>
@@ -145,7 +177,6 @@ function FloorPlanContent() {
     }
   };
 
-  const nextId = String(booths.length + 1);
   const nextLabel = (() => {
     const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const row = letters[Math.floor(booths.length / 4)] || "Z";
@@ -154,21 +185,43 @@ function FloorPlanContent() {
   })();
 
   const addBooth = () => {
-    const newBooth: Booth = {
-      id: nextId,
-      x: 40 + Math.random() * 300,
-      y: 80 + Math.random() * 300,
-      width: 80,
-      height: 60,
-      rotation: 0,
-      sizeCm: "300 x 300 cm",
-      label: nextLabel,
-      zone: activeZone,
-      price: 2500000,
-    };
-    setBooths([...booths, newBooth]);
-    setSelectedBooth(newBooth);
+    const created = Array.from({ length: boothQuantity }, (_, index) => {
+      const sequence = booths.length + index + 1;
+      const row = String.fromCharCode(65 + Math.floor(sequence / 10));
+      const label = `${row}${(sequence % 10) || 10}`;
+      return {
+        id: `${Date.now()}-${index}`,
+        x: 40 + (index % 5) * 120,
+        y: 80 + Math.floor(index / 5) * 100,
+        width: 80,
+        height: 60,
+        rotation: 0,
+        sizeCm: "300 x 300 cm",
+        label: label || nextLabel,
+        zone: activeZone,
+        price: 2500000,
+      };
+    });
+    setBooths((prev) => [...prev, ...created]);
+    setSelectedBooth(created[0]);
   };
+
+  const addLayoutObject = (type: LayoutObject["type"]) => {
+    const object: LayoutObject = {
+      id: `object-${layoutObjects.length + 1}`,
+      type,
+      x: 180,
+      y: 380,
+      width: type === "line" ? 180 : 140,
+      height: type === "line" ? 4 : 80,
+      rotation: 0,
+      text: type === "text" ? "Label area" : undefined,
+    };
+    setLayoutObjects((prev) => [...prev, object]);
+    setSelectedObject(object);
+  };
+
+  const togglePanel = (panel: string) => setOpenPanels((prev) => ({ ...prev, [panel]: !prev[panel] }));
 
   const addZone = () => {
     const label = newZone.label.trim();
@@ -214,18 +267,37 @@ function FloorPlanContent() {
     };
   };
 
-  const handleMouseDown = useCallback((e: React.MouseEvent, booth: Booth) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent, booth: Booth) => {
     e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
     setDragging(booth.id);
     setDragOffset({ x: e.clientX - rect.left - booth.x, y: e.clientY - rect.top - booth.y });
+    
     setSelectedBooth(booth);
+    setSelectedObject(null);
+    
+    setOpenPanels(prev => ({
+      ...prev,
+      editBooth: true
+    }));
   }, []);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!dragging || !canvasRef.current) return;
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
+    if (draggingObject) {
+      const object = layoutObjects.find((item) => item.id === draggingObject);
+      if (!object) return;
+      const x = Math.max(0, Math.min(e.clientX - rect.left - dragOffset.x, WORKSPACE_WIDTH - object.width));
+      const y = Math.max(0, Math.min(e.clientY - rect.top - dragOffset.y, WORKSPACE_HEIGHT - object.height));
+      const updated = { ...object, x: Math.round(x / 20) * 20, y: Math.round(y / 20) * 20 };
+      setLayoutObjects((prev) => prev.map((item) => item.id === updated.id ? updated : item));
+      setSelectedObject(updated);
+      return;
+    }
+    if (!dragging) return;
     const booth = booths.find((item) => item.id === dragging);
     if (!booth) return;
     const bounds = getBoothBounds(booth);
@@ -235,10 +307,12 @@ function FloorPlanContent() {
     const snappedX = Math.round(x / 20) * 20;
     const snappedY = Math.round(y / 20) * 20;
     setBooths((prev) => prev.map((b) => (b.id === dragging ? { ...b, x: snappedX, y: snappedY } : b)));
-  }, [booths, dragging, dragOffset]);
+  }, [booths, dragging, draggingObject, dragOffset, layoutObjects]);
 
-  const handleMouseUp = useCallback(() => {
+  const handlePointerUp = useCallback((e?: React.PointerEvent) => {
+    if (e && e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
     setDragging(null);
+    setDraggingObject(null);
   }, []);
 
   const isAuthorizedOrganizer = Boolean(
@@ -287,8 +361,11 @@ function FloorPlanContent() {
         <div>
           <div className="flex flex-wrap items-center gap-2 mb-1.5">
             <h1 className="text-2xl font-bold tracking-tight">Interactive Floor Plan Builder</h1>
-            <span className="badge badge-primary text-xs">Event #{eventId}</span>
-            <span className="badge badge-secondary text-xs">{eventMeta.category}</span>
+            <span className="badge badge-primary text-xs shrink-0">Event #{eventId}</span>
+            {/* INI BAGIAN YANG DIUBAH */}
+            <span className="badge badge-secondary text-xs truncate max-w-[200px] md:max-w-md inline-block">
+              {eventMeta.category}
+            </span>
           </div>
           <p className="text-sm font-semibold text-primary-light mb-1">
             🎯 {eventMeta.title} <span className="text-muted-foreground font-normal text-xs">({eventMeta.location} • {eventMeta.date})</span>
@@ -341,8 +418,10 @@ function FloorPlanContent() {
         <div className="lg:col-span-1 space-y-4">
           {/* Add booth */}
           <div className="card-base p-4">
-            <h3 className="font-semibold text-sm mb-3">Tambah Booth</h3>
-            <div className="space-y-3">
+            <button type="button" onClick={() => togglePanel("booth")} className="w-full flex items-center justify-between font-semibold text-sm">
+              Tambah Booth <span>{openPanels.booth ? "⌃" : "⌄"}</span>
+            </button>
+            {openPanels.booth && <div className="space-y-3 mt-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Zona Kategori</label>
                 <select
@@ -356,45 +435,72 @@ function FloorPlanContent() {
                   ))}
                 </select>
               </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">Jumlah booth</span>
+                <div className="flex items-center gap-2">
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setBoothQuantity((value) => Math.max(1, value - 1))}>−</button>
+                  <span className="w-8 text-center font-semibold">{boothQuantity}</span>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setBoothQuantity((value) => value + 1)}>+</button>
+                </div>
+              </div>
               <button onClick={addBooth} className="btn btn-primary w-full btn-sm" id="add-booth-btn">
                 + Tambah Booth
               </button>
-            </div>
+            </div>}
+          </div>
+
+          <div className="card-base p-4">
+            <button type="button" onClick={() => togglePanel("objects")} className="w-full flex items-center justify-between font-semibold text-sm">
+              Static Object <span>{openPanels.objects ? "⌃" : "⌄"}</span>
+            </button>
+            {openPanels.objects && <div className="grid grid-cols-2 gap-2 mt-3">
+              {(["line", "box", "ellipse", "circle", "text"] as const).map((type) => (
+                <button key={type} type="button" onClick={() => addLayoutObject(type)} className="btn btn-secondary btn-sm text-xs capitalize">
+                  + {type}
+                </button>
+              ))}
+            </div>}
           </div>
 
           {/* Layout templates */}
           <div className="card-base p-4">
-            <h3 className="font-semibold text-sm mb-2">Template Tata Letak</h3>
-            <p className="text-[11px] text-muted-foreground mb-3">Terapkan tata letak instan lalu sesuaikan posisi setiap booth.</p>
+            <button type="button" onClick={() => togglePanel("templates")} className="w-full flex items-center justify-between font-semibold text-sm">
+              Template Tata Letak <span>{openPanels.templates ? "⌃" : "⌄"}</span>
+            </button>
+            {openPanels.templates && <div>
+            <p className="text-[11px] text-muted-foreground mb-3"></p>
             <div className="space-y-2">
               <button
                 type="button"
                 onClick={() => applyTemplate("cinema")}
                 className="btn btn-secondary w-full btn-sm text-xs justify-start"
               >
-                🎬 Template Denah Bioskop (Grid Rapi)
+                Grid Rapi
               </button>
               <button
                 type="button"
                 onClick={() => applyTemplate("expo")}
                 className="btn btn-secondary w-full btn-sm text-xs justify-start"
               >
-                🏛️ Template Expo Hall (Keliling Panggung)
+                Melingkar
               </button>
               <button
                 type="button"
                 onClick={() => applyTemplate("cluster")}
                 className="btn btn-ghost w-full btn-sm text-xs justify-start"
               >
-                🎪 Reset Template Awal
+                Reset Template
               </button>
-            </div>
+            </div></div>}
           </div>
 
           {/* Zone CRUD */}
           <div className="card-base p-4">
-            <h3 className="font-semibold text-sm mb-1">Kategori Zona</h3>
-            <p className="text-[11px] text-muted-foreground mb-3">Kelola kategori zona yang dipakai booth event ini.</p>
+            <button type="button" onClick={() => togglePanel("zones")} className="w-full flex items-center justify-between font-semibold text-sm">
+              Kategori Zona <span>{openPanels.zones ? "⌃" : "⌄"}</span>
+            </button>
+            {openPanels.zones && <div>
+            <p className="text-[11px] text-muted-foreground mb-3 mt-2">Kelola kategori zona yang dipakai booth event ini.</p>
             <div className="space-y-2 mb-3">
               {zones.map((zone) => (
                 <div key={zone.value} className="flex items-center gap-2 p-2 rounded-lg bg-white/[0.03] border border-white/5">
@@ -411,11 +517,15 @@ function FloorPlanContent() {
               <input className="w-10 h-10 rounded-lg bg-card border border-border p-1" type="color" value={newZone.color} onChange={(e) => setNewZone({ ...newZone, color: e.target.value })} aria-label="Warna zona" />
             </div>
             <button type="button" onClick={addZone} className="btn btn-secondary btn-sm w-full mt-2">+ Tambah Zona</button>
+            </div>}
           </div>
 
           {/* Zone legend */}
           <div className="card-base p-4">
-            <h3 className="font-semibold text-sm mb-3">Zona Warna</h3>
+            <button type="button" onClick={() => togglePanel("legend")} className="w-full flex items-center justify-between font-semibold text-sm">
+              Zona Warna <span>{openPanels.legend ? "⌃" : "⌄"}</span>
+            </button>
+            {openPanels.legend && <div className="mt-3">
             <div className="space-y-2">
               {zones.map((z) => (
                 <div key={z.value} className="flex items-center gap-2">
@@ -423,54 +533,102 @@ function FloorPlanContent() {
                   <span className="text-xs">{z.label}</span>
                 </div>
               ))}
-            </div>
+            </div></div>}
           </div>
 
           {/* Selected booth editor */}
+          {/* Selected booth editor */}
           {selectedBooth && (
             <div className="card-base p-4 border-primary/30">
-              <h3 className="font-semibold text-sm mb-3">Edit Booth {selectedBooth.label}</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Label</label>
-                  <input type="text" className="input-base text-sm" value={selectedBooth.label} onChange={(e) => updateBooth(selectedBooth.id, { label: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Zona</label>
-                  <select className="input-base text-sm" value={selectedBooth.zone} onChange={(e) => updateBooth(selectedBooth.id, { zone: e.target.value })}>
-                    {zones.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
+              <button 
+                type="button" 
+                onClick={() => togglePanel("editBooth")} 
+                className="w-full flex items-center justify-between font-semibold text-sm"
+              >
+                Edit Booth {selectedBooth.label} <span>{openPanels.editBooth ? "⌃" : "⌄"}</span>
+              </button>
+              
+              {openPanels.editBooth && (
+                <div className="space-y-3 mt-3">
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Lebar (px)</label>
-                    <input type="number" className="input-base text-sm" value={selectedBooth.width} onChange={(e) => updateBooth(selectedBooth.id, { width: Number(e.target.value) })} />
+                    <label className="text-xs text-muted-foreground mb-1 block">Label</label>
+                    <input type="text" className="input-base text-sm" value={selectedBooth.label} onChange={(e) => updateBooth(selectedBooth.id, { label: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Tinggi (px)</label>
-                    <input type="number" className="input-base text-sm" value={selectedBooth.height} onChange={(e) => updateBooth(selectedBooth.id, { height: Number(e.target.value) })} />
+                    <label className="text-xs text-muted-foreground mb-1 block">Zona</label>
+                    <select className="input-base text-sm" value={selectedBooth.zone} onChange={(e) => updateBooth(selectedBooth.id, { zone: e.target.value })}>
+                      {zones.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
+                    </select>
                   </div>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Harga Sewa (Rp)</label>
-                  <input type="number" className="input-base text-sm" value={selectedBooth.price} onChange={(e) => updateBooth(selectedBooth.id, { price: Number(e.target.value) })} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Ukuran Asli Booth (cm)</label>
-                  <input type="text" className="input-base text-sm" placeholder="Contoh: 300 x 300 cm" value={selectedBooth.sizeCm || ""} onChange={(e) => updateBooth(selectedBooth.id, { sizeCm: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Rotasi Booth</label>
-                  <div className="flex items-center gap-2">
-                    <input type="range" min="0" max="359" step="15" className="w-full accent-[var(--primary)]" value={selectedBooth.rotation || 0} onChange={(e) => updateBooth(selectedBooth.id, { rotation: Number(e.target.value) })} />
-                    <span className="text-xs w-12 text-right">{selectedBooth.rotation || 0}°</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Lebar (px)</label>
+                      <input type="number" className="input-base text-sm" value={selectedBooth.width} onChange={(e) => updateBooth(selectedBooth.id, { width: Number(e.target.value) })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Tinggi (px)</label>
+                      <input type="number" className="input-base text-sm" value={selectedBooth.height} onChange={(e) => updateBooth(selectedBooth.id, { height: Number(e.target.value) })} />
+                    </div>
                   </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Harga Sewa (Rp)</label>
+                    <input type="number" className="input-base text-sm" value={selectedBooth.price} onChange={(e) => updateBooth(selectedBooth.id, { price: Number(e.target.value) })} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Ukuran Asli Booth (cm)</label>
+                    <input type="text" className="input-base text-sm" placeholder="Contoh: 300 x 300 cm" value={selectedBooth.sizeCm || ""} onChange={(e) => updateBooth(selectedBooth.id, { sizeCm: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Rotasi Booth</label>
+                    <div className="flex items-center gap-2">
+                      <input type="range" min="0" max="359" step="15" className="w-full accent-[var(--primary)]" value={selectedBooth.rotation || 0} onChange={(e) => updateBooth(selectedBooth.id, { rotation: Number(e.target.value) })} />
+                      <span className="text-xs w-12 text-right">{selectedBooth.rotation || 0}°</span>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => updateBooth(selectedBooth.id, { rotation: ((selectedBooth.rotation || 0) + 90) % 360 })} className="btn btn-secondary btn-sm w-full">↻ Putar 90°</button>
+                  <button onClick={() => removeBooth(selectedBooth.id)} className="btn btn-sm w-full bg-error/10 text-error hover:bg-error/20 border-none">
+                    Hapus Booth
+                  </button>
                 </div>
-                <button type="button" onClick={() => updateBooth(selectedBooth.id, { rotation: ((selectedBooth.rotation || 0) + 90) % 360 })} className="btn btn-secondary btn-sm w-full">↻ Putar 90°</button>
-                <button onClick={() => removeBooth(selectedBooth.id)} className="btn btn-sm w-full bg-error/10 text-error hover:bg-error/20 border-none">
-                  Hapus Booth
-                </button>
-              </div>
+              )}
+            </div>
+          )}
+
+          {/* Selected object editor */}
+          {selectedObject && (
+            <div className="card-base p-4 border-secondary/30">
+              <button 
+                type="button" 
+                onClick={() => togglePanel("editObject")} 
+                className="w-full flex items-center justify-between font-semibold text-sm"
+              >
+                Edit Object <span>{openPanels.editObject ? "⌃" : "⌄"}</span>
+              </button>
+              
+              {openPanels.editObject && (
+                <div className="mt-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["x", "y", "width", "height", "rotation"] as const).map((key) => (
+                      <label key={key} className="text-xs text-muted-foreground">{key}
+                        <input type="number" className="input-base text-sm mt-1" value={selectedObject[key]} onChange={(e) => {
+                          const updated = { ...selectedObject, [key]: Number(e.target.value) };
+                          setSelectedObject(updated);
+                          setLayoutObjects((prev) => prev.map((item) => item.id === updated.id ? updated : item));
+                        }} />
+                      </label>
+                    ))}
+                  </div>
+                  {selectedObject.type === "text" && <input className="input-base text-sm mt-2" value={selectedObject.text || ""} onChange={(e) => {
+                    const updated = { ...selectedObject, text: e.target.value };
+                    setSelectedObject(updated);
+                    setLayoutObjects((prev) => prev.map((item) => item.id === updated.id ? updated : item));
+                  }} />}
+                  <button type="button" className="btn btn-sm w-full bg-error/10 text-error mt-3" onClick={() => {
+                    setLayoutObjects((prev) => prev.filter((item) => item.id !== selectedObject.id));
+                    setSelectedObject(null);
+                  }}>Hapus Object</button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -490,28 +648,58 @@ function FloorPlanContent() {
               </div>
             </div>
 
-            {/* Stage */}
-            <div className="text-center mb-3">
-              <div className="inline-block px-16 py-2 rounded-xl bg-gradient-to-r from-primary/15 to-secondary/15 border border-border text-xs font-semibold text-muted-foreground">
-                🎤 PANGGUNG UTAMA
-              </div>
-            </div>
-
             <div className="overflow-auto max-h-[70vh] rounded-2xl" id="floor-plan-scroll-area">
               <div style={{ width: WORKSPACE_WIDTH, height: WORKSPACE_HEIGHT }}>
                 <div
                   ref={canvasRef}
                   className="floor-plan-canvas relative"
                   style={{ width: WORKSPACE_WIDTH, height: WORKSPACE_HEIGHT, minHeight: WORKSPACE_HEIGHT }}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
                   id="floor-plan-canvas"
                 >
+                  {layoutObjects.map((object) => (
+                    <div
+                      key={object.id}
+                      onPointerDown={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                        const rect = canvasRef.current?.getBoundingClientRect();
+                        if (!rect) return;
+                        setDraggingObject(object.id);
+                        setDragOffset({ x: event.clientX - rect.left - object.x, y: event.clientY - rect.top - object.y });
+                        
+                        setSelectedObject(object);
+                        setSelectedBooth(null);
+                        
+                        setOpenPanels(prev => ({
+                          ...prev,
+                          editObject: true
+                        }));
+                      }}
+                      onClick={(event) => { event.stopPropagation(); setSelectedObject(object); }}
+                      className={`absolute flex items-center justify-center text-xs text-secondary-light touch-none ${selectedObject?.id === object.id ? "ring-2 ring-secondary" : ""}`}
+                      style={{
+                        left: object.x,
+                        top: object.y,
+                        width: object.width,
+                        height: object.height,
+                        transform: `rotate(${object.rotation || 0}deg)`,
+                        border: object.type === "line" ? "none" : "2px solid var(--secondary)",
+                        borderRadius: object.type === "circle" ? "999px" : object.type === "ellipse" ? "50%" : "6px",
+                        background: object.type === "box" ? "rgba(139,92,246,.08)" : "transparent",
+                      }}
+                    >
+                      {object.type === "line" && <span className="w-full h-0.5 bg-secondary" />}
+                      {object.type === "text" && object.text}
+                    </div>
+                  ))}
                   {booths.map((booth) => (
                 <div
                   key={booth.id}
-                  className={`floor-plan-booth ${dragging === booth.id ? "dragging" : ""} ${selectedBooth?.id === booth.id ? "ring-2 ring-primary" : ""}`}
+                  className={`floor-plan-booth touch-none ${dragging === booth.id ? "dragging" : ""} ${selectedBooth?.id === booth.id ? "ring-2 ring-primary" : ""}`}
                   style={{
                     left: booth.x,
                     top: booth.y,
@@ -522,7 +710,7 @@ function FloorPlanContent() {
                     backgroundColor: `color-mix(in srgb, ${getZoneColor(booth.zone)} 15%, transparent)`,
                     color: getZoneColor(booth.zone),
                   }}
-                  onMouseDown={(e) => handleMouseDown(e, booth)}
+                  onPointerDown={(e) => handlePointerDown(e, booth)}
                   onClick={() => setSelectedBooth(booth)}
                 >
                   <div className="text-center">

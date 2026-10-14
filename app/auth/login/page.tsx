@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../components/AuthContext";
+import Navbar from "../../components/Navbar";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -51,7 +52,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex" id="login-page">
+    <>
+      <Navbar />
+      <div className="min-h-screen flex pt-16" id="login-page">
       {/* Left panel - branding */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-card to-secondary/20" />
@@ -230,8 +233,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => {
-                  const res = login("demo-guest@boothify.id", "demo1234");
-                  if (res.success) router.push("/events/1/guide");
+                  router.push("/events/1/guide?demo=visitor");
                 }}
                 className="btn btn-secondary btn-sm text-xs py-2 flex items-center justify-center gap-1.5"
                 id="demo-guest-btn"
@@ -270,6 +272,7 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

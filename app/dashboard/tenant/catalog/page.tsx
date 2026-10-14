@@ -329,26 +329,8 @@ export default function CatalogPage() {
         </p>
       </div>
 
-      {/* Type switcher */}
-      <div className="flex items-center gap-2 mb-6">
-        <button
-          onClick={() => setCatalogType("fnb")}
-          className={`btn ${catalogType === "fnb" ? "btn-primary" : "btn-secondary"}`}
-          id="switch-fnb"
-        >
-          🍜 F&amp;B — Menu Makanan &amp; Minuman
-        </button>
-        <button
-          onClick={() => setCatalogType("non-fnb")}
-          className={`btn ${catalogType === "non-fnb" ? "btn-primary" : "btn-secondary"}`}
-          id="switch-non-fnb"
-        >
-          📁 Non-F&amp;B — Media Digital &amp; Mini Website
-        </button>
-      </div>
-
       {/* ===== F&B CATALOG ===== */}
-      {catalogType === "fnb" && (
+      {true && (
         <div className="space-y-6">
           <div className="card-base p-6">
             <div className="flex items-center justify-between mb-5">
@@ -514,7 +496,7 @@ export default function CatalogPage() {
       )}
 
       {/* ===== NON-F&B CATALOG ===== */}
-      {catalogType === "non-fnb" && (
+      {true && (
         <div className="space-y-6">
           {/* Media uploads */}
           <div className="card-base p-6">

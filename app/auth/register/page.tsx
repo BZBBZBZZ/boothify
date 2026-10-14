@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../components/AuthContext";
+import Navbar from "../../components/Navbar";
 
 type Role = "tenant" | "organizer" | null;
 
@@ -97,7 +98,9 @@ function RegisterFormContent() {
   };
 
   return (
-    <div className="min-h-screen flex" id="register-page">
+    <>
+      <Navbar />
+      <div className="min-h-screen flex pt-16" id="register-page">
       {/* Left panel */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center">
         <div className="absolute inset-0 bg-gradient-to-br from-secondary/20 via-card to-primary/20" />
@@ -303,7 +306,8 @@ function RegisterFormContent() {
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

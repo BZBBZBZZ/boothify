@@ -6,31 +6,28 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 const ALL_EVENTS = [
-  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", location: "Jakarta Convention Center", category: "Fashion", boothsFilled: 5, boothsTotal: 9, price: "Rp 2.500.000", image: "🌿", gradient: "from-emerald-500/20 to-teal-500/20" },
-  { id: "2", title: "Indonesia Food Festival 2026", date: "22–24 Nov 2026", location: "ICE BSD, Tangerang", category: "F&B", boothsFilled: 3, boothsTotal: 10, price: "Rp 3.000.000", image: "🍜", gradient: "from-orange-500/20 to-red-500/20" },
-  { id: "3", title: "EduTech Innovation Fair 2026", date: "1–3 Des 2026", location: "Surabaya Grand City", category: "Education", boothsFilled: 2, boothsTotal: 8, price: "Rp 1.800.000", image: "📚", gradient: "from-violet-500/20 to-purple-500/20" },
-  { id: "4", title: "AutoMotive Show 2026", date: "10–12 Des 2026", location: "JIEXPO Kemayoran", category: "Automotive", boothsFilled: 4, boothsTotal: 12, price: "Rp 5.000.000", image: "🚗", gradient: "from-blue-500/20 to-cyan-500/20" },
-  { id: "5", title: "Craft & Artisan Market 2026", date: "18–20 Des 2026", location: "Bandung Creative Hub", category: "Craft", boothsFilled: 3, boothsTotal: 10, price: "Rp 1.200.000", image: "🎨", gradient: "from-pink-500/20 to-rose-500/20" },
+  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", location: "Jakarta Convention Center", category: "Fashion, Beauty & Lifestyle, Lingkungan & Dampak Sosial", categories: ["Fashion, Beauty & Lifestyle", "Lingkungan & Dampak Sosial"], boothsFilled: 5, boothsTotal: 9, price: "Rp 2.500.000", image: "🌿", gradient: "from-emerald-500/20 to-teal-500/20" },
+  { id: "2", title: "Indonesia Food Festival 2026", date: "22–24 Nov 2026", location: "ICE BSD, Tangerang", category: "F&B", categories: ["Kuliner (Food & Beverage)"], boothsFilled: 3, boothsTotal: 10, price: "Rp 3.000.000", image: "🍜", gradient: "from-orange-500/20 to-red-500/20" },
+  { id: "3", title: "EduTech Innovation Fair 2026", date: "1–3 Des 2026", location: "Surabaya Grand City", category: "Education", categories: ["Edukasi & Karir (Education & Career)"], boothsFilled: 2, boothsTotal: 8, price: "Rp 1.800.000", image: "📚", gradient: "from-violet-500/20 to-purple-500/20" },
+  { id: "4", title: "AutoMotive Show 2026", date: "10–12 Des 2026", location: "JIEXPO Kemayoran", category: "Automotive", categories: ["Otomotif (Automotive)"], boothsFilled: 4, boothsTotal: 12, price: "Rp 5.000.000", image: "🚗", gradient: "from-blue-500/20 to-cyan-500/20" },
+  { id: "5", title: "Craft & Artisan Market 2026", date: "18–20 Des 2026", location: "Bandung Creative Hub", category: "Craft", categories: ["Seni & Kriya (Art, Craft & Culture)"], boothsFilled: 3, boothsTotal: 10, price: "Rp 1.200.000", image: "🎨", gradient: "from-pink-500/20 to-rose-500/20" },
 ];
-
-const CATEGORIES = ["Semua", "F&B", "Fashion", "Education", "Automotive", "Craft"];
 
 export default function EventsPage() {
   const [eventsList, setEventsList] = useState(ALL_EVENTS);
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Semua");
-  const [sortBy, setSortBy] = useState("newest");
 
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
       if (Array.isArray(stored) && stored.length > 0) {
-        const customEvents = stored.map((e: { id: string; title: string; date: string; location: string; category?: string; boothsFilled?: number; boothsTotal?: number; priceRange?: string; image?: string }) => ({
+        const customEvents = stored.map((e: { id: string; title: string; date: string; location: string; category?: string; categories?: string[]; boothsFilled?: number; boothsTotal?: number; priceRange?: string; image?: string }) => ({
           id: e.id,
           title: e.title,
           date: e.date,
           location: e.location,
           category: e.category || "Fashion",
+          categories: e.categories || (e.category ? e.category.split(",").map((item) => item.trim()) : ["Fashion, Beauty & Lifestyle"]),
           boothsFilled: e.boothsFilled || 0,
           boothsTotal: e.boothsTotal || 40,
           price: e.priceRange?.split("–")[0]?.trim() || "Rp 2.000.000",
@@ -47,8 +44,7 @@ export default function EventsPage() {
   const filtered = eventsList.filter((event) => {
     const matchesSearch = event.title.toLowerCase().includes(search.toLowerCase()) ||
       event.location.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = selectedCategory === "Semua" || event.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    return matchesSearch;
   });
 
   return (
@@ -105,8 +101,11 @@ export default function EventsPage() {
                   <span className="text-5xl">{event.image}</span>
                 </div>
                 <div className="p-5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="badge badge-primary text-[11px]">{event.category}</span>
+                  <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                    {(event.categories || [event.category]).slice(0, 4).map((category) => (
+                      <span key={category} className="badge badge-primary text-[10px] max-w-[48%] truncate" title={category}>{category}</span>
+                    ))}
+                    {(event.categories || []).length > 4 && <span className="text-[10px] text-muted-foreground">+{event.categories.length - 4}</span>}
                     <span className="text-xs text-muted-foreground ml-auto">{event.price}</span>
                   </div>
                   <h3 className="font-semibold text-sm mb-2 line-clamp-1">{event.title}</h3>

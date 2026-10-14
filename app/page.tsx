@@ -11,7 +11,7 @@ const FEATURED_EVENTS = [
     category: "Fashion",
     boothsFilled: 5,
     boothsTotal: 14,
-    image: "🌿",
+    image: "GF",
     gradient: "from-emerald-500/20 to-teal-500/20",
   },
   {
@@ -22,7 +22,7 @@ const FEATURED_EVENTS = [
     category: "F&B",
     boothsFilled: 3,
     boothsTotal: 10,
-    image: "🍜",
+    image: "IF",
     gradient: "from-orange-500/20 to-red-500/20",
   },
   {
@@ -33,7 +33,7 @@ const FEATURED_EVENTS = [
     category: "Education",
     boothsFilled: 2,
     boothsTotal: 8,
-    image: "📚",
+    image: "EI",
     gradient: "from-violet-500/20 to-purple-500/20",
   },
   {
@@ -44,7 +44,7 @@ const FEATURED_EVENTS = [
     category: "Automotive",
     boothsFilled: 4,
     boothsTotal: 12,
-    image: "🚗",
+    image: "AS",
     gradient: "from-blue-500/20 to-cyan-500/20",
   },
 ];
@@ -152,24 +152,13 @@ export default function HomePage() {
       <Navbar />
       <main className="flex-1">
         {/* ========== HERO ========== */}
-        <section className="relative min-h-screen flex items-center overflow-hidden" id="hero">
-          {/* Background effects */}
-          <div className="absolute inset-0">
-            <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] rounded-full bg-primary/8 blur-[120px] animate-float" />
-            <div className="absolute bottom-1/4 -right-32 w-[400px] h-[400px] rounded-full bg-secondary/8 blur-[120px] animate-float delay-300" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/4 blur-[160px]" />
-          </div>
-
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
+        <section className="relative min-h-auto flex items-center overflow-hidden border-b border-border" id="hero">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-24 md:pt-40 md:pb-32">
             <div className="text-center max-w-4xl mx-auto">
-              {/* Badge */}
-              <div className="animate-fade-in mb-6 inline-flex items-center gap-2 rounded-full bg-primary/10 border border-primary/20 px-4 py-1.5">
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-xs font-semibold text-primary-light tracking-wide">PLATFORM EVENT #1 INDONESIA</span>
-              </div>
+              <p className="section-kicker animate-fade-in mb-6">Ruang kerja event yang lebih tertata</p>
 
               {/* Heading */}
-              <h1 className="animate-fade-in-up text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.1] tracking-tight mb-6">
+              <h1 className="animate-fade-in-up text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.06] tracking-tight mb-6">
                 Booking Booth Event
                 <br />
                 <span className="gradient-text">Semudah Pilih Kursi Bioskop</span>
@@ -198,36 +187,16 @@ export default function HomePage() {
                   </svg>
                 </Link>
               </div>
-
-              {/* Stats */}
-              <div className="animate-fade-in-up delay-500 mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto opacity-0">
-                {[
-                  { value: "5", label: "Event Demo" },
-                  { value: "2", label: "Tenant Demo" },
-                  { value: "1", label: "Akun Visitor" },
-                ].map((stat) => (
-                  <div key={stat.label} className="text-center">
-                    <div className="text-2xl sm:text-3xl font-bold gradient-text">{stat.value}</div>
-                    <div className="text-xs sm:text-sm text-muted-foreground mt-1">{stat.label}</div>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
 
-          {/* Scroll indicator */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </div>
         </section>
 
         {/* ========== FEATURED EVENTS ========== */}
-        <section className="py-24 relative" id="featured-events">
+        <section className="py-24 relative home-section" id="featured-events">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <span className="badge badge-primary mb-4">🔥 POPULER</span>
+              <p className="section-kicker mb-4">Pilihan event</p>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">Event yang Sedang Trending</h2>
               <p className="text-muted max-w-xl mx-auto">Temukan pameran, bazar, dan event terbaik di seluruh Indonesia</p>
             </div>
@@ -242,8 +211,8 @@ export default function HomePage() {
                   id={`event-card-${event.id}`}
                 >
                   {/* Event image area */}
-                  <div className={`h-40 bg-gradient-to-br ${event.gradient} flex items-center justify-center`}>
-                    <span className="text-6xl">{event.image}</span>
+                    <div className="event-art">
+                    <span className="event-mark">{event.image}</span>
                   </div>
                   <div className="p-5">
                     <div className="flex items-center gap-2 mb-2">
@@ -288,13 +257,10 @@ export default function HomePage() {
         </section>
 
         {/* ========== FEATURES ========== */}
-        <section className="py-24 relative" id="features">
-          <div className="absolute inset-0">
-            <div className="absolute top-0 left-1/3 w-[400px] h-[400px] rounded-full bg-secondary/5 blur-[120px]" />
-          </div>
+        <section className="py-24 relative home-section" id="features">
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <span className="badge badge-secondary mb-4">✨ FITUR</span>
+              <p className="section-kicker mb-4">Dibuat untuk pekerjaan nyata</p>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">Semua yang Kamu Butuhkan</h2>
               <p className="text-muted max-w-xl mx-auto">Platform lengkap dari pembuatan event hingga transaksi pengunjung di hari acara</p>
             </div>
@@ -318,10 +284,10 @@ export default function HomePage() {
         </section>
 
         {/* ========== HOW IT WORKS ========== */}
-        <section className="py-24 relative" id="how-it-works">
+        <section className="py-24 relative home-section" id="how-it-works">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <span className="badge badge-accent mb-4">🚀 CARA KERJA</span>
+              <p className="section-kicker mb-4">Alur yang jelas</p>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">Simpel. Cepat. Efektif.</h2>
               <p className="text-muted max-w-xl mx-auto">Dari pembuatan event hingga hari acara, semuanya digital</p>
             </div>
@@ -347,16 +313,13 @@ export default function HomePage() {
         </section>
 
         {/* ========== CTA ========== */}
-        <section className="py-24 relative overflow-hidden" id="cta-section">
-          <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10" />
-          </div>
+        <section className="py-24 relative overflow-hidden home-section" id="cta-section">
           <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-6">
               Siap Membawa Event-mu ke Level Berikutnya?
             </h2>
             <p className="text-lg text-muted max-w-2xl mx-auto mb-10">
-              Bergabung dengan ribuan penyelenggara event dan pelaku usaha yang sudah merasakan kemudahan Boothify.
+              Kelola pendaftaran booth, katalog tenant, dan informasi pengunjung dari satu tempat.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/auth/register?role=organizer" className="btn btn-primary btn-lg animate-pulse-glow" id="cta-register">

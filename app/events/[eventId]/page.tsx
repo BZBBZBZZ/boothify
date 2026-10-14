@@ -26,11 +26,11 @@ const getZoneBadgeColor = (zone: string) => {
 
 const getZoneDisplay = (zone: string) => {
   const z = zone.toLowerCase();
-  if (z.includes("fnb")) return "F&B";
-  if (z.includes("fash")) return "Fashion";
-  if (z.includes("craft")) return "Craft";
-  if (z.includes("edu")) return "Education";
-  if (z.includes("auto")) return "Automotive";
+  if (z.includes("fnb")) return "Kuliner (Food & Beverage)";
+  if (z.includes("fash")) return "Fashion, Beauty & Lifestyle";
+  if (z.includes("craft")) return "Seni & Kriya (Art, Craft & Culture)";
+  if (z.includes("edu")) return "Edukasi & Karir (Education & Career)";
+  if (z.includes("auto")) return "Otomotif (Automotive)";
   return zone;
 };
 
@@ -165,13 +165,14 @@ function EventDetailContent() {
                 <h1 className="text-2xl sm:text-3xl font-bold">{event.title}</h1>
                 <div className="flex items-center gap-2">
                   {isEventOrganizer && (
-                    <Link
-                      href={`/dashboard/organizer/events/${eventId}/floor-plan`}
-                      className="btn btn-secondary btn-sm text-xs"
-                      id="edit-floor-plan-btn"
-                    >
-                      Edit Denah
-                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                      <Link href={`/dashboard/organizer/events/${eventId}/edit`} className="btn btn-secondary btn-sm text-xs" id="edit-event-info-btn">
+                        Edit Informasi Event
+                      </Link>
+                      <Link href={`/dashboard/organizer/events/${eventId}/floor-plan`} className="btn btn-secondary btn-sm text-xs" id="edit-floor-plan-btn">
+                        Edit Denah
+                      </Link>
+                    </div>
                   )}
                 </div>
               </div>
@@ -351,13 +352,6 @@ function EventDetailContent() {
                       <div className="flex items-center gap-1.5">
                         <div className="w-4 h-4 rounded bg-white/10 border border-white/5 opacity-50" />
                         <span>Sudah Terisi</span>
-                      </div>
-                    </div>
-
-                    {/* Stage Banner */}
-                    <div className="text-center mb-8">
-                      <div className="inline-block px-14 py-2.5 rounded-xl bg-gradient-to-r from-primary/20 via-secondary/20 to-primary/20 border border-primary/30 text-xs font-bold text-foreground shadow-sm">
-                        PANGGUNG UTAMA &amp; AREA ATRAKSI
                       </div>
                     </div>
 

@@ -53,10 +53,10 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
-                <Link href={dashboardLink} className="btn btn-ghost text-sm" id="nav-dashboard">
+                {user.role !== "guest" && <Link href={dashboardLink} className="btn btn-ghost text-sm" id="nav-dashboard">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
                   Dashboard
-                </Link>
+                </Link>}
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5">
                   <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center text-white text-xs font-bold">
                     {user.name.charAt(0).toUpperCase()}
@@ -88,7 +88,7 @@ export default function Navbar() {
             // PERBAIKAN: Gunakan md:!hidden untuk memaksa tombol hilang di desktop
             className="md:!hidden btn btn-ghost btn-icon"
             id="mobile-menu-toggle"
-            aria-label="Toggle menu"
+            aria-label={mobileOpen ? "Tutup menu" : "Buka menu"}
             aria-expanded={mobileOpen}
             aria-controls="mobile-navigation"
           >
@@ -125,9 +125,9 @@ export default function Navbar() {
             </Link>
             {user ? (
               <>
-                <Link href={dashboardLink} className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-white/5 transition" onClick={() => setMobileOpen(false)}>
+                {user.role !== "guest" && <Link href={dashboardLink} className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-white/5 transition" onClick={() => setMobileOpen(false)}>
                   Dashboard
-                </Link>
+                </Link>}
                 <div className="flex items-center gap-2 py-2 px-3">
                   <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center text-white text-xs font-bold">
                     {user.name.charAt(0).toUpperCase()}

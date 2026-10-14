@@ -82,19 +82,9 @@ export const DEMO_USERS: Array<User & { password: string }> = [
     website: "https://kopikeliling.id",
     instagram: "@kopikeliling.id",
   },
-  {
-    id: "usr_guest_01",
-    name: "Andi Pengunjung",
-    email: "demo-guest@boothify.id",
-    password: "demo1234",
-    role: "guest",
-    businessName: "Pengunjung Event",
-    phone: "+62 811 2233 4455",
-    description: "Akun tamu untuk transaksi self-ordering di event",
-  },
 ];
 
-const DEMO_DATA_VERSION = "boothify_demo_seed_v4";
+const DEMO_DATA_VERSION = "boothify_demo_seed_v5";
 
 function resetDemoWorkspace() {
   if (typeof window === "undefined" || localStorage.getItem(DEMO_DATA_VERSION) === "1") return;
