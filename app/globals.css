@@ -565,6 +565,7 @@ main,
   font-weight: 600;
   transition: box-shadow 0.2s;
   user-select: none;
+  touch-action: none;
 }
 
 .floor-plan-booth:hover {

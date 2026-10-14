@@ -214,16 +214,17 @@ function FloorPlanContent() {
     };
   };
 
-  const handleMouseDown = useCallback((e: React.MouseEvent, booth: Booth) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent, booth: Booth) => {
     e.preventDefault();
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
+    canvasRef.current?.setPointerCapture(e.pointerId);
     setDragging(booth.id);
     setDragOffset({ x: e.clientX - rect.left - booth.x, y: e.clientY - rect.top - booth.y });
     setSelectedBooth(booth);
   }, []);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragging || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const booth = booths.find((item) => item.id === dragging);
@@ -237,7 +238,10 @@ function FloorPlanContent() {
     setBooths((prev) => prev.map((b) => (b.id === dragging ? { ...b, x: snappedX, y: snappedY } : b)));
   }, [booths, dragging, dragOffset]);
 
-  const handleMouseUp = useCallback(() => {
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (canvasRef.current?.hasPointerCapture(e.pointerId)) {
+      canvasRef.current.releasePointerCapture(e.pointerId);
+    }
     setDragging(null);
   }, []);
 
@@ -503,9 +507,9 @@ function FloorPlanContent() {
                   ref={canvasRef}
                   className="floor-plan-canvas relative"
                   style={{ width: WORKSPACE_WIDTH, height: WORKSPACE_HEIGHT, minHeight: WORKSPACE_HEIGHT }}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
                   id="floor-plan-canvas"
                 >
                   {booths.map((booth) => (
@@ -522,7 +526,7 @@ function FloorPlanContent() {
                     backgroundColor: `color-mix(in srgb, ${getZoneColor(booth.zone)} 15%, transparent)`,
                     color: getZoneColor(booth.zone),
                   }}
-                  onMouseDown={(e) => handleMouseDown(e, booth)}
+                  onPointerDown={(e) => handlePointerDown(e, booth)}
                   onClick={() => setSelectedBooth(booth)}
                 >
                   <div className="text-center">
