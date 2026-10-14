@@ -45,6 +45,9 @@ export type EventDetail = {
   date: string;
   time?: string;
   location: string;
+  country?: string;
+  province?: string;
+  city?: string;
   address?: string;
   category: string;
   description: string;

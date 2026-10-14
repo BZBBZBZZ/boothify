@@ -7,16 +7,33 @@ const EVENT_CATEGORIES = [
   "Kuliner (Food & Beverage)", "Fashion, Beauty & Lifestyle", "Hobi, Pop Culture & Hiburan", "Properti, Interior & Home Living", "Pariwisata (Tour, Travel & Hospitality)", "Wedding & Event Organizer", "Otomotif (Automotive)", "Teknologi, Elektronik & Sains (Tech, Electronic & Science Innovation)", "Edukasi & Karir (Education & Career)", "Seni & Kriya (Art, Craft & Culture)", "Keluarga & Anak (Mom, Baby & Kids)", "Kesehatan, Olahraga & Kebugaran (Health, Fitness & Wellness)", "Agrikultur, Flora & Fauna (Pets & Plants)", "Bisnis, Keuangan & Jasa Profesi (B2B, Finance & Services)", "Lingkungan & Dampak Sosial (Specific SDGs / Green Expo)", "Manufaktur, Industri & Mesin (Industrial & Manufacturing)", "Pemerintah & Pelayanan Publik (Government & Civic)", "Religi, Spiritual & Halal Lifestyle", "Maritim, Aviasi & Transportasi Berat"
 ];
 
-const EVENTS = [
-  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", location: "Jakarta Convention Center, Jakarta", category: "Fashion", categories: ["Fashion, Beauty & Lifestyle", "Lingkungan & Dampak Sosial (Specific SDGs / Green Expo)"], price: "Rp 2.5Jt", match: "95%", booths: 9, image: "🌿", scope: "Lokal" },
-  { id: "2", title: "Indonesia Food Festival 2026", date: "22–24 Nov 2026", location: "ICE BSD, Tangerang", category: "F&B", categories: ["Kuliner (Food & Beverage)"], price: "Rp 3Jt", match: "95%", booths: 7, image: "🍜", scope: "Lokal" },
-  { id: "3", title: "EduTech Innovation Fair 2026", date: "1–3 Des 2026", location: "Surabaya Grand City, Surabaya", category: "Education", categories: ["Edukasi & Karir (Education & Career)"], price: "Rp 1.8Jt", match: "92%", booths: 6, image: "📚", scope: "Lokal" },
-  { id: "4", title: "AutoMotive Show 2026", date: "10–12 Des 2026", location: "JIEXPO Kemayoran, Jakarta", category: "Automotive", categories: ["Otomotif (Automotive)"], price: "Rp 5Jt", match: "45%", booths: 8, image: "🚗", scope: "Lokal" },
-  { id: "5", title: "Craft & Artisan Market 2026", date: "18–20 Des 2026", location: "Bandung Creative Hub, Bandung", category: "Craft", categories: ["Seni & Kriya (Art, Craft & Culture)"], price: "Rp 1.2Jt", match: "88%", booths: 7, image: "🎨", scope: "Lokal" },
+type TenantEvent = {
+  id: string;
+  title: string;
+  date: string;
+  location: string;
+  country?: string;
+  province?: string;
+  city?: string;
+  category: string;
+  categories: string[];
+  price: string;
+  match: string;
+  booths: number;
+  image: string;
+  scope: string;
+};
+
+const EVENTS: TenantEvent[] = [
+  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", location: "Jakarta Convention Center, Jakarta", country: "Indonesia", province: "DKI Jakarta", city: "Jakarta Pusat", category: "Fashion", categories: ["Fashion, Beauty & Lifestyle", "Lingkungan & Dampak Sosial (Specific SDGs / Green Expo)"], price: "Rp 2.5Jt", match: "95%", booths: 9, image: "🌿", scope: "Lokal" },
+  { id: "2", title: "Indonesia Food Festival 2026", date: "22–24 Nov 2026", location: "ICE BSD, Tangerang", country: "Indonesia", province: "Banten", city: "Tangerang", category: "F&B", categories: ["Kuliner (Food & Beverage)"], price: "Rp 3Jt", match: "95%", booths: 7, image: "🍜", scope: "Lokal" },
+  { id: "3", title: "EduTech Innovation Fair 2026", date: "1–3 Des 2026", location: "Surabaya Grand City, Surabaya", country: "Indonesia", province: "Jawa Timur", city: "Surabaya", category: "Education", categories: ["Edukasi & Karir (Education & Career)"], price: "Rp 1.8Jt", match: "92%", booths: 6, image: "📚", scope: "Lokal" },
+  { id: "4", title: "AutoMotive Show 2026", date: "10–12 Des 2026", location: "JIEXPO Kemayoran, Jakarta", country: "Indonesia", province: "DKI Jakarta", city: "Jakarta Pusat", category: "Automotive", categories: ["Otomotif (Automotive)"], price: "Rp 5Jt", match: "45%", booths: 8, image: "🚗", scope: "Lokal" },
+  { id: "5", title: "Craft & Artisan Market 2026", date: "18–20 Des 2026", location: "Bandung Creative Hub, Bandung", country: "Indonesia", province: "Jawa Barat", city: "Bandung", category: "Craft", categories: ["Seni & Kriya (Art, Craft & Culture)"], price: "Rp 1.2Jt", match: "88%", booths: 7, image: "🎨", scope: "Lokal" },
 ];
 
 export default function TenantEventsPage() {
-  const [eventsList, setEventsList] = useState(EVENTS);
+  const [eventsList, setEventsList] = useState<TenantEvent[]>(EVENTS);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
@@ -26,18 +43,21 @@ export default function TenantEventsPage() {
     try {
       const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
       if (Array.isArray(stored) && stored.length > 0) {
-        const customEvents = stored.map((e: { id: string; title: string; date: string; location: string; category?: string; categories?: string[]; boothsFilled?: number; boothsTotal?: number; priceRange?: string; image?: string }) => ({
+        const customEvents = stored.map((e: { id: string; title: string; date: string; location: string; country?: string; province?: string; city?: string; category?: string; categories?: string[]; boothsFilled?: number; boothsTotal?: number; priceRange?: string; image?: string }) => ({
           id: e.id,
           title: e.title,
           date: e.date,
-          location: e.location,
+          location: [e.location, e.city, e.province, e.country].filter(Boolean).join(", "),
+          country: e.country,
+          province: e.province,
+          city: e.city,
           category: e.category || "Fashion",
           categories: e.categories || (e.category ? e.category.split(",").map((item) => item.trim()) : ["Kuliner (Food & Beverage)"]),
           price: e.priceRange?.split("–")[0]?.replace("000.000", "Jt")?.trim() || "Rp 2Jt",
           match: "96%",
           booths: (e.boothsTotal || 30) - (e.boothsFilled || 0),
           image: e.image || "🎪",
-          scope: "Lokal",
+          scope: e.country && e.country !== "Indonesia" ? "Internasional" : "Lokal",
         }));
         const existingIds = new Set(customEvents.map((e: { id: string }) => e.id));
         const remainingDefaults = EVENTS.filter((e) => !existingIds.has(e.id));
@@ -45,6 +65,8 @@ export default function TenantEventsPage() {
       }
     } catch { /* ignore */ }
   }, []);
+
+  const locationOptions = Array.from(new Set(eventsList.flatMap((event) => [event.country, event.province, event.city].filter(Boolean) as string[]))).sort();
 
   const filtered = eventsList.filter((e) => {
     const matchesSearch =
@@ -56,7 +78,7 @@ export default function TenantEventsPage() {
       selectedLocation === "all" ||
       (selectedLocation === "internasional"
         ? e.scope === "Internasional"
-        : e.location.toLowerCase().includes(selectedLocation.toLowerCase()));
+        : [e.location, e.country, e.province, e.city].some((value) => value?.toLowerCase().includes(selectedLocation.toLowerCase())));
     return matchesSearch && matchesCategory && matchesLocation;
   }).sort((a, b) => (sortBy === "match" ? parseInt(b.match) - parseInt(a.match) : 0));
 
@@ -82,12 +104,8 @@ export default function TenantEventsPage() {
         </select>
         <select className="input-base" value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)}>
           <option value="all">Semua Lokasi</option>
-          <option value="jakarta">Jakarta</option>
-          <option value="tangerang">ICE BSD / Tangerang</option>
-          <option value="bandung">Bandung</option>
-          <option value="surabaya">Surabaya</option>
-          <option value="bali">Bali</option>
           <option value="internasional">🌏 Internasional (ASEAN)</option>
+          {locationOptions.map((location) => <option key={location} value={location}>{location}</option>)}
         </select>
         <select className="input-base" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
           <option value="match">Urutkan: AI Match Tertinggi</option>

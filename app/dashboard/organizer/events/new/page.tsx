@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/components/AuthContext";
+import { ASIA_LOCATIONS } from "@/app/lib/asia-locations";
 
 const EVENT_CATEGORIES = [
   "Kuliner (Food & Beverage)",
@@ -41,6 +42,9 @@ export default function CreateEventPage() {
     time_start: "10:00",
     time_end: "21:00",
     location: "",
+    country: "",
+    province: "",
+    city: "",
     address: "",
     description: "",
     theme: "",
@@ -59,6 +63,9 @@ export default function CreateEventPage() {
         boothsFilled: 0,
         boothsTotal: 40,
         location: formData.location || "Belum ditentukan",
+        country: formData.country,
+        province: formData.province,
+        city: formData.city,
         description: formData.description,
         organizer: organizerName,
         organizerEmail: organizerEmail,
@@ -88,6 +95,9 @@ export default function CreateEventPage() {
         boothsFilled: 0,
         boothsTotal: 30,
         location: formData.location || "Venue Acara",
+        country: formData.country,
+        province: formData.province,
+        city: formData.city,
         address: formData.address || "",
         description: formData.description || "Pameran & expo booth interaktif.",
         organizer: organizerName,
@@ -174,6 +184,54 @@ export default function CreateEventPage() {
                   <span>{category}</span>
                 </label>
               ))}
+            </div>
+          </fieldset>
+
+          <fieldset className="space-y-4">
+            <legend className="block text-sm font-medium">Lokasi Event di Asia *</legend>
+            <p className="text-xs text-muted-foreground -mt-2">Pilih negara, provinsi atau wilayah, lalu kota. Pilihan berikutnya akan menyesuaikan lokasi sebelumnya.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="event-country" className="block text-xs font-medium mb-2">Negara</label>
+                <select
+                  id="event-country"
+                  className="input-base"
+                  value={formData.country}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, country: e.target.value, province: "", city: "" }))}
+                  required
+                >
+                  <option value="">Pilih negara</option>
+                  {Object.keys(ASIA_LOCATIONS).map((country) => <option key={country} value={country}>{country}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="event-province" className="block text-xs font-medium mb-2">Provinsi / Wilayah</label>
+                <select
+                  id="event-province"
+                  className="input-base"
+                  value={formData.province}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, province: e.target.value, city: "" }))}
+                  disabled={!formData.country}
+                  required
+                >
+                  <option value="">Pilih provinsi</option>
+                  {Object.keys(ASIA_LOCATIONS[formData.country] || {}).map((province) => <option key={province} value={province}>{province}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="event-city" className="block text-xs font-medium mb-2">Kota</label>
+                <select
+                  id="event-city"
+                  className="input-base"
+                  value={formData.city}
+                  onChange={(e) => update("city", e.target.value)}
+                  disabled={!formData.province}
+                  required
+                >
+                  <option value="">Pilih kota</option>
+                  {(ASIA_LOCATIONS[formData.country]?.[formData.province] || []).map((city) => <option key={city} value={city}>{city}</option>)}
+                </select>
+              </div>
             </div>
           </fieldset>
 

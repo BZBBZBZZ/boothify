@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../components/AuthContext";
+import { resetDemoWorkspace, useAuth } from "../../components/AuthContext";
 import Navbar from "../../components/Navbar";
 
 export default function LoginPage() {
@@ -249,7 +249,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => {
                   if (confirm("Reset semua data input pengujian dan kembalikan ke data demo awal? Semua akun demo (Organizer, Tenant, Pengunjung) dan event bawaan akan tetap ada.")) {
-                    localStorage.clear();
+                    resetDemoWorkspace(true);
                     window.location.reload();
                   }
                 }}

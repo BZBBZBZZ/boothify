@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useAuth } from "@/app/components/AuthContext";
+import { resetDemoWorkspace, useAuth } from "@/app/components/AuthContext";
 
 export default function OrganizerProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -226,7 +226,7 @@ export default function OrganizerProfilePage() {
           type="button"
           onClick={() => {
             if (confirm("Reset semua input pengujian dan kembalikan ke data demo awal? Semua akun demo (Organizer, Tenant, Pengunjung) dan event bawaan akan tetap ada.")) {
-              localStorage.clear();
+              resetDemoWorkspace(true);
               window.location.reload();
             }
           }}

@@ -87,7 +87,6 @@ export default function OrganizerDashboard() {
   const [events, setEvents] = useState<EventItem[]>(isDemoOrg ? DEFAULT_EVENTS : []);
   const [bookings, setBookings] = useState<BookingItem[]>(isDemoOrg ? DEFAULT_BOOKINGS : []);
   const [inbox, setInbox] = useState<InboxMessage[]>(isDemoOrg ? DEFAULT_MESSAGES : []);
-  const [filterInbox, setFilterInbox] = useState<"all" | "unread">("all");
 
   useEffect(() => {
     try {
@@ -156,24 +155,6 @@ export default function OrganizerDashboard() {
   }, [user, email, isDemoOrg]);
 
   const unreadCount = inbox.filter((m) => m.status === "unread").length;
-
-  const markAsRead = (id: string) => {
-    const updated = inbox.map((m) => (m.id === id ? { ...m, status: "read" as const } : m));
-    setInbox(updated);
-    try {
-      localStorage.setItem("boothify_organizer_inbox", JSON.stringify(updated));
-    } catch { /* ignore */ }
-  };
-
-  const deleteMessage = (id: string) => {
-    const updated = inbox.filter((m) => m.id !== id);
-    setInbox(updated);
-    try {
-      localStorage.setItem("boothify_organizer_inbox", JSON.stringify(updated));
-    } catch { /* ignore */ }
-  };
-
-  const filteredMessages = filterInbox === "unread" ? inbox.filter((m) => m.status === "unread") : inbox;
 
   // Dynamic metrics calculation
   const totalBoothsFilled = events.reduce((sum, e) => sum + (e.boothsFilled || 0), 0);
@@ -349,119 +330,6 @@ export default function OrganizerDashboard() {
         </div>
       </div>
 
-      {/* ========== ORGANIZER INBOX SECTION ========== */}
-      <div className="card-base p-6" id="organizer-inbox">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📬</span>
-              <h2 className="font-semibold text-lg">Pesan Masuk dari Tenant &amp; Pengunjung</h2>
-              {unreadCount > 0 && (
-                <span className="badge badge-accent text-[10px]">{unreadCount} Baru</span>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Pesan dan pertanyaan yang dikirim melalui formulir &quot;Hubungi Organizer&quot; di detail acara.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setFilterInbox("all")}
-              className={`btn btn-sm ${filterInbox === "all" ? "btn-primary" : "btn-secondary"}`}
-            >
-              Semua ({inbox.length})
-            </button>
-            <button
-              onClick={() => setFilterInbox("unread")}
-              className={`btn btn-sm ${filterInbox === "unread" ? "btn-primary" : "btn-secondary"}`}
-            >
-              Belum Dibaca ({unreadCount})
-            </button>
-          </div>
-        </div>
-
-        {filteredMessages.length === 0 ? (
-          <div className="text-center py-10 border border-dashed border-border rounded-xl">
-            <p className="text-3xl mb-2">📭</p>
-            <p className="font-medium text-sm">Tidak Ada Pesan</p>
-            <p className="text-xs text-muted-foreground">
-              {filterInbox === "unread"
-                ? "Semua pesan telah dibaca."
-                : "Belum ada pesan yang masuk dari calon tenant atau pengunjung acara."}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredMessages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`p-4 rounded-xl border transition-all ${
-                  msg.status === "unread"
-                    ? "bg-primary/[0.04] border-primary/30"
-                    : "bg-white/[0.01] border-white/5 opacity-80 hover:opacity-100"
-                }`}
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-sm">{msg.senderName}</span>
-                    <span className="text-xs text-muted-foreground">({msg.senderEmail})</span>
-                    {msg.status === "unread" && (
-                      <span className="w-2 h-2 rounded-full bg-amber-400" title="Belum dibaca" />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="badge badge-secondary text-[10px]">{msg.eventTitle}</span>
-                    <span>{msg.time}</span>
-                  </div>
-                </div>
-
-                <p className="text-sm text-foreground/90 mb-3 bg-card/60 p-3 rounded-lg border border-border/50">
-                  {msg.message}
-                </p>
-
-                <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div className="text-muted-foreground">
-                    <span>📱 WA/Telp: </span>
-                    <span className="font-mono text-foreground">{msg.senderPhone || "-"}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {msg.senderPhone && (
-                      <a
-                        href={`https://wa.me/${msg.senderPhone.replace(/[^0-9]/g, "")}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="btn btn-secondary btn-sm text-xs text-emerald-400"
-                      >
-                        💬 Balas WhatsApp
-                      </a>
-                    )}
-                    <a
-                      href={`mailto:${msg.senderEmail}?subject=Re: Pertanyaan Event ${encodeURIComponent(msg.eventTitle)}`}
-                      className="btn btn-secondary btn-sm text-xs"
-                    >
-                      ✉️ Balas Email
-                    </a>
-                    {msg.status === "unread" && (
-                      <button
-                        onClick={() => markAsRead(msg.id)}
-                        className="btn btn-ghost btn-sm text-xs text-primary-light"
-                      >
-                        Tandai Dibaca
-                      </button>
-                    )}
-                    <button
-                      onClick={() => deleteMessage(msg.id)}
-                      className="btn btn-ghost btn-sm text-xs text-error"
-                    >
-                      Hapus
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

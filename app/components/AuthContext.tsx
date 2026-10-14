@@ -86,8 +86,8 @@ export const DEMO_USERS: Array<User & { password: string }> = [
 
 const DEMO_DATA_VERSION = "boothify_demo_seed_v5";
 
-function resetDemoWorkspace() {
-  if (typeof window === "undefined" || localStorage.getItem(DEMO_DATA_VERSION) === "1") return;
+export function resetDemoWorkspace(force = false) {
+  if (typeof window === "undefined" || (!force && localStorage.getItem(DEMO_DATA_VERSION) === "1")) return;
 
   const keysToRemove = [
     "boothify_current_user",
@@ -104,7 +104,7 @@ function resetDemoWorkspace() {
   keysToRemove.forEach((key) => localStorage.removeItem(key));
   Object.keys(localStorage)
     .filter((key) =>
-      (key.startsWith("boothify_event_") && (key.endsWith("_booths") || key.endsWith("_booth_tenants") || key.endsWith("_zones"))) ||
+      (key.startsWith("boothify_event_") && (key.endsWith("_booths") || key.endsWith("_booth_tenants") || key.endsWith("_zones") || key.endsWith("_objects"))) ||
       key.startsWith("boothify_catalog_") ||
       key.startsWith("boothify_profile_") ||
       key.startsWith("boothify_org_profile") ||

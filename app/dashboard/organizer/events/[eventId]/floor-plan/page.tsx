@@ -159,7 +159,7 @@ function FloorPlanContent() {
       setBooths(newBooths.map((booth) => ({ ...booth, sizeCm: booth.sizeCm || "300 x 300 cm" })));
       setSelectedBooth(null);
     } else if (type === "expo") {
-      // Perimeter layout surrounding stage
+      // Perimeter layout for an open central area
       const newBooths: Booth[] = [
         { id: "A1", x: 40, y: 70, width: 90, height: 60, label: "A1", zone: "automotive", price: 5000000 },
         { id: "A2", x: 150, y: 70, width: 90, height: 60, label: "A2", zone: "automotive", price: 5000000 },
