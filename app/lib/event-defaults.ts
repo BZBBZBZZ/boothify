@@ -50,6 +50,8 @@ export type EventDetail = {
   city?: string;
   address?: string;
   category: string;
+  categories?: string[];
+  categoryKeys?: string[];
   description: string;
   organizer: string;
   organizerEmail?: string;

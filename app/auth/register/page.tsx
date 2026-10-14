@@ -5,6 +5,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../components/AuthContext";
 import Navbar from "../../components/Navbar";
+import { EVENT_CATEGORY_OPTIONS } from "../../lib/event-categories";
 
 type Role = "tenant" | "organizer" | null;
 
@@ -42,16 +43,6 @@ function RegisterFormContent() {
   }, [user, router]);
 
   if (user) return null;
-
-  const categories = [
-    { value: "fnb", label: "🍜 Food & Beverage (F&B)" },
-    { value: "fashion", label: "👗 Fashion & Apparel" },
-    { value: "automotive", label: "🚗 Automotive" },
-    { value: "education", label: "📚 Education & Tech" },
-    { value: "craft", label: "🎨 Craft & Handmade" },
-    { value: "health", label: "🏥 Health & Wellness" },
-    { value: "other", label: "📦 Lainnya" },
-  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -284,7 +275,7 @@ function RegisterFormContent() {
                       <label htmlFor="reg-category" className="block text-sm font-medium mb-2">Kategori Usaha</label>
                       <select id="reg-category" className="input-base" value={formData.businessCategory} onChange={(e) => setFormData({ ...formData, businessCategory: e.target.value })} required>
                         <option value="">Pilih kategori...</option>
-                        {categories.map((cat) => <option key={cat.value} value={cat.value}>{cat.label}</option>)}
+                        {EVENT_CATEGORY_OPTIONS.map((category) => <option key={category.value} value={category.value}>{category.label}</option>)}
                       </select>
                     </div>
                   )}

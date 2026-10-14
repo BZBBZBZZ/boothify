@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useAuth } from "@/app/components/AuthContext";
+import { resetDemoWorkspace, useAuth } from "@/app/components/AuthContext";
+import { EVENT_CATEGORY_OPTIONS, getEventCategoryLabel } from "@/app/lib/event-categories";
 
 export default function TenantProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -68,16 +69,6 @@ export default function TenantProfilePage() {
     }
   };
 
-  const categories = [
-    { value: "fnb", label: "🍜 Food & Beverage" },
-    { value: "fashion", label: "👗 Fashion & Apparel" },
-    { value: "automotive", label: "🚗 Automotive" },
-    { value: "education", label: "📚 Education & Tech" },
-    { value: "craft", label: "🎨 Craft & Handmade" },
-    { value: "health", label: "🏥 Health & Wellness" },
-    { value: "other", label: "📦 Lainnya" },
-  ];
-
   const initials = (profile.brandName || "TN")
     .split(" ")
     .map((w) => w[0])
@@ -119,7 +110,7 @@ export default function TenantProfilePage() {
           </div>
           <div>
             <h2 className="font-semibold text-lg">{profile.brandName}</h2>
-            <p className="text-sm text-muted-foreground">{categories.find((c) => c.value === profile.category)?.label || profile.category}</p>
+            <p className="text-sm text-muted-foreground">{getEventCategoryLabel(profile.category)}</p>
             <button
               type="button"
               onClick={() => logoInputRef.current?.click()}
@@ -157,9 +148,9 @@ export default function TenantProfilePage() {
             value={profile.category}
             onChange={(e) => setProfile({ ...profile, category: e.target.value })}
           >
-            {categories.map((cat) => (
-              <option key={cat.value} value={cat.value}>
-                {cat.label}
+            {EVENT_CATEGORY_OPTIONS.map((category) => (
+              <option key={category.value} value={category.value}>
+                {category.label}
               </option>
             ))}
           </select>
@@ -230,7 +221,7 @@ export default function TenantProfilePage() {
           type="button"
           onClick={() => {
             if (confirm("Reset semua input pengujian dan kembalikan ke data demo awal? Semua akun demo (Organizer, Tenant, Pengunjung) dan event bawaan akan tetap ada.")) {
-              localStorage.clear();
+              resetDemoWorkspace(true);
               window.location.reload();
             }
           }}

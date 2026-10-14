@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { EVENT_CATEGORY_OPTIONS, getEventCategoryLabel } from "@/app/lib/event-categories";
 
-const EVENT_CATEGORIES = [
-  "Kuliner (Food & Beverage)", "Fashion, Beauty & Lifestyle", "Hobi, Pop Culture & Hiburan", "Properti, Interior & Home Living", "Pariwisata (Tour, Travel & Hospitality)", "Wedding & Event Organizer", "Otomotif (Automotive)", "Teknologi, Elektronik & Sains (Tech, Electronic & Science Innovation)", "Edukasi & Karir (Education & Career)", "Seni & Kriya (Art, Craft & Culture)", "Keluarga & Anak (Mom, Baby & Kids)", "Kesehatan, Olahraga & Kebugaran (Health, Fitness & Wellness)", "Agrikultur, Flora & Fauna (Pets & Plants)", "Bisnis, Keuangan & Jasa Profesi (B2B, Finance & Services)", "Lingkungan & Dampak Sosial (Specific SDGs / Green Expo)", "Manufaktur, Industri & Mesin (Industrial & Manufacturing)", "Pemerintah & Pelayanan Publik (Government & Civic)", "Religi, Spiritual & Halal Lifestyle", "Maritim, Aviasi & Transportasi Berat"
-];
+const EVENT_CATEGORIES = EVENT_CATEGORY_OPTIONS.map((category) => category.label);
 
 type TenantEvent = {
   id: string;
@@ -43,7 +42,7 @@ export default function TenantEventsPage() {
     try {
       const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
       if (Array.isArray(stored) && stored.length > 0) {
-        const customEvents = stored.map((e: { id: string; title: string; date: string; location: string; country?: string; province?: string; city?: string; category?: string; categories?: string[]; boothsFilled?: number; boothsTotal?: number; priceRange?: string; image?: string }) => ({
+        const customEvents = stored.map((e: { id: string; title: string; date: string; location: string; country?: string; province?: string; city?: string; category?: string; categories?: string[]; categoryKeys?: string[]; boothsFilled?: number; boothsTotal?: number; priceRange?: string; image?: string }) => ({
           id: e.id,
           title: e.title,
           date: e.date,
@@ -52,7 +51,7 @@ export default function TenantEventsPage() {
           province: e.province,
           city: e.city,
           category: e.category || "Fashion",
-          categories: e.categories || (e.category ? e.category.split(",").map((item) => item.trim()) : ["Kuliner (Food & Beverage)"]),
+          categories: e.categories || e.categoryKeys?.map(getEventCategoryLabel) || (e.category ? e.category.split(",").map((item) => item.trim()) : ["Kuliner (Food & Beverage)"]),
           price: e.priceRange?.split("–")[0]?.replace("000.000", "Jt")?.trim() || "Rp 2Jt",
           match: "96%",
           booths: (e.boothsTotal || 30) - (e.boothsFilled || 0),

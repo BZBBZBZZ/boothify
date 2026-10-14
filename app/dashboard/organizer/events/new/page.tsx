@@ -3,29 +3,8 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/components/AuthContext";
+import { EVENT_CATEGORY_OPTIONS, getEventCategoryValue } from "@/app/lib/event-categories";
 import { ASIA_LOCATIONS } from "@/app/lib/asia-locations";
-
-const EVENT_CATEGORIES = [
-  "Kuliner (Food & Beverage)",
-  "Fashion, Beauty & Lifestyle",
-  "Hobi, Pop Culture & Hiburan",
-  "Properti, Interior & Home Living",
-  "Pariwisata (Tour, Travel & Hospitality)",
-  "Wedding & Event Organizer",
-  "Otomotif (Automotive)",
-  "Teknologi, Elektronik & Sains (Tech, Electronic & Science Innovation)",
-  "Edukasi & Karir (Education & Career)",
-  "Seni & Kriya (Art, Craft & Culture)",
-  "Keluarga & Anak (Mom, Baby & Kids)",
-  "Kesehatan, Olahraga & Kebugaran (Health, Fitness & Wellness)",
-  "Agrikultur, Flora & Fauna (Pets & Plants)",
-  "Bisnis, Keuangan & Jasa Profesi (B2B, Finance & Services)",
-  "Lingkungan & Dampak Sosial (Specific SDGs / Green Expo)",
-  "Manufaktur, Industri & Mesin (Industrial & Manufacturing)",
-  "Pemerintah & Pelayanan Publik (Government & Civic)",
-  "Religi, Spiritual & Halal Lifestyle",
-  "Maritim, Aviasi & Transportasi Berat",
-] as const;
 
 export default function CreateEventPage() {
   const router = useRouter();
@@ -66,6 +45,8 @@ export default function CreateEventPage() {
         country: formData.country,
         province: formData.province,
         city: formData.city,
+        categories: formData.categories,
+        categoryKeys: formData.categories.filter((category) => category !== "all").map(getEventCategoryValue),
         description: formData.description,
         organizer: organizerName,
         organizerEmail: organizerEmail,
@@ -84,6 +65,7 @@ export default function CreateEventPage() {
     try {
       const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
       const categoryFromTheme = formData.categories.filter((category) => category !== "all").join(", ") || "Umum";
+      const categoryKeys = formData.categories.filter((category) => category !== "all").map(getEventCategoryValue);
 
       const newEvent = {
         id: eventId,
@@ -92,6 +74,7 @@ export default function CreateEventPage() {
         status: "active",
         category: categoryFromTheme,
           categories: formData.categories,
+          categoryKeys,
         boothsFilled: 0,
         boothsTotal: 30,
         location: formData.location || "Venue Acara",
@@ -167,21 +150,21 @@ export default function CreateEventPage() {
           <fieldset>
             <legend className="block text-sm font-medium mb-2">Kategori Event *</legend>
             <label className="flex items-center gap-2 p-3 rounded-xl border border-primary/30 bg-primary/5 cursor-pointer mb-3">
-              <input type="checkbox" checked={formData.categories.includes("all")} onChange={(e) => update("categories", e.target.checked ? ["all", ...EVENT_CATEGORIES] : [])} />
+              <input type="checkbox" checked={formData.categories.includes("all")} onChange={(e) => update("categories", e.target.checked ? ["all", ...EVENT_CATEGORY_OPTIONS.map((category) => category.label)] : [])} />
               <span className="text-sm font-semibold">All (semua kategori)</span>
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {EVENT_CATEGORIES.map((category) => (
-                <label key={category} className="flex items-start gap-2 p-3 rounded-xl border border-border hover:border-primary/40 cursor-pointer text-xs leading-relaxed">
+              {EVENT_CATEGORY_OPTIONS.map((category) => (
+                <label key={category.value} className="flex items-start gap-2 p-3 rounded-xl border border-border hover:border-primary/40 cursor-pointer text-xs leading-relaxed">
                   <input
                     type="checkbox"
-                    checked={formData.categories.includes("all") || formData.categories.includes(category)}
+                    checked={formData.categories.includes("all") || formData.categories.includes(category.label)}
                     onChange={(e) => setFormData((prev) => {
-                      const next = e.target.checked ? [...prev.categories.filter((item) => item !== "all"), category] : prev.categories.filter((item) => item !== category && item !== "all");
+                      const next = e.target.checked ? [...prev.categories.filter((item) => item !== "all"), category.label] : prev.categories.filter((item) => item !== category.label && item !== "all");
                       return { ...prev, categories: next };
                     })}
                   />
-                  <span>{category}</span>
+                  <span>{category.label}</span>
                 </label>
               ))}
             </div>

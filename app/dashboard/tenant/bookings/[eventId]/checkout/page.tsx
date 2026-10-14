@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/app/components/AuthContext";
 import { DEFAULT_EVENTS_META } from "@/app/lib/event-defaults";
+import { getEventCategoryLabel, isFoodCategory } from "@/app/lib/event-categories";
 
 interface CheckoutItem {
   booth: string;
@@ -87,13 +88,14 @@ function CheckoutContent() {
         // Map booth to tenant brand for digital guide
         const storedBoothTenants = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booth_tenants`) || "{}");
         items.forEach((item) => {
+          const tenantCategory = user?.businessCategory || user?.category || tenantProfile.category || item.zone || "fashion";
           storedBoothTenants[item.booth] = {
             id: item.booth,
             name: tenantBrand,
             tenantEmail: tenantEmail,
-            category: user?.businessCategory || user?.category || tenantProfile.category || item.zone || "Fashion",
+            category: getEventCategoryLabel(tenantCategory),
             zone: item.zone || item.booth.charAt(0),
-            type: (user?.businessCategory === "fnb" || user?.category === "fnb" || item.zone === "F&B" || tenantEmail === "kopi@boothify.id") ? "fnb" : "non-fnb",
+            type: (isFoodCategory(tenantCategory) || item.zone === "F&B" || tenantEmail === "kopi@boothify.id") ? "fnb" : "non-fnb",
             desc: tenantProfile.description || `${tenantBrand} terdaftar resmi di event ini.`,
           };
         });
