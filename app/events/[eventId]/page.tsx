@@ -13,6 +13,12 @@ import {
   EventTenantInfo,
   EventDetail,
 } from "../../lib/event-defaults";
+import { isEventInApprovedCampaign } from "@/app/lib/admin-campaigns";
+import {
+  getEventByIdFromSupabase,
+  getBoothsByEventFromSupabase,
+  getTenantsByEventFromSupabase,
+} from "@/app/lib/supabase-service";
 
 const getZoneBadgeColor = (zone: string) => {
   const z = zone.toLowerCase();
@@ -53,35 +59,45 @@ function EventDetailContent() {
   const [contactSent, setContactSent] = useState(false);
 
   useEffect(() => {
-    try {
-      // 1. Load Event Info
-      const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-      const found = storedEvents.find((e: { id: string }) => e.id === eventId);
-      const fallbackMeta = DEFAULT_EVENTS_META[eventId] || DEFAULT_EVENTS_META["1"];
-
-      if (found) {
-        setEvent({
-          ...fallbackMeta,
-          ...found,
-          highlights: fallbackMeta.highlights,
-          zones: fallbackMeta.zones,
-        });
+    // 1. Fetch Event Info from Supabase
+    getEventByIdFromSupabase(eventId).then((ev) => {
+      if (ev) {
+        setEvent(ev);
       } else {
-        setEvent(fallbackMeta);
+        try {
+          const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+          const found = storedEvents.find((e: { id: string }) => e.id === eventId);
+          const fallbackMeta = DEFAULT_EVENTS_META[eventId] || DEFAULT_EVENTS_META["1"];
+          if (found) {
+            setEvent({ ...fallbackMeta, ...found });
+          } else {
+            setEvent(fallbackMeta);
+          }
+        } catch { /* ignore */ }
       }
+    });
 
-      // 2. Initialize & load floor plan booths and tenants for this event
-      const initialized = ensureEventFloorPlanInitialized(eventId);
-      setBooths(initialized.booths);
-      setTenantsMap(initialized.tenants);
+    // 2. Fetch Booths & Tenants from Supabase
+    getBoothsByEventFromSupabase(eventId).then((supabaseBooths) => {
+      if (supabaseBooths && supabaseBooths.length > 0) {
+        setBooths(supabaseBooths);
+      } else {
+        const initialized = ensureEventFloorPlanInitialized(eventId);
+        setBooths(initialized.booths);
+      }
+    });
 
-      // 3. Load taken booths
-      const eventTaken = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booked_booths`) || "[]");
-      const allTaken = Array.from(new Set([...initialized.booked, ...eventTaken]));
-      setTakenBooths(allTaken);
-    } catch {
-      // ignore
-    }
+    getTenantsByEventFromSupabase(eventId).then((supabaseTenants) => {
+      if (supabaseTenants && Object.keys(supabaseTenants).length > 0) {
+        setTenantsMap(supabaseTenants);
+        setTakenBooths(Object.keys(supabaseTenants));
+      } else {
+        const initialized = ensureEventFloorPlanInitialized(eventId);
+        setTenantsMap(initialized.tenants);
+        const eventTaken = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booked_booths`) || "[]");
+        setTakenBooths(Array.from(new Set([...initialized.booked, ...eventTaken])));
+      }
+    });
   }, [eventId]);
 
   const toggleBooth = (label: string) => {
@@ -129,6 +145,9 @@ function EventDetailContent() {
     )
   );
 
+  const campInfo = isEventInApprovedCampaign(eventId);
+  const isCampaignApproved = campInfo.isApproved;
+
   return (
     <>
       <Navbar />
@@ -161,6 +180,30 @@ function EventDetailContent() {
               </div>
             </div>
             <div className="p-6 sm:p-8">
+              {/* Official Admin Campaign Highlight Banner */}
+              {isCampaignApproved && (
+                <div className="mb-5 p-4 rounded-xl bg-gradient-to-r from-purple-950/40 via-card to-emerald-950/30 border border-purple-500/40 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl p-2 rounded-xl bg-purple-500/15 border border-purple-500/30">
+                      🌟
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-purple-200">
+                          Official Partner: {campInfo.campaign?.title}
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                          Bebas Pajak (Free Tax)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Pameran ini telah dikurasi resmi oleh Admin Boothify. Penyewa booth (tenant) dibebaskan dari pajak transaksi (PPN 0%).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                 <h1 className="text-2xl sm:text-3xl font-bold">{event.title}</h1>
                 <div className="flex items-center gap-2">

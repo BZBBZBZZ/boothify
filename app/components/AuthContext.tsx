@@ -1,16 +1,18 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { DEFAULT_EVENT_BOOTHS, DEFAULT_EVENT_TENANTS } from "../lib/event-defaults";
+import { supabase } from "@/app/lib/supabase";
 
-export type Role = "organizer" | "tenant" | "guest";
+export type Role = "organizer" | "tenant" | "guest" | "admin";
+export type UserRole = Role;
 
 export interface User {
   id?: string;
   name: string;
   email: string;
   role: Role;
-  businessName: string;
+  businessName?: string;
+  companyName?: string;
   businessCategory?: string;
   category?: string;
   phone?: string;
@@ -22,7 +24,11 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => { success: boolean; message: string };
+  login: {
+    (email: string, password: string): { success: boolean; message: string };
+    (user: Partial<User> & { email: string; role?: Role; [key: string]: unknown }): { success: boolean; message: string };
+    (emailOrUser: string | (Partial<User> & { email: string; role?: Role; [key: string]: unknown }), password?: string): { success: boolean; message: string };
+  };
   register: (user: User, password: string) => { success: boolean; message: string };
   loginAsGuest: (name?: string, phone?: string) => { success: boolean; message: string };
   updateProfile: (updatedData: Partial<User>) => void;
@@ -35,8 +41,8 @@ const AuthContext = createContext<AuthContextType>({
   login: () => ({ success: false, message: "" }),
   register: () => ({ success: false, message: "" }),
   loginAsGuest: () => ({ success: false, message: "" }),
-  updateProfile: () => {},
-  logout: () => {},
+  updateProfile: () => { },
+  logout: () => { },
 });
 
 export function useAuth() {
@@ -82,6 +88,16 @@ export const DEMO_USERS: Array<User & { password: string }> = [
     website: "https://kopikeliling.id",
     instagram: "@kopikeliling.id",
   },
+  {
+    id: "usr_admin_01",
+    name: "Super Admin Boothify",
+    email: "admin@boothify.id",
+    password: "demo1234",
+    role: "admin",
+    businessName: "Boothify Official Authority",
+    phone: "+62 811 0000 0001",
+    description: "Administrator sistem dan otoritas pengelola Boothify",
+  },
 ];
 
 const DEMO_DATA_VERSION = "boothify_demo_seed_v5";
@@ -113,32 +129,6 @@ export function resetDemoWorkspace(force = false) {
     .forEach((key) => localStorage.removeItem(key));
 
   localStorage.setItem("boothify_users", JSON.stringify(DEMO_USERS));
-  Object.entries(DEFAULT_EVENT_BOOTHS).forEach(([eventId, booths]) => {
-    localStorage.setItem(`boothify_event_${eventId}_booths`, JSON.stringify(booths));
-    const tenants = DEFAULT_EVENT_TENANTS[eventId] || {};
-    localStorage.setItem(`boothify_event_${eventId}_booth_tenants`, JSON.stringify(tenants));
-    localStorage.setItem(`boothify_event_${eventId}_booked_booths`, JSON.stringify(Object.keys(tenants)));
-  });
-
-  const bookings = [
-    { eventId: "1", event: "Green Fashion Expo 2026", booth: "A1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", amount: "Rp 2.500.000", tenantEmail: "demo-tenant@boothify.id", tenantName: "EcoWear Studio" },
-    { eventId: "1", event: "Green Fashion Expo 2026", booth: "A2", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", amount: "Rp 2.500.000", tenantEmail: "demo-tenant@boothify.id", tenantName: "EcoWear Studio" },
-    { eventId: "1", event: "Green Fashion Expo 2026", booth: "C3", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", amount: "Rp 1.800.000", tenantEmail: "demo-tenant@boothify.id", tenantName: "EcoWear Studio" },
-    { eventId: "1", event: "Green Fashion Expo 2026", booth: "B1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", amount: "Rp 3.000.000", tenantEmail: "kopi@boothify.id", tenantName: "Kopi Keliling Nusantara" },
-    { eventId: "1", event: "Green Fashion Expo 2026", booth: "C1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", amount: "Rp 3.000.000", tenantEmail: "kopi@boothify.id", tenantName: "Kopi Keliling Nusantara" },
-    { eventId: "2", event: "Indonesia Food Festival 2026", booth: "F1", date: "22–24 Nov 2026", status: "confirmed", payment: "paid", amount: "Rp 3.000.000", tenantEmail: "kopi@boothify.id", tenantName: "Kopi Keliling Nusantara" },
-    { eventId: "2", event: "Indonesia Food Festival 2026", booth: "F2", date: "22–24 Nov 2026", status: "confirmed", payment: "paid", amount: "Rp 3.000.000", tenantEmail: "kopi@boothify.id", tenantName: "Kopi Keliling Nusantara" },
-    { eventId: "2", event: "Indonesia Food Festival 2026", booth: "D1", date: "22–24 Nov 2026", status: "confirmed", payment: "paid", amount: "Rp 2.500.000", tenantEmail: "kopi@boothify.id", tenantName: "Kopi Keliling Nusantara" },
-  ];
-  localStorage.setItem("boothify_tenant_bookings", JSON.stringify(bookings));
-  localStorage.setItem("boothify_recent_bookings", JSON.stringify(bookings.map((booking) => ({ ...booking, tenant: booking.tenantName, time: "Demo seed", status: "paid" }))));
-  localStorage.setItem("boothify_visitor_orders", JSON.stringify([
-    { id: "BF-DEMO-001", eventId: "1", event: "Green Fashion Expo 2026", booth: "C1", items: [{ boothId: "C1", name: "Kopi Susu Gula Aren", qty: 2, price: 22000 }], total: 44000, customer: "Andi Pengunjung", phone: "+62 811 2233 4455", method: "QRIS", time: "Demo seed", status: "pending", tenantEmail: "kopi@boothify.id", tenantName: "Kopi Keliling Nusantara" },
-  ]));
-  localStorage.setItem("boothify_organizer_inbox", JSON.stringify([
-    { id: "MSG-DEMO-001", eventId: "1", eventTitle: "Green Fashion Expo 2026", organizerEmail: "demo-organizer@boothify.id", senderName: "EcoWear Studio", senderEmail: "demo-tenant@boothify.id", senderPhone: "+62 813 9876 5432", message: "Apakah booth A1 menyediakan daya listrik tambahan untuk display koleksi?", time: "Demo seed", status: "unread" },
-    { id: "MSG-DEMO-002", eventId: "1", eventTitle: "Green Fashion Expo 2026", organizerEmail: "demo-organizer@boothify.id", senderName: "Kopi Keliling Nusantara", senderEmail: "kopi@boothify.id", senderPhone: "+62 878 1122 3344", message: "Apakah booth C1 memiliki akses listrik untuk espresso machine portabel?", time: "Demo seed", status: "read" },
-  ]));
   localStorage.setItem(DEMO_DATA_VERSION, "1");
 }
 
@@ -214,14 +204,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = useCallback((email: string, password: string): { success: boolean; message: string } => {
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPass = password.trim();
+  const login = useCallback((
+    emailOrUser: string | (Partial<User> & { email: string; role?: Role; [key: string]: unknown }),
+    password?: string
+  ): { success: boolean; message: string } => {
+    if (typeof emailOrUser === "object" && emailOrUser !== null) {
+      const u = emailOrUser;
+      const role = u.role || "tenant";
+      const userData: User = {
+        id: u.id || `usr_${Date.now()}`,
+        name: u.name || u.companyName || u.businessName || "User",
+        email: u.email,
+        role: role,
+        businessName: u.businessName || u.companyName || u.name || "",
+        companyName: u.companyName || u.businessName || u.name,
+        businessCategory: u.businessCategory || u.category,
+        category: u.category || u.businessCategory,
+        phone: u.phone,
+        description: u.description,
+        website: u.website,
+        instagram: u.instagram,
+      };
+      setUser(userData);
+      setStoredCurrentUser(userData);
+      return { success: true, message: "Login berhasil!" };
+    }
+
+    const cleanEmail = emailOrUser.trim().toLowerCase();
+    const cleanPass = (password || "").trim();
     const users = getStoredUsers();
 
     // Support flexible demo email aliases
     const found = users.find((u) => {
       const uEmail = u.email.toLowerCase();
+      if (cleanEmail === "admin@boothify.id" && uEmail === "admin@boothify.id") return true;
       if (cleanEmail === "organizer@boothify.id" && uEmail === "demo-organizer@boothify.id") return true;
       if (cleanEmail === "tenant@boothify.id" && uEmail === "demo-tenant@boothify.id") return true;
       if (cleanEmail === "tenant@kreasinusantara.com" && uEmail === "demo-tenant@boothify.id") return true;
@@ -239,7 +255,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: found.email,
       role: found.role,
       businessName: found.businessName,
+      companyName: found.businessName,
       businessCategory: found.businessCategory,
+      category: found.businessCategory,
       phone: found.phone,
       description: found.description,
       website: found.website,
@@ -267,6 +285,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStoredUsers(users);
     setUser(createdUser);
     setStoredCurrentUser(createdUser);
+    // Background sync ke Supabase users
+    if (typeof window !== "undefined") {
+      supabase.from("users").upsert({
+        id: createdUser.id,
+        name: createdUser.name,
+        email: cleanEmail,
+        role: createdUser.role,
+        business_name: createdUser.businessName || createdUser.companyName || null,
+        business_category: createdUser.businessCategory || createdUser.category || null,
+        phone: createdUser.phone || null,
+        description: createdUser.description || null,
+        website: createdUser.website || null,
+        instagram: createdUser.instagram || null,
+      }).then(({ error }) => {
+        if (error) console.error("Supabase user register sync error:", error);
+      });
+    }
+
     return { success: true, message: "Registrasi berhasil!" };
   }, []);
 
@@ -299,6 +335,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setStoredUsers(users);
         }
       } catch { /* ignore */ }
+
+      // Background sync to Supabase
+      if (typeof window !== "undefined") {
+        supabase.from("users").update({
+          name: merged.name,
+          business_name: merged.businessName || merged.companyName || null,
+          business_category: merged.businessCategory || merged.category || null,
+          phone: merged.phone || null,
+          description: merged.description || null,
+          website: merged.website || null,
+          instagram: merged.instagram || null,
+        }).eq("email", merged.email).then(({ error }) => {
+          if (error) console.error("Supabase user profile update error:", error);
+        });
+      }
 
       return merged;
     });

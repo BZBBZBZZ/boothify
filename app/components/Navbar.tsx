@@ -8,7 +8,14 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuth();
 
-  const dashboardLink = user?.role === "organizer" ? "/dashboard/organizer" : user?.role === "tenant" ? "/dashboard/tenant" : "/events";
+  const dashboardLink =
+    user?.role === "admin"
+      ? "/dashboard/admin"
+      : user?.role === "organizer"
+      ? "/dashboard/organizer"
+      : user?.role === "tenant"
+      ? "/dashboard/tenant"
+      : "/events";
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -63,7 +70,9 @@ export default function Navbar() {
                   </div>
                   <div className="text-xs">
                     <p className="font-medium truncate max-w-[100px]">{user.name}</p>
-                    <p className="text-muted-foreground capitalize">{user.role}</p>
+                    <p className={`text-[11px] font-medium capitalize ${user.role === "admin" ? "text-purple-300 font-semibold" : "text-muted-foreground"}`}>
+                      {user.role === "admin" ? "👑 Admin" : user.role}
+                    </p>
                   </div>
                 </div>
                 <button onClick={logout} className="btn btn-ghost text-sm text-muted-foreground" id="nav-logout">
@@ -133,7 +142,9 @@ export default function Navbar() {
                     {user.name.charAt(0).toUpperCase()}
                   </div>
                   <span className="text-sm font-medium">{user.name}</span>
-                  <span className="badge badge-primary text-[10px] ml-auto">{user.role}</span>
+                  <span className={`text-[10px] ml-auto px-2 py-0.5 rounded-full font-medium ${user.role === "admin" ? "bg-purple-500/20 text-purple-300 border border-purple-500/30" : "badge badge-primary"}`}>
+                    {user.role === "admin" ? "👑 Admin" : user.role}
+                  </span>
                 </div>
                 <button onClick={() => { logout(); setMobileOpen(false); }} className="block w-full text-left py-2 px-3 rounded-lg text-sm text-error hover:bg-white/5 transition">
                   Keluar

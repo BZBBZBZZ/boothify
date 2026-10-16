@@ -33,90 +33,10 @@ export type BookingItem = {
   tenantEmail?: string;
 };
 
-const DEFAULT_ORDERS: VisitorOrder[] = [
-  {
-    id: "BF-ORDER-9931",
-    eventId: "1",
-    event: "Green Fashion Expo 2026",
-    booth: "A1",
-    customer: "Andi Pengunjung",
-    phone: "+62 811 2233 4455",
-    method: "QRIS",
-    time: "5 menit lalu",
-    total: 185000,
-    status: "pending",
-    tenantEmail: "demo-tenant@boothify.id",
-    tenantName: "EcoWear Studio",
-    items: [
-      { boothId: "A1", name: "Organic Cotton T-Shirt", qty: 1, price: 185000 },
-    ],
-  },
-  {
-    id: "BF-ORDER-8821",
-    eventId: "1",
-    event: "Green Fashion Expo 2026",
-    booth: "C1",
-    customer: "Andi Pengunjung",
-    phone: "+62 811 2233 4455",
-    method: "QRIS",
-    time: "15 menit lalu",
-    total: 75000,
-    status: "making",
-    tenantEmail: "kopi@boothify.id",
-    tenantName: "Kopi Keliling Nusantara",
-    items: [
-      { boothId: "C1", name: "Kopi Susu Gula Aren", qty: 2, price: 25000 },
-      { boothId: "C1", name: "Croissant Almond", qty: 1, price: 25000 },
-    ],
-  },
-  {
-    id: "BF-ORDER-4512",
-    eventId: "1",
-    event: "Green Fashion Expo 2026",
-    booth: "C1",
-    customer: "Andi Pengunjung",
-    phone: "+62 811 2233 4455",
-    method: "GoPay",
-    time: "25 menit lalu",
-    total: 35000,
-    status: "ready",
-    tenantEmail: "kopi@boothify.id",
-    tenantName: "Kopi Keliling Nusantara",
-    items: [
-      { boothId: "C1", name: "Matcha Latte Oat", qty: 1, price: 35000 },
-    ],
-  },
-  {
-    id: "BF-ORDER-2190",
-    eventId: "1",
-    event: "Green Fashion Expo 2026",
-    booth: "C1",
-    customer: "Andi Pengunjung",
-    phone: "+62 811 2233 4455",
-    method: "QRIS",
-    time: "35 menit lalu",
-    total: 50000,
-    status: "done",
-    tenantEmail: "kopi@boothify.id",
-    tenantName: "Kopi Keliling Nusantara",
-    items: [
-      { boothId: "C1", name: "Americano Cold Brew", qty: 2, price: 25000 },
-    ],
-  },
-];
-
-const DEMO_TENANT_BOOKINGS: Record<string, BookingItem[]> = {
-  "demo-tenant@boothify.id": [
-    { event: "Green Fashion Expo 2026", booth: "A1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "demo-tenant@boothify.id", price: 2500000 },
-    { event: "Green Fashion Expo 2026", booth: "A2", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "demo-tenant@boothify.id", price: 2500000 },
-    { event: "Green Fashion Expo 2026", booth: "C3", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "demo-tenant@boothify.id", price: 1800000 },
-  ],
-  "kopi@boothify.id": [
-    { event: "Green Fashion Expo 2026", booth: "C1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "kopi@boothify.id", price: 3000000 },
-    { event: "Green Fashion Expo 2026", booth: "B1", date: "15–17 Nov 2026", status: "confirmed", payment: "paid", eventId: "1", tenantEmail: "kopi@boothify.id", price: 2500000 },
-    { event: "Indonesia Food Festival 2026", booth: "F2", date: "22–24 Nov 2026", status: "confirmed", payment: "paid", eventId: "2", tenantEmail: "kopi@boothify.id", price: 3000000 },
-  ],
-};
+import {
+  getTenantBookingsFromSupabase,
+  getVisitorOrdersFromSupabase,
+} from "@/app/lib/supabase-service";
 
 export default function TenantBookingsAndOrdersPage() {
   const { user } = useAuth();
@@ -128,135 +48,51 @@ export default function TenantBookingsAndOrdersPage() {
 
   // Load from localStorage scoped to user
   useEffect(() => {
-    try {
-      const email = user?.email || "demo-tenant@boothify.id";
-      const isEcoWear = email === "demo-tenant@boothify.id" || email === "tenant@boothify.id";
-      const isKopi = email === "kopi@boothify.id";
+    const email = user?.email || "demo-tenant@boothify.id";
 
-      const initialDemo = DEMO_TENANT_BOOKINGS[email] || (isEcoWear ? DEMO_TENANT_BOOKINGS["demo-tenant@boothify.id"] : []);
-
-      // 1. Load tenant bookings first to get booked booths
-      const storedBookings = localStorage.getItem("boothify_tenant_bookings");
-      let allBookings: BookingItem[] = [];
-      if (storedBookings) {
-        allBookings = JSON.parse(storedBookings);
-      }
-
-      const userBookings = allBookings.filter((b) => b.tenantEmail === email);
-      const activeBookings = userBookings.length > 0 ? userBookings : initialDemo;
-      setBookings(activeBookings);
-
-      const bookedBoothIds = activeBookings.map((b) => b.booth);
-
-      // 2. Load visitor orders scoped to this tenant
-      const storedOrders = localStorage.getItem("boothify_visitor_orders");
-      let allOrders: VisitorOrder[] = [];
-      if (storedOrders) {
+    // 1. Load tenant bookings from Supabase
+    getTenantBookingsFromSupabase(email).then((supabaseBookings) => {
+      if (supabaseBookings && supabaseBookings.length > 0) {
+        const mapped: BookingItem[] = supabaseBookings.map((b) => ({
+          event: b.event,
+          booth: b.booth,
+          date: b.date || "2026",
+          status: b.status || "confirmed",
+          payment: b.payment || "paid",
+          eventId: b.eventId,
+          tenantEmail: b.tenantEmail,
+          price: Number(b.amount?.replace(/\D/g, "") || 2500000),
+        }));
+        setBookings(mapped);
+      } else {
         try {
-          const parsed = JSON.parse(storedOrders);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            let wasRepaired = false;
-            allOrders = parsed.map((o: VisitorOrder) => {
-              const hasBrokenItems = !Array.isArray(o.items) || o.items.length === 0;
-              const hasBrokenTotal = (o.total || 0) <= 0;
-              const hasBrokenEvent = !o.event || o.event.length <= 2;
-
-              if (hasBrokenItems || hasBrokenTotal || hasBrokenEvent) {
-                wasRepaired = true;
-                const isKopiOrder = o.booth === "C1" || o.booth === "B1" || o.booth === "F2" || (o.tenantEmail && o.tenantEmail.includes("kopi"));
-                const repairedItems = !hasBrokenItems
-                  ? o.items
-                  : isKopiOrder
-                  ? [
-                      { boothId: o.booth || "C1", name: "Kopi Susu Gula Aren", qty: 2, price: 22000 },
-                      { boothId: o.booth || "C1", name: "Butter Croissant", qty: 1, price: 18000 },
-                    ]
-                  : [
-                      { boothId: o.booth || "A1", name: "Organic Cotton T-Shirt", qty: 1, price: 185000 },
-                    ];
-                const calculatedTotal = repairedItems.reduce((s, it) => s + it.price * it.qty, 0);
-
-                return {
-                  ...o,
-                  event: hasBrokenEvent ? "Green Fashion Expo 2026" : o.event,
-                  items: repairedItems,
-                  total: hasBrokenTotal ? calculatedTotal : o.total,
-                  tenantName: o.tenantName || (isKopiOrder ? "Kopi Keliling Nusantara" : "EcoWear Studio"),
-                  tenantEmail: o.tenantEmail || (isKopiOrder ? "kopi@boothify.id" : "demo-tenant@boothify.id"),
-                };
-              }
-              return o;
-            });
-
-            if (wasRepaired) {
-              localStorage.setItem("boothify_visitor_orders", JSON.stringify(allOrders));
-            }
+          const stored = localStorage.getItem("boothify_tenant_bookings");
+          if (stored) {
+            const all = JSON.parse(stored);
+            setBookings(all.filter((b: BookingItem) => b.tenantEmail === email));
           }
-        } catch {
-          allOrders = [];
-        }
+        } catch { /* ignore */ }
       }
-      if (allOrders.length === 0) {
-        localStorage.setItem("boothify_visitor_orders", JSON.stringify(DEFAULT_ORDERS));
-        allOrders = DEFAULT_ORDERS;
+    });
+
+    // 2. Load visitor orders from Supabase
+    getVisitorOrdersFromSupabase(email).then((supabaseOrders) => {
+      if (supabaseOrders && supabaseOrders.length > 0) {
+        setOrders(supabaseOrders.map((o) => ({
+          ...o,
+          status: (o.status as OrderStatus) || "pending",
+          time: "Baru saja",
+        })));
+      } else {
+        try {
+          const stored = localStorage.getItem("boothify_visitor_orders");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            setOrders(parsed);
+          }
+        } catch { /* ignore */ }
       }
-
-      // Robust matching: by email, booth ID, business name, or demo keywords
-      const tenantOrders = allOrders.filter((o) => {
-        // 1. Direct tenant email match
-        if (o.tenantEmail && (o.tenantEmail.toLowerCase() === email.toLowerCase() || (isEcoWear && o.tenantEmail === "demo-tenant@boothify.id"))) {
-          return true;
-        }
-        // 2. Direct booth match from current bookings
-        if (o.booth && bookedBoothIds.includes(o.booth)) {
-          return true;
-        }
-        if (o.items && o.items.some((i) => Boolean(i.boothId && bookedBoothIds.includes(i.boothId)))) {
-          return true;
-        }
-        // 3. Business name match
-        if (user?.businessName && o.tenantName && o.tenantName.toLowerCase() === user.businessName.toLowerCase()) {
-          return true;
-        }
-        // 4. Fallback for demo tenant accounts
-        if (isEcoWear) {
-          if (o.booth === "A1" || o.booth === "A2") return true;
-          if (
-            o.items?.some(
-              (i) =>
-                i.boothId === "A1" ||
-                i.boothId === "A2" ||
-                i.name.toLowerCase().includes("t-shirt") ||
-                i.name.toLowerCase().includes("outer") ||
-                i.name.toLowerCase().includes("denim") ||
-                i.name.toLowerCase().includes("totebag") ||
-                i.name.toLowerCase().includes("ecowear")
-            )
-          ) {
-            return true;
-          }
-        }
-        if (isKopi) {
-          if (o.booth === "C1") return true;
-          if (
-            o.items?.some(
-              (i) =>
-                i.boothId === "C1" ||
-                i.name.toLowerCase().includes("kopi") ||
-                i.name.toLowerCase().includes("matcha") ||
-                i.name.toLowerCase().includes("croissant")
-            )
-          ) {
-            return true;
-          }
-        }
-        return false;
-      });
-
-      setOrders(tenantOrders.map((o) => ({ ...o, status: o.status || "pending" })));
-    } catch {
-      // ignore
-    }
+    });
   }, [user]);
 
   const updateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
