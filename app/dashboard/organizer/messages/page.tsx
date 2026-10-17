@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../../components/AuthContext";
 
+import {
+  getOrganizerMessagesFromSupabase,
+  updateOrganizerMessageStatusInSupabase,
+  deleteOrganizerMessageInSupabase,
+} from "@/app/lib/supabase-service";
+
 type InboxMessage = {
   id: string;
   eventId?: string;
@@ -17,64 +23,45 @@ type InboxMessage = {
   status: "unread" | "read" | "replied";
 };
 
-const DEFAULT_MESSAGES: InboxMessage[] = [
-  {
-    id: "MSG-101",
-    eventId: "1",
-    eventTitle: "Green Fashion Expo 2026",
-    senderName: "EcoWear Studio",
-    senderEmail: "demo-tenant@boothify.id",
-    senderPhone: "+62 813 9876 5432",
-    message: "Halo Organizer, apakah booth A1 menyediakan daya listrik tambahan untuk display koleksi EcoWear Studio?",
-    time: "45 menit lalu",
-    status: "unread",
-  },
-  {
-    id: "MSG-102",
-    eventId: "1",
-    eventTitle: "Green Fashion Expo 2026",
-    senderName: "Kopi Keliling Nusantara",
-    senderEmail: "kopi@boothify.id",
-    senderPhone: "+62 878 1122 3344",
-    message: "Selamat siang, apakah booth C1 memiliki akses listrik untuk espresso machine portabel kami?",
-    time: "3 jam lalu",
-    status: "read",
-  },
-];
-
 export default function OrganizerMessagesPage() {
   const { user } = useAuth();
   const email = user?.email || "demo-organizer@boothify.id";
-  const isDemoOrg = email === "demo-organizer@boothify.id" || email === "organizer@boothify.id";
-  const [messages, setMessages] = useState<InboxMessage[]>(isDemoOrg ? DEFAULT_MESSAGES : []);
+  const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
   useEffect(() => {
-    try {
-      const storedInbox = JSON.parse(localStorage.getItem("boothify_organizer_inbox") || "[]");
-      const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-
-      if (isDemoOrg) {
-        const nextMessages = Array.isArray(storedInbox) && storedInbox.length > 0 ? storedInbox : DEFAULT_MESSAGES;
-        setMessages(nextMessages);
-        if (!storedInbox.length) {
-          localStorage.setItem("boothify_organizer_inbox", JSON.stringify(DEFAULT_MESSAGES));
-        }
+    async function loadMessages() {
+      const sbMsgs = await getOrganizerMessagesFromSupabase();
+      if (sbMsgs && sbMsgs.length > 0) {
+        setMessages(
+          sbMsgs.map((m) => ({
+            id: m.id,
+            eventId: m.eventId,
+            eventTitle: m.eventTitle || "Event Boothify",
+            organizerEmail: m.organizerEmail,
+            senderName: m.senderName,
+            senderEmail: m.senderEmail,
+            senderPhone: m.senderPhone,
+            message: m.message,
+            time: m.createdAt ? new Date(m.createdAt).toLocaleDateString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "Baru saja",
+            status: (m.status as "unread" | "read" | "replied") || "unread",
+          }))
+        );
         return;
       }
 
-      const eventIds = Array.isArray(storedEvents)
-        ? storedEvents.filter((event: { organizerEmail?: string }) => event.organizerEmail?.toLowerCase() === email.toLowerCase()).map((event: { id: string }) => String(event.id))
-        : [];
-      setMessages(
-        Array.isArray(storedInbox)
-          ? storedInbox.filter((message: InboxMessage) => (message.eventId && eventIds.includes(String(message.eventId))) || message.organizerEmail === email)
-          : []
-      );
-    } catch {
-      setMessages(isDemoOrg ? DEFAULT_MESSAGES : []);
+      try {
+        const storedInbox = JSON.parse(localStorage.getItem("boothify_organizer_inbox") || "[]");
+        if (Array.isArray(storedInbox) && storedInbox.length > 0) {
+          setMessages(storedInbox);
+        }
+      } catch {
+        // ignore
+      }
     }
-  }, [email, isDemoOrg]);
+
+    loadMessages();
+  }, [email]);
 
   const unreadCount = messages.filter((message) => message.status === "unread").length;
   const visibleMessages = filter === "unread" ? messages.filter((message) => message.status === "unread") : messages;
@@ -85,11 +72,13 @@ export default function OrganizerMessagesPage() {
   };
 
   const markAsRead = (id: string) => {
-    updateMessages(messages.map((message) => message.id === id ? { ...message, status: "read" } : message));
+    updateMessages(messages.map((message) => (message.id === id ? { ...message, status: "read" } : message)));
+    updateOrganizerMessageStatusInSupabase(id, "read");
   };
 
   const deleteMessage = (id: string) => {
     updateMessages(messages.filter((message) => message.id !== id));
+    deleteOrganizerMessageInSupabase(id);
   };
 
   return (

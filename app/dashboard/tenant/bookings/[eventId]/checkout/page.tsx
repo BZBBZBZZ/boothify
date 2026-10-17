@@ -6,6 +6,9 @@ import Link from "next/link";
 import { useAuth } from "@/app/components/AuthContext";
 import { DEFAULT_EVENTS_META } from "@/app/lib/event-defaults";
 import { getEventCategoryLabel, isFoodCategory } from "@/app/lib/event-categories";
+import { isEventInApprovedCampaign } from "@/app/lib/admin-campaigns";
+import { supabase } from "@/app/lib/supabase";
+import { getEventByIdFromSupabase } from "@/app/lib/supabase-service";
 
 interface CheckoutItem {
   booth: string;
@@ -28,29 +31,41 @@ function CheckoutContent() {
   const [eventDate, setEventDate] = useState("15–17 Nov 2026");
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("boothify_checkout_items");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setItems(parsed);
+    async function loadData() {
+      try {
+        const stored = localStorage.getItem("boothify_checkout_items");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setItems(parsed);
+          }
         }
-      }
 
-      // Load event details
-      const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-      const found = storedEvents.find((e: { id: string; title: string; date: string }) => String(e.id) === String(eventId));
-      if (found) {
-        setEventTitle(found.title);
-        if (found.date) setEventDate(found.date);
-      } else {
-        const fallback = DEFAULT_EVENTS_META[eventId] || DEFAULT_EVENTS_META["1"];
-        setEventTitle(fallback.title);
-        setEventDate(fallback.date);
+        // Load event details from Supabase
+        const sbEvent = await getEventByIdFromSupabase(eventId);
+        if (sbEvent) {
+          setEventTitle(sbEvent.title);
+          if (sbEvent.date) setEventDate(sbEvent.date);
+          return;
+        }
+
+        // Fallback to local
+        const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+        const found = storedEvents.find((e: { id: string; title: string; date: string }) => String(e.id) === String(eventId));
+        if (found) {
+          setEventTitle(found.title);
+          if (found.date) setEventDate(found.date);
+        } else {
+          const fallback = DEFAULT_EVENTS_META[eventId] || DEFAULT_EVENTS_META["1"];
+          setEventTitle(fallback.title);
+          setEventDate(fallback.date);
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
     }
+
+    loadData();
   }, [eventId]);
 
   if (user && user.role !== "tenant") {
@@ -62,8 +77,12 @@ function CheckoutContent() {
   }
 
   const subtotal = items.reduce((s, i) => s + i.price, 0);
-  const serviceFee = 50000;
-  const total = subtotal + serviceFee;
+  const campaignInfo = isEventInApprovedCampaign(eventId);
+  const isFreeTax = campaignInfo.isApproved;
+  const standardTax = Math.round(subtotal * 0.11); // PPN 11%
+  const appliedTax = isFreeTax ? 0 : standardTax;
+  const serviceFee = isFreeTax ? 0 : 50000;
+  const total = subtotal + appliedTax + serviceFee;
 
   const handlePay = () => {
     if (!paymentMethod || !agreed) return;
@@ -145,7 +164,25 @@ function CheckoutContent() {
           }
           return ev;
         });
-        localStorage.setItem("boothify_events", JSON.stringify(updatedEvents));
+        // Background sync ke Supabase
+        items.forEach(async (item) => {
+          try {
+            await supabase.from("tenant_bookings").insert({
+              event_id: eventId,
+              event_title: eventTitle,
+              booth_id: item.booth,
+              tenant_email: tenantEmail,
+              tenant_name: tenantBrand,
+              date_range: eventDate,
+              amount: item.price,
+              payment_status: "paid",
+              booking_status: "confirmed",
+            });
+            await supabase.from("booths").update({ status: "booked" }).eq("event_id", eventId).eq("id", item.booth);
+          } catch (e) {
+            console.error("Failed to sync booking to Supabase:", e);
+          }
+        });
       } catch (err) {
         console.error("Failed to save booking:", err);
       }
@@ -276,15 +313,56 @@ function CheckoutContent() {
         {/* Summary */}
         <div className="card-base p-6 h-fit sticky top-24">
           <h3 className="font-semibold mb-4">Ringkasan Pembayaran</h3>
+
+          {/* Campaign Free Tax Highlight Banner */}
+          {isFreeTax && (
+            <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/15 to-transparent border border-emerald-500/30 text-xs mb-4 space-y-1">
+              <div className="flex items-center justify-between font-bold text-emerald-300">
+                <span className="flex items-center gap-1.5">
+                  <span>🎁</span> Bebas Pajak (Free Tax 0%)
+                </span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40">
+                  Resmi Admin
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Event ini tergabung dalam <strong>{campaignInfo.campaign?.title}</strong>. Pajak PPN 11% dan biaya layanan bebas biaya.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Subtotal ({items.length} booth)</span>
               <span>Rp {subtotal.toLocaleString("id-ID")}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Biaya Layanan</span>
-              <span>Rp {serviceFee.toLocaleString("id-ID")}</span>
+
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Pajak PPN (11%)</span>
+              {isFreeTax ? (
+                <div className="text-right">
+                  <span className="line-through text-xs text-muted-foreground mr-1.5">
+                    Rp {standardTax.toLocaleString("id-ID")}
+                  </span>
+                  <span className="font-bold text-emerald-400">Rp 0 (Free Tax)</span>
+                </div>
+              ) : (
+                <span>Rp {appliedTax.toLocaleString("id-ID")}</span>
+              )}
             </div>
+
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Biaya Layanan</span>
+              {isFreeTax ? (
+                <div className="text-right">
+                  <span className="line-through text-xs text-muted-foreground mr-1.5">Rp 50.000</span>
+                  <span className="font-bold text-emerald-400">Rp 0 (Disubsidi)</span>
+                </div>
+              ) : (
+                <span>Rp {serviceFee.toLocaleString("id-ID")}</span>
+              )}
+            </div>
+
             <hr className="border-border" />
             <div className="flex justify-between font-bold text-lg">
               <span>Total</span>

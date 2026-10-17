@@ -40,118 +40,85 @@ type InboxMessage = {
   status: "unread" | "read" | "replied";
 };
 
-const DEFAULT_EVENTS: EventItem[] = [
-  { id: "1", title: "Green Fashion Expo 2026", date: "15–17 Nov 2026", status: "active", boothsFilled: 5, boothsTotal: 9, organizerEmail: "demo-organizer@boothify.id" },
-  { id: "2", title: "Indonesia Food Festival 2026", date: "22–24 Nov 2026", status: "active", boothsFilled: 3, boothsTotal: 10, organizerEmail: "demo-organizer@boothify.id" },
-  { id: "3", title: "EduTech Innovation Fair 2026", date: "1–3 Des 2026", status: "active", boothsFilled: 2, boothsTotal: 8, organizerEmail: "demo-organizer@boothify.id" },
-];
-
-const DEFAULT_BOOKINGS: BookingItem[] = [
-  { tenant: "EcoWear Studio", event: "Green Fashion Expo 2026", booth: "A1", amount: "Rp 2.500.000", time: "2 jam lalu", status: "paid" },
-  { tenant: "EcoWear Studio — Koleksi Katun", event: "Green Fashion Expo 2026", booth: "A2", amount: "Rp 2.500.000", time: "5 jam lalu", status: "paid" },
-  { tenant: "Kopi Keliling Nusantara", event: "Green Fashion Expo 2026", booth: "B1", amount: "Rp 3.000.000", time: "8 jam lalu", status: "paid" },
-  { tenant: "Kopi Keliling Nusantara", event: "Green Fashion Expo 2026", booth: "C1", amount: "Rp 3.000.000", time: "1 hari lalu", status: "paid" },
-  { tenant: "EcoWear Craft & Totebag", event: "Green Fashion Expo 2026", booth: "C3", amount: "Rp 1.800.000", time: "2 hari lalu", status: "paid" },
-];
-
-const DEFAULT_MESSAGES: InboxMessage[] = [
-  {
-    id: "MSG-101",
-    eventId: "1",
-    eventTitle: "Green Fashion Expo 2026",
-    senderName: "EcoWear Studio",
-    senderEmail: "demo-tenant@boothify.id",
-    senderPhone: "+62 813 9876 5432",
-    message: "Halo Organizer, apakah booth A1 menyediakan daya listrik tambahan untuk display koleksi EcoWear Studio?",
-    time: "45 menit lalu",
-    status: "unread",
-  },
-  {
-    id: "MSG-102",
-    eventId: "1",
-    eventTitle: "Green Fashion Expo 2026",
-    senderName: "Kopi Keliling Nusantara",
-    senderEmail: "kopi@boothify.id",
-    senderPhone: "+62 878 1122 3344",
-    message: "Selamat siang, apakah booth C1 memiliki akses listrik untuk espresso machine portabel kami?",
-    time: "3 jam lalu",
-    status: "read",
-  },
-];
+import {
+  getEventsFromSupabase,
+  getTenantBookingsFromSupabase,
+  getOrganizerMessagesFromSupabase,
+} from "@/app/lib/supabase-service";
 
 export default function OrganizerDashboard() {
   const { user } = useAuth();
   const email = user?.email || "demo-organizer@boothify.id";
   const isDemoOrg = email === "demo-organizer@boothify.id" || email === "organizer@boothify.id";
 
-  const [events, setEvents] = useState<EventItem[]>(isDemoOrg ? DEFAULT_EVENTS : []);
-  const [bookings, setBookings] = useState<BookingItem[]>(isDemoOrg ? DEFAULT_BOOKINGS : []);
-  const [inbox, setInbox] = useState<InboxMessage[]>(isDemoOrg ? DEFAULT_MESSAGES : []);
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [bookings, setBookings] = useState<BookingItem[]>([]);
+  const [inbox, setInbox] = useState<InboxMessage[]>([]);
 
   useEffect(() => {
-    try {
-      // 1. Load Events
-      const storedEventsRaw = localStorage.getItem("boothify_events");
-      const storedEvents: EventItem[] = storedEventsRaw ? JSON.parse(storedEventsRaw) : [];
-
-      if (isDemoOrg) {
-        // For demo organizer: show default events merged with events created by demo organizer
-        const myStored = storedEvents.filter(
-          (e) => !e.organizerEmail || e.organizerEmail === "demo-organizer@boothify.id" || e.organizerEmail === "organizer@boothify.id"
-        );
-        const combined = [...myStored];
-        DEFAULT_EVENTS.forEach((defEv) => {
-          if (!combined.some((e) => e.id === defEv.id)) {
-            combined.push(defEv);
-          }
-        });
-        setEvents(combined);
+    // 1. Load Events from Supabase
+    getEventsFromSupabase().then((supabaseEvents) => {
+      if (supabaseEvents && supabaseEvents.length > 0) {
+        const mapped: EventItem[] = supabaseEvents.map((e) => ({
+          id: e.id,
+          title: e.title,
+          date: e.date,
+          status: "active",
+          boothsFilled: e.boothsFilled,
+          boothsTotal: e.boothsTotal,
+          organizerEmail: e.organizerEmail || "demo-organizer@boothify.id",
+        }));
+        setEvents(isDemoOrg ? mapped : mapped.filter((e) => e.organizerEmail?.toLowerCase() === email.toLowerCase()));
       } else {
-        // For newly registered organizer: strictly only show events created by this organizer
-        const myEvents = storedEvents.filter((e) => e.organizerEmail?.toLowerCase() === email.toLowerCase());
-        setEvents(myEvents);
+        try {
+          const storedEventsRaw = localStorage.getItem("boothify_events");
+          if (storedEventsRaw) setEvents(JSON.parse(storedEventsRaw));
+        } catch { /* ignore */ }
       }
+    });
 
-      // 2. Load Bookings
-      const storedBookingsRaw = localStorage.getItem("boothify_recent_bookings");
-      const storedBookings: BookingItem[] = storedBookingsRaw ? JSON.parse(storedBookingsRaw) : [];
-
-      if (isDemoOrg) {
-        const combinedBookings = [...storedBookings];
-        DEFAULT_BOOKINGS.forEach((defB) => {
-          if (!combinedBookings.some((b) => b.booth === defB.booth && b.event === defB.event)) {
-            combinedBookings.push(defB);
-          }
-        });
-        setBookings(combinedBookings);
+    // 2. Load Bookings from Supabase
+    getTenantBookingsFromSupabase().then((supabaseBookings) => {
+      if (supabaseBookings && supabaseBookings.length > 0) {
+        const mapped: BookingItem[] = supabaseBookings.map((b) => ({
+          tenant: b.tenantName || "Tenant",
+          event: b.event,
+          booth: b.booth,
+          amount: b.amount,
+          time: "Baru saja",
+          status: b.payment as "paid" | "unpaid",
+        }));
+        setBookings(mapped);
       } else {
-        // For new organizer: show bookings that match their event titles or organizerEmail
-        const myEventTitles = storedEvents.filter((e) => e.organizerEmail === email).map((e) => e.title);
-        const myBookings = storedBookings.filter((b) => myEventTitles.includes(b.event));
-        setBookings(myBookings);
+        try {
+          const storedBookingsRaw = localStorage.getItem("boothify_recent_bookings");
+          if (storedBookingsRaw) setBookings(JSON.parse(storedBookingsRaw));
+        } catch { /* ignore */ }
       }
+    });
 
-      // 3. Load Inbox Messages
-      const storedInboxRaw = localStorage.getItem("boothify_organizer_inbox");
-      const storedInbox: InboxMessage[] = storedInboxRaw ? JSON.parse(storedInboxRaw) : [];
-
-      if (isDemoOrg) {
-        if (storedInbox.length > 0) {
-          setInbox(storedInbox);
-        } else {
-          setInbox(DEFAULT_MESSAGES);
-          localStorage.setItem("boothify_organizer_inbox", JSON.stringify(DEFAULT_MESSAGES));
-        }
+    // 3. Load Inbox Messages from Supabase
+    getOrganizerMessagesFromSupabase(isDemoOrg ? undefined : email).then((supabaseMessages) => {
+      if (supabaseMessages && supabaseMessages.length > 0) {
+        const mapped: InboxMessage[] = supabaseMessages.map((m) => ({
+          id: m.id,
+          eventId: m.eventId,
+          eventTitle: m.eventTitle,
+          senderName: m.senderName,
+          senderEmail: m.senderEmail,
+          senderPhone: m.senderPhone,
+          message: m.message,
+          time: "Baru saja",
+          status: m.status as "unread" | "read" | "replied",
+        }));
+        setInbox(mapped);
       } else {
-        const myEventIds = storedEvents.filter((e) => e.organizerEmail === email).map((e) => e.id);
-        const myInbox = storedInbox.filter(
-          (m) => (m.eventId && myEventIds.includes(m.eventId)) || m.organizerEmail === email
-        );
-        setInbox(myInbox);
+        try {
+          const storedInboxRaw = localStorage.getItem("boothify_organizer_inbox");
+          if (storedInboxRaw) setInbox(JSON.parse(storedInboxRaw));
+        } catch { /* ignore */ }
       }
-    } catch {
-      // ignore
-    }
+    });
   }, [user, email, isDemoOrg]);
 
   const unreadCount = inbox.filter((m) => m.status === "unread").length;
