@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/components/AuthContext";
 import { EVENT_CATEGORY_OPTIONS, getEventCategoryValue } from "@/app/lib/event-categories";
 import { ASIA_LOCATIONS } from "@/app/lib/asia-locations";
+import { saveEventToSupabase } from "@/app/lib/supabase-service";
 
 export default function CreateEventPage() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function CreateEventPage() {
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [bannerUploaded, setBannerUploaded] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     date_start: "",
@@ -31,26 +33,38 @@ export default function CreateEventPage() {
     categories: [] as string[],
   });
 
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
+    setSubmitting(true);
+    const eventId = String(Date.now());
+    const draftEvent = {
+      id: eventId,
+      title: formData.name || "Draft Event Baru",
+      date: formData.date_start ? `${formData.date_start} – ${formData.date_end || formData.date_start}` : "Belum ditentukan",
+      time: `${formData.time_start} - ${formData.time_end}`,
+      status: "draft",
+      boothsFilled: 0,
+      boothsTotal: 40,
+      location: formData.location || "Belum ditentukan",
+      country: formData.country || "Indonesia",
+      province: formData.province,
+      city: formData.city,
+      address: formData.address || "",
+      category: formData.categories.filter((category) => category !== "all").join(", ") || "Umum",
+      categories: formData.categories,
+      categoryKeys: formData.categories.filter((category) => category !== "all").map(getEventCategoryValue),
+      description: formData.description,
+      organizer: organizerName,
+      organizerEmail: organizerEmail,
+      priceRange: "Rp 2.000.000 – Rp 4.500.000",
+      image: "🎪",
+    };
+
     try {
+      // 1. Simpan langsung ke Supabase
+      await saveEventToSupabase(draftEvent);
+
+      // 2. Simpan juga ke localStorage
       const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-      const draftEvent = {
-        id: String(Date.now()),
-        title: formData.name || "Draft Event Baru",
-        date: formData.date_start ? `${formData.date_start} – ${formData.date_end || formData.date_start}` : "Belum ditentukan",
-        status: "draft",
-        boothsFilled: 0,
-        boothsTotal: 40,
-        location: formData.location || "Belum ditentukan",
-        country: formData.country,
-        province: formData.province,
-        city: formData.city,
-        categories: formData.categories,
-        categoryKeys: formData.categories.filter((category) => category !== "all").map(getEventCategoryValue),
-        description: formData.description,
-        organizer: organizerName,
-        organizerEmail: organizerEmail,
-      };
       stored.unshift(draftEvent);
       localStorage.setItem("boothify_events", JSON.stringify(stored));
     } catch {
@@ -59,11 +73,11 @@ export default function CreateEventPage() {
     router.push("/dashboard/organizer");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
     const eventId = String(Date.now());
     try {
-      const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
       const categoryFromTheme = formData.categories.filter((category) => category !== "all").join(", ") || "Umum";
       const categoryKeys = formData.categories.filter((category) => category !== "all").map(getEventCategoryValue);
 
@@ -71,14 +85,15 @@ export default function CreateEventPage() {
         id: eventId,
         title: formData.name || "Event Baru",
         date: formData.date_start ? `${formData.date_start} s/d ${formData.date_end || formData.date_start}` : "Nov 2026",
+        time: `${formData.time_start} - ${formData.time_end}`,
         status: "active",
         category: categoryFromTheme,
-          categories: formData.categories,
-          categoryKeys,
+        categories: formData.categories,
+        categoryKeys,
         boothsFilled: 0,
         boothsTotal: 30,
         location: formData.location || "Venue Acara",
-        country: formData.country,
+        country: formData.country || "Indonesia",
         province: formData.province,
         city: formData.city,
         address: formData.address || "",
@@ -90,6 +105,12 @@ export default function CreateEventPage() {
         theme: formData.theme,
         guidelines: formData.guidelines,
       };
+
+      // 1. Simpan langsung ke Supabase
+      await saveEventToSupabase(newEvent);
+
+      // 2. Simpan juga ke localStorage
+      const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
       stored.unshift(newEvent);
       localStorage.setItem("boothify_events", JSON.stringify(stored));
       router.push(`/dashboard/organizer/events/${eventId}/floor-plan`);

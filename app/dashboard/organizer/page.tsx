@@ -44,6 +44,7 @@ import {
   getEventsFromSupabase,
   getTenantBookingsFromSupabase,
   getOrganizerMessagesFromSupabase,
+  saveEventToSupabase,
 } from "@/app/lib/supabase-service";
 
 export default function OrganizerDashboard() {
@@ -56,25 +57,47 @@ export default function OrganizerDashboard() {
   const [inbox, setInbox] = useState<InboxMessage[]>([]);
 
   useEffect(() => {
-    // 1. Load Events from Supabase
+    // 1. Load Events from Supabase & Merge Local Storage
     getEventsFromSupabase().then((supabaseEvents) => {
-      if (supabaseEvents && supabaseEvents.length > 0) {
-        const mapped: EventItem[] = supabaseEvents.map((e) => ({
-          id: e.id,
-          title: e.title,
-          date: e.date,
-          status: "active",
-          boothsFilled: e.boothsFilled,
-          boothsTotal: e.boothsTotal,
-          organizerEmail: e.organizerEmail || "demo-organizer@boothify.id",
-        }));
-        setEvents(isDemoOrg ? mapped : mapped.filter((e) => e.organizerEmail?.toLowerCase() === email.toLowerCase()));
-      } else {
-        try {
-          const storedEventsRaw = localStorage.getItem("boothify_events");
-          if (storedEventsRaw) setEvents(JSON.parse(storedEventsRaw));
-        } catch { /* ignore */ }
-      }
+      let combinedEvents: EventItem[] = (supabaseEvents || []).map((e) => ({
+        id: String(e.id),
+        title: e.title,
+        date: e.date,
+        status: "active",
+        boothsFilled: e.boothsFilled,
+        boothsTotal: e.boothsTotal,
+        organizerEmail: e.organizerEmail || "demo-organizer@boothify.id",
+      }));
+
+      // Cek apakah ada event di localStorage yang belum masuk ke Supabase
+      try {
+        const storedEventsRaw = localStorage.getItem("boothify_events");
+        if (storedEventsRaw) {
+          const localEvents = JSON.parse(storedEventsRaw);
+          if (Array.isArray(localEvents)) {
+            const existingIds = new Set(combinedEvents.map((e) => e.id));
+            const missing = localEvents.filter((le: { id: string }) => !existingIds.has(String(le.id)));
+            if (missing.length > 0) {
+              // Auto-sync missing events ke Supabase di background
+              missing.forEach((item) => {
+                saveEventToSupabase(item).catch(() => {});
+              });
+              const mappedMissing: EventItem[] = missing.map((e) => ({
+                id: String(e.id),
+                title: e.title,
+                date: e.date,
+                status: e.status || "active",
+                boothsFilled: e.boothsFilled || 0,
+                boothsTotal: e.boothsTotal || 30,
+                organizerEmail: e.organizerEmail || "demo-organizer@boothify.id",
+              }));
+              combinedEvents = [...mappedMissing, ...combinedEvents];
+            }
+          }
+        }
+      } catch { /* ignore */ }
+
+      setEvents(isDemoOrg ? combinedEvents : combinedEvents.filter((e) => e.organizerEmail?.toLowerCase() === email.toLowerCase()));
     });
 
     // 2. Load Bookings from Supabase

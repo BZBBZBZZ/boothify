@@ -167,18 +167,20 @@ function CheckoutContent() {
         // Background sync ke Supabase
         items.forEach(async (item) => {
           try {
+            const bookingId = `bk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
             await supabase.from("tenant_bookings").insert({
-              event_id: eventId,
+              id: bookingId,
+              event_id: String(eventId),
               event_title: eventTitle,
-              booth_id: item.booth,
+              booth: item.booth,
               tenant_email: tenantEmail,
               tenant_name: tenantBrand,
-              date_range: eventDate,
-              amount: item.price,
-              payment_status: "paid",
-              booking_status: "confirmed",
+              date: eventDate,
+              amount: `Rp ${item.price.toLocaleString("id-ID")}`,
+              payment: "paid",
+              status: "confirmed",
             });
-            await supabase.from("booths").update({ status: "booked" }).eq("event_id", eventId).eq("id", item.booth);
+            await supabase.from("booths").update({ is_booked: true }).eq("event_id", String(eventId)).eq("label", item.booth);
           } catch (e) {
             console.error("Failed to sync booking to Supabase:", e);
           }

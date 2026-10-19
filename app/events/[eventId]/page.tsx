@@ -81,7 +81,20 @@ function EventDetailContent() {
     getBoothsByEventFromSupabase(eventId).then((supabaseBooths) => {
       if (supabaseBooths && supabaseBooths.length > 0) {
         setBooths(supabaseBooths);
+        const booked = supabaseBooths.filter((b) => b.isBooked).map((b) => b.label);
+        if (booked.length > 0) {
+          setTakenBooths((prev) => Array.from(new Set([...prev, ...booked])));
+        }
       } else {
+        // Cek apakah ada denah booth custom di localStorage
+        try {
+          const localBooths = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booths`) || "[]");
+          if (Array.isArray(localBooths) && localBooths.length > 0) {
+            setBooths(localBooths);
+            return;
+          }
+        } catch { /* ignore */ }
+
         const initialized = ensureEventFloorPlanInitialized(eventId);
         setBooths(initialized.booths);
       }

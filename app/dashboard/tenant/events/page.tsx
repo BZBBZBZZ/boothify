@@ -60,7 +60,7 @@ export default function TenantEventsPage() {
       try {
         const sbEvents = await getEventsFromSupabase();
         if (sbEvents && sbEvents.length > 0) {
-          const mapped: TenantEvent[] = sbEvents.map((e) => ({
+          let mapped: TenantEvent[] = sbEvents.map((e) => ({
             id: String(e.id),
             title: e.title,
             date: e.date,
@@ -82,6 +82,40 @@ export default function TenantEventsPage() {
             scope: e.country && e.country !== "Indonesia" ? "Internasional" : "Lokal",
             description: e.description,
           }));
+
+          const stored = localStorage.getItem("boothify_events");
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              const existingIds = new Set(mapped.map((e) => e.id));
+              const missingEvents: TenantEvent[] = parsed
+                .filter((e) => !existingIds.has(String(e.id)))
+                .map((e) => ({
+                  id: String(e.id),
+                  title: e.title,
+                  date: e.date,
+                  location: [e.location, e.city, e.province, e.country].filter(Boolean).join(", "),
+                  country: e.country,
+                  province: e.province,
+                  city: e.city,
+                  category: e.category || "Fashion",
+                  categories:
+                    e.categories ||
+                    e.categoryKeys?.map(getEventCategoryLabel) ||
+                    (e.category ? e.category.split(",").map((item: string) => item.trim()) : ["Kuliner (Food & Beverage)"]),
+                  categoryKeys: e.categoryKeys,
+                  price: e.priceRange?.split("–")[0]?.replace("000.000", "Jt")?.trim() || "Rp 2Jt",
+                  booths: (e.boothsTotal || 30) - (e.boothsFilled || 0),
+                  boothsTotal: e.boothsTotal || 30,
+                  boothsFilled: e.boothsFilled || 0,
+                  image: e.image || "🎪",
+                  scope: e.country && e.country !== "Indonesia" ? "Internasional" : "Lokal",
+                  description: e.description,
+                }));
+              mapped = [...missingEvents, ...mapped];
+            }
+          }
+
           setEventsList(mapped);
           return;
         }

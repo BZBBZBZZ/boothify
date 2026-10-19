@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "../../../../../components/AuthContext";
 import { getEventMeta, type EventDetail } from "../../../../../lib/event-defaults";
+import { saveEventToSupabase } from "@/app/lib/supabase-service";
 
 export default function EditEventPage() {
   const params = useParams();
@@ -24,13 +25,17 @@ export default function EditEventPage() {
 
   const update = (key: keyof EventDetail, value: string) => setEvent((current) => ({ ...current, [key]: value }));
 
-  const save = (e: React.FormEvent) => {
+  const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
     const updated = stored.some((item: { id: string }) => String(item.id) === eventId)
       ? stored.map((item: { id: string }) => String(item.id) === eventId ? { ...item, ...event } : item)
       : [{ ...event }, ...stored];
     localStorage.setItem("boothify_events", JSON.stringify(updated));
+
+    // Sync ke Supabase
+    await saveEventToSupabase(event);
+
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1800);
   };

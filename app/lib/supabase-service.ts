@@ -86,6 +86,83 @@ export async function getEventByIdFromSupabase(eventId: string): Promise<EventDe
   }
 }
 
+export async function saveEventToSupabase(
+  event: Partial<EventDetail> & { id: string; title: string }
+): Promise<boolean> {
+  try {
+    const payload = {
+      id: String(event.id),
+      title: event.title || "Event Baru",
+      date: event.date || "Akan Datang",
+      time: event.time || null,
+      location: event.location || "Venue Acara",
+      country: event.country || "Indonesia",
+      province: event.province || null,
+      city: event.city || null,
+      address: event.address || null,
+      category: event.category || "Umum",
+      categories: event.categories || [],
+      description: event.description || "",
+      organizer: event.organizer || "PT. Event Kreasi Nusantara",
+      organizer_email: event.organizerEmail || "demo-organizer@boothify.id",
+      booths_filled: event.boothsFilled || 0,
+      booths_total: event.boothsTotal || 30,
+      price_range: event.priceRange || "Rp 2.000.000 – Rp 4.500.000",
+      image: event.image || "🎪",
+      gradient: event.gradient || "from-emerald-500/20 to-teal-500/20",
+      zones: event.zones || [],
+      highlights: event.highlights || [],
+    };
+
+    const { error } = await supabase.from("events").upsert(payload, { onConflict: "id" });
+    if (error) {
+      console.warn("Supabase saveEvent error:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Failed to save event to Supabase:", err);
+    return false;
+  }
+}
+
+export async function saveFloorPlanBoothsToSupabase(
+  eventId: string,
+  booths: FloorPlanBooth[]
+): Promise<boolean> {
+  try {
+    if (!booths || booths.length === 0) return true;
+
+    const records = booths.map((b) => ({
+      id: `${eventId}_${b.label || b.id}`,
+      event_id: String(eventId),
+      label: b.label || b.id,
+      zone: b.zone || "general",
+      price: Number(b.price) || 2000000,
+      x: Number(b.x),
+      y: Number(b.y),
+      width: Number(b.width),
+      height: Number(b.height),
+      rotation: Number(b.rotation || 0),
+      size_cm: b.sizeCm || "300 x 300 cm",
+      is_booked: false,
+    }));
+
+    const { error } = await supabase.from("booths").upsert(records, { onConflict: "id" });
+    if (error) {
+      console.warn("Supabase saveBooths error:", error.message);
+      return false;
+    }
+
+    // Update booths_total di tabel events Supabase
+    await supabase.from("events").update({ booths_total: booths.length }).eq("id", String(eventId));
+    return true;
+  } catch (err) {
+    console.error("Failed to save booths to Supabase:", err);
+    return false;
+  }
+}
+
 export async function getBoothsByEventFromSupabase(eventId: string): Promise<FloorPlanBooth[]> {
   try {
     const { data, error } = await supabase
@@ -106,6 +183,7 @@ export async function getBoothsByEventFromSupabase(eventId: string): Promise<Flo
       label: b.label,
       zone: b.zone,
       price: Number(b.price),
+      isBooked: Boolean(b.is_booked),
     }));
   } catch (err) {
     console.error("Failed to fetch booths:", err);

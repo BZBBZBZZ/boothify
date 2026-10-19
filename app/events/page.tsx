@@ -26,32 +26,48 @@ export default function EventsPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    // Ambil data event langsung dari tabel events di Supabase
+    // Ambil data event langsung dari tabel events di Supabase & merge dengan local
     getEventsFromSupabase().then((data) => {
-      if (data && data.length > 0) {
-        setEventsList(
-          data.map((e) => ({
-            id: e.id,
-            title: e.title,
-            date: e.date,
-            location: e.location,
-            category: e.category,
-            categories: e.categories && e.categories.length > 0 ? e.categories : [e.category],
-            boothsFilled: e.boothsFilled,
-            boothsTotal: e.boothsTotal,
-            price: e.priceRange?.split("–")[0]?.trim() || "Rp 2.000.000",
-            image: e.image || "🎪",
-            gradient: e.gradient || "from-emerald-500/20 to-teal-500/20",
-          }))
-        );
-      } else {
-        try {
-          const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-          if (Array.isArray(stored)) {
-            setEventsList(stored);
+      let combined = (data || []).map((e) => ({
+        id: String(e.id),
+        title: e.title,
+        date: e.date,
+        location: e.location,
+        category: e.category,
+        categories: e.categories && e.categories.length > 0 ? e.categories : [e.category],
+        boothsFilled: e.boothsFilled || 0,
+        boothsTotal: e.boothsTotal || 30,
+        price: e.priceRange?.split("–")[0]?.trim() || "Rp 2.000.000",
+        image: e.image || "🎪",
+        gradient: e.gradient || "from-emerald-500/20 to-teal-500/20",
+      }));
+
+      try {
+        const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+        if (Array.isArray(stored)) {
+          const existingIds = new Set(combined.map((e) => e.id));
+          const missing = stored
+            .filter((e: { id: string }) => !existingIds.has(String(e.id)))
+            .map((e: { id: string; title: string; date: string; location: string; category?: string; categories?: string[]; boothsFilled?: number; boothsTotal?: number; priceRange?: string; image?: string; gradient?: string }) => ({
+              id: String(e.id),
+              title: e.title,
+              date: e.date,
+              location: e.location || "Venue Acara",
+              category: e.category || "Umum",
+              categories: e.categories && e.categories.length > 0 ? e.categories : [e.category || "Umum"],
+              boothsFilled: e.boothsFilled || 0,
+              boothsTotal: e.boothsTotal || 30,
+              price: e.priceRange?.split("–")[0]?.trim() || "Rp 2.000.000",
+              image: e.image || "🎪",
+              gradient: e.gradient || "from-emerald-500/20 to-teal-500/20",
+            }));
+          if (missing.length > 0) {
+            combined = [...missing, ...combined];
           }
-        } catch { /* ignore */ }
-      }
+        }
+      } catch { /* ignore */ }
+
+      setEventsList(combined);
       setLoading(false);
     });
   }, []);

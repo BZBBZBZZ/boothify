@@ -9,6 +9,7 @@ export type FloorPlanBooth = {
   label: string;
   zone: string; // "fashion" | "fnb" | "craft" | "education" | "automotive" | "general"
   price: number;
+  isBooked?: boolean;
 };
 
 export type EventZone = {
