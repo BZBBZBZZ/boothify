@@ -17,7 +17,9 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      if (user.role === "organizer") {
+      if (user.role === "admin") {
+        router.push("/dashboard/admin");
+      } else if (user.role === "organizer") {
         router.push("/dashboard/organizer");
       } else if (user.role === "tenant") {
         router.push("/dashboard/tenant");
@@ -38,7 +40,9 @@ export default function LoginPage() {
       const storedUser = localStorage.getItem("boothify_current_user");
       if (storedUser) {
         const userData = JSON.parse(storedUser);
-        if (userData.role === "organizer") {
+        if (userData.role === "admin") {
+          router.push("/dashboard/admin");
+        } else if (userData.role === "organizer") {
           router.push("/dashboard/organizer");
         } else if (userData.role === "tenant") {
           router.push("/dashboard/tenant");
@@ -194,6 +198,19 @@ export default function LoginPage() {
             <p className="text-xs text-muted-foreground mb-3 font-semibold">
               🚀 Demo Cepat — klik untuk langsung masuk sebagai:
             </p>
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const res = login("admin@boothify.id", "demo1234");
+                  if (res.success) router.push("/dashboard/admin");
+                }}
+                className="w-full btn btn-sm text-xs py-2 flex items-center justify-center gap-1.5 bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 transition shadow-sm"
+                id="demo-admin-btn"
+              >
+                👑 Super Admin (Tingkat Tertinggi: Kelola Campaign &amp; Kurasi)
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-2 mb-2">
               <button
                 type="button"

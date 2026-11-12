@@ -12,6 +12,7 @@ import {
   EventZone,
 } from "@/app/lib/event-defaults";
 import { useAuth } from "@/app/components/AuthContext";
+import { saveFloorPlanBoothsToSupabase } from "@/app/lib/supabase-service";
 
 type Booth = {
   id: string;
@@ -113,7 +114,7 @@ function FloorPlanContent() {
     } catch { /* ignore */ }
   }, [eventId, user?.email]);
 
-  const saveFloorPlan = () => {
+  const saveFloorPlan = async () => {
     try {
       localStorage.setItem(`boothify_event_${eventId}_booths`, JSON.stringify(booths));
       localStorage.setItem("boothify_floor_plan", JSON.stringify(booths));
@@ -125,6 +126,23 @@ function FloorPlanContent() {
         ev.id === eventId ? { ...ev, boothsTotal: booths.length, status: "active" } : ev
       );
       localStorage.setItem("boothify_events", JSON.stringify(updatedEvents));
+
+      // Sync booths ke database Supabase
+      await saveFloorPlanBoothsToSupabase(
+        eventId,
+        booths.map((b) => ({
+          id: b.id,
+          label: b.label || b.id,
+          zone: b.zone,
+          price: b.price,
+          x: b.x,
+          y: b.y,
+          width: b.width,
+          height: b.height,
+          rotation: b.rotation,
+          sizeCm: b.sizeCm,
+        }))
+      );
     } catch { /* ignore */ }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);

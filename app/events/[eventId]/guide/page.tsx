@@ -12,6 +12,11 @@ import {
   EventTenantInfo,
   EventDetail,
 } from "../../../lib/event-defaults";
+import {
+  getEventByIdFromSupabase,
+  getBoothsFromSupabase,
+  getTenantsFromSupabase,
+} from "@/app/lib/supabase-service";
 
 interface CartItem {
   boothId: string;
@@ -86,115 +91,55 @@ function EventGuideContent() {
   const eventCategories = Array.from(new Set(booths.map((booth) => getZoneDisplay(booth.zone)).filter(Boolean)));
 
   useEffect(() => {
-    try {
-      // 1. Load Event Info
-      const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-      const found = storedEvents.find((e: { id: string }) => e.id === eventId);
-      const fallbackMeta = DEFAULT_EVENTS_META[eventId] || DEFAULT_EVENTS_META["1"];
+    let isMounted = true;
 
-      if (found) {
-        setEventInfo({
-          ...fallbackMeta,
-          ...found,
-        });
-      } else {
-        setEventInfo(fallbackMeta);
-      }
-
-      // 2. Initialize floor plan booths & tenants for this event
-      const initialized = ensureEventFloorPlanInitialized(eventId);
-      setBooths(initialized.booths);
-
-      // Hydrate tenants with scoped catalog if available in localStorage
-      const updatedTenants = { ...initialized.tenants };
-
-      // 1. Merge any booked booths from boothify_tenant_bookings
+    async function loadData() {
       try {
-        const storedBookings = JSON.parse(localStorage.getItem("boothify_tenant_bookings") || "[]");
-        if (Array.isArray(storedBookings)) {
-          storedBookings.forEach((b: { eventId?: string; booth?: string; tenantEmail?: string; tenantName?: string }) => {
-            if (b.eventId === eventId && b.booth) {
-              const bEmail = b.tenantEmail || "";
-              if (!updatedTenants[b.booth]) {
-                updatedTenants[b.booth] = {
-                  id: b.booth,
-                  name: b.tenantName || "Tenant Mitra",
-                  category: "Mitra Pameran",
-                  zone: b.booth.charAt(0),
-                  type: "non-fnb",
-                  desc: `${b.tenantName || "Tenant"} terdaftar resmi di event ini.`,
-                  tenantEmail: bEmail,
-                };
-              } else if (bEmail && !updatedTenants[b.booth].tenantEmail) {
-                updatedTenants[b.booth].tenantEmail = bEmail;
-              }
-            }
+        const [sbEvent, sbBooths, sbTenants] = await Promise.all([
+          getEventByIdFromSupabase(eventId),
+          getBoothsFromSupabase(eventId),
+          getTenantsFromSupabase(eventId),
+        ]);
+
+        if (sbEvent && isMounted) {
+          setEventInfo(sbEvent);
+        }
+        if (sbBooths && sbBooths.length > 0 && isMounted) {
+          setBooths(sbBooths);
+        }
+        if (sbTenants && Object.keys(sbTenants).length > 0 && isMounted) {
+          setTenantsMap(sbTenants);
+          return;
+        }
+
+        // Fallback to localStorage / defaults if needed
+        const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+        const found = storedEvents.find((e: { id: string }) => e.id === eventId);
+        const fallbackMeta = DEFAULT_EVENTS_META[eventId] || DEFAULT_EVENTS_META["1"];
+
+        if (found && isMounted) {
+          setEventInfo({
+            ...fallbackMeta,
+            ...found,
           });
+        } else if (isMounted) {
+          setEventInfo(fallbackMeta);
         }
-      } catch {
-        // ignore
+
+        const initialized = ensureEventFloorPlanInitialized(eventId);
+        if (isMounted) {
+          setBooths(initialized.booths);
+          setTenantsMap(initialized.tenants);
+        }
+      } catch (err) {
+        console.error("Error loading guide data:", err);
       }
-
-      // 2. Hydrate each tenant's catalog menu & branding from localStorage
-      Object.keys(updatedTenants).forEach((bId) => {
-        const tenant = updatedTenants[bId];
-        const email = tenant.tenantEmail;
-        let scopedMenu: Array<{ name: string; price: number; image?: string; description?: string }> = [];
-
-        if (email) {
-          scopedMenu = JSON.parse(localStorage.getItem(`boothify_catalog_menu_${email}`) || "[]");
-        }
-
-        // Fallbacks for demo accounts or brand names
-        if (!scopedMenu || scopedMenu.length === 0) {
-          if (tenant.name?.toLowerCase().includes("ecowear") || email === "demo-tenant@boothify.id" || email === "tenant@boothify.id") {
-            scopedMenu = JSON.parse(
-              localStorage.getItem("boothify_catalog_menu_demo-tenant@boothify.id") ||
-              localStorage.getItem("boothify_catalog_menu_tenant@boothify.id") ||
-              localStorage.getItem("boothify_catalog_menu") ||
-              "[]"
-            );
-          } else if (tenant.name?.toLowerCase().includes("kopi") || email === "kopi@boothify.id") {
-            scopedMenu = JSON.parse(
-              localStorage.getItem("boothify_catalog_menu_kopi@boothify.id") ||
-              "[]"
-            );
-          }
-        }
-
-        if (scopedMenu && scopedMenu.length > 0) {
-          tenant.menu = scopedMenu;
-        }
-
-        // Hydrate website branding
-        let scopedWeb = null;
-        if (email) {
-          scopedWeb = JSON.parse(localStorage.getItem(`boothify_catalog_website_${email}`) || "null");
-        }
-        if (!scopedWeb && (tenant.name?.toLowerCase().includes("ecowear") || email === "demo-tenant@boothify.id")) {
-          scopedWeb = JSON.parse(
-            localStorage.getItem("boothify_catalog_website_demo-tenant@boothify.id") ||
-            localStorage.getItem("boothify_catalog_website") ||
-            "null"
-          );
-        }
-        if (scopedWeb) {
-          tenant.branding = {
-            headline: scopedWeb.headline || tenant.name,
-            tagline: scopedWeb.tagline || "Brand Pilihan",
-            aboutText: scopedWeb.aboutText || tenant.desc,
-            primaryColor: scopedWeb.primaryColor || "#10b981",
-            instagram: scopedWeb.socialLinks?.instagram || "@brand",
-            website: scopedWeb.socialLinks?.website || "https://boothify.id",
-            highlights: ["Katalog Resmi", "Verified Tenant", "Garansi Kualitas"],
-          };
-        }
-      });
-
-      setTenantsMap(updatedTenants);
-    } catch {
-      // ignore
     }
+
+    loadData();
+    return () => {
+      isMounted = false;
+    };
   }, [eventId]);
 
   const handleProceedToPayment = () => {
