@@ -225,7 +225,7 @@ export default function TenantProfilePage() {
               window.location.reload();
             }
           }}
-          className="btn btn-sm text-xs bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 font-medium cursor-pointer"
+          className="btn btn-sm text-xs bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border border-amber-500/30 font-medium cursor-pointer"
           id="btn-reset-demo-tenant"
         >
           Reset ke Data Demo Awal

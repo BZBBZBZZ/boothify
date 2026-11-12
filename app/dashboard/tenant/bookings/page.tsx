@@ -388,7 +388,7 @@ export default function TenantBookingsAndOrdersPage() {
                         : currentStatus === "ready"
                         ? "border-emerald-500/50 bg-emerald-500/[0.04]"
                         : currentStatus === "done"
-                        ? "border-white/5 opacity-70"
+                        ? "border-foreground/5 opacity-70"
                         : "border-amber-500/30 bg-amber-500/[0.02]"
                     }`}
                     id={`order-card-${order.id}`}
@@ -405,29 +405,29 @@ export default function TenantBookingsAndOrdersPage() {
                           </span>
                         </div>
                         {currentStatus === "pending" && (
-                          <span className="badge text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                          <span className="badge text-[10px] bg-amber-500/15 text-amber-700 border border-amber-500/30">
                             🟡 Baru Masuk
                           </span>
                         )}
                         {currentStatus === "making" && (
-                          <span className="badge text-[10px] bg-sky-500/15 text-sky-400 border border-sky-500/30 animate-pulse">
+                          <span className="badge text-[10px] bg-sky-500/15 text-sky-700 border border-sky-500/30 animate-pulse">
                             🔵 Sedang Dibuat
                           </span>
                         )}
                         {currentStatus === "ready" && (
-                          <span className="badge text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          <span className="badge text-[10px] bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
                             🟢 Siap Diambil
                           </span>
                         )}
                         {currentStatus === "done" && (
-                          <span className="badge text-[10px] bg-white/10 text-muted-foreground border border-white/10">
+                          <span className="badge text-[10px] bg-foreground/10 text-muted-foreground border border-foreground/10">
                             ✅ Selesai
                           </span>
                         )}
                       </div>
 
                       {/* Customer Info */}
-                      <div className="mb-3 pb-3 border-b border-white/5 text-xs">
+                      <div className="mb-3 pb-3 border-b border-foreground/5 text-xs">
                         <p className="font-semibold text-foreground text-sm">{order.customer}</p>
                         <div className="flex items-center gap-2 text-muted-foreground text-[11px] mt-0.5">
                           {order.phone && <span>📱 {order.phone}</span>}
@@ -465,7 +465,7 @@ export default function TenantBookingsAndOrdersPage() {
 
                     {/* Bottom: Total & Status Actions */}
                     <div>
-                      <div className="flex items-center justify-between pt-3 border-t border-white/5 mb-4 text-xs">
+                      <div className="flex items-center justify-between pt-3 border-t border-foreground/5 mb-4 text-xs">
                         <span className="text-muted-foreground">Total Pembayaran:</span>
                         <span className="font-bold text-foreground text-sm">
                           Rp {(order.total || 185000).toLocaleString("id-ID")}
@@ -486,7 +486,7 @@ export default function TenantBookingsAndOrdersPage() {
                         {currentStatus === "making" && (
                           <button
                             onClick={() => updateOrderStatus(order.id, "ready")}
-                            className="btn btn-sm w-full text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-semibold"
+                            className="btn btn-sm w-full text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
                             id={`btn-ready-${order.id}`}
                           >
                             🔔 Tandai Siap Diambil
@@ -523,7 +523,7 @@ export default function TenantBookingsAndOrdersPage() {
       {activeTab === "booths" && (
         <div className="space-y-6">
           {bookings.length === 0 ? (
-            <div className="card-base p-8 text-center border-dashed border-white/10">
+            <div className="card-base p-8 text-center border-dashed border-foreground/10">
               <span className="text-4xl block mb-2">🏪</span>
               <h3 className="font-bold text-sm mb-1 text-foreground">Belum Ada Booth yang Disewa</h3>
               <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto">
@@ -536,10 +536,10 @@ export default function TenantBookingsAndOrdersPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {bookings.map((booking, i) => (
-                <div key={i} className="card-base p-6 border border-white/5 hover:border-primary/30 transition flex flex-col justify-between">
+                <div key={i} className="card-base p-6 border border-foreground/5 hover:border-primary/30 transition flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center font-bold text-white text-base">
+                      <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center font-bold text-secondary text-base">
                         {booking.booth}
                       </div>
                       <span className={`badge text-[10px] ${booking.payment === "paid" ? "badge-primary" : "badge-accent"}`}>
@@ -556,7 +556,7 @@ export default function TenantBookingsAndOrdersPage() {
                     </p>
                   </div>
 
-                  <div className="space-y-2 pt-3 border-t border-white/5">
+                  <div className="space-y-2 pt-3 border-t border-foreground/5">
                     <div className="grid grid-cols-2 gap-2">
                       <Link
                         href={`/events/${booking.eventId || "1"}/guide`}
@@ -601,14 +601,14 @@ export default function TenantBookingsAndOrdersPage() {
             <h3 className="font-bold text-lg text-foreground mb-1">{selectedPass.event}</h3>
             <p className="text-xs text-muted-foreground mb-4">{selectedPass.date}</p>
 
-            <div className="p-6 rounded-2xl bg-white/[0.03] border border-white/10 my-4 inline-block w-full">
-              <div className="w-20 h-20 rounded-2xl gradient-primary mx-auto flex items-center justify-center text-3xl font-black text-white shadow-xl mb-3">
+            <div className="p-6 rounded-2xl bg-foreground/[0.03] border border-foreground/10 my-4 inline-block w-full">
+              <div className="w-20 h-20 rounded-2xl gradient-primary mx-auto flex items-center justify-center text-3xl font-black text-secondary shadow-xl mb-3">
                 {selectedPass.booth}
               </div>
               <p className="text-xs font-semibold text-foreground uppercase tracking-wider">
                 Booth Number: {selectedPass.booth}
               </p>
-              <p className="text-[11px] text-emerald-400 font-medium mt-1">
+              <p className="text-[11px] text-emerald-700 font-medium mt-1">
                 ✓ Terverifikasi &amp; Lunas
               </p>
             </div>

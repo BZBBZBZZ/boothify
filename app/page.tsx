@@ -235,7 +235,7 @@ export default function HomePage() {
                         <span className="text-muted-foreground">Booth terisi</span>
                         <span className="font-semibold text-primary-light">{event.boothsFilled}/{event.boothsTotal}</span>
                       </div>
-                      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                      <div className="h-1.5 rounded-full bg-foreground/5 overflow-hidden">
                         <div
                           className="h-full rounded-full gradient-primary transition-all duration-500"
                           style={{ width: `${(event.boothsFilled / event.boothsTotal) * 100}%` }}

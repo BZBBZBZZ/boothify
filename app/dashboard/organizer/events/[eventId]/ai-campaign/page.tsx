@@ -131,7 +131,7 @@ function AICampaignContent() {
 
   return (
     <div className="animate-fade-in" id="ai-campaign-page">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/[0.08]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-foreground/[0.08]">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold">AI Campaign & Insights Generator</h1>
@@ -149,7 +149,7 @@ function AICampaignContent() {
                 setActiveOrganizerEventId(e.target.value);
                 router.push(`/dashboard/organizer/events/${e.target.value}/ai-campaign`);
               }}
-              className="bg-card/90 border border-white/10 rounded-lg px-2 py-1 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:outline-none"
+              className="bg-card/90 border border-foreground/10 rounded-lg px-2 py-1 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:outline-none"
             >
               {allEvents.map((ev) => (
                 <option key={ev.id} value={ev.id}>
@@ -202,9 +202,9 @@ function AICampaignContent() {
         <div className="max-w-2xl space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="card-base p-6 animate-shimmer">
-              <div className="h-4 w-48 bg-white/5 rounded mb-3" />
-              <div className="h-3 w-full bg-white/5 rounded mb-2" />
-              <div className="h-3 w-3/4 bg-white/5 rounded" />
+              <div className="h-4 w-48 bg-foreground/5 rounded mb-3" />
+              <div className="h-3 w-full bg-foreground/5 rounded mb-2" />
+              <div className="h-3 w-3/4 bg-foreground/5 rounded" />
             </div>
           ))}
         </div>

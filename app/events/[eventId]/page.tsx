@@ -16,12 +16,12 @@ import {
 
 const getZoneBadgeColor = (zone: string) => {
   const z = zone.toLowerCase();
-  if (z.includes("fnb") || z.includes("food") || z.includes("makanan")) return "bg-amber-500/15 border-amber-500/40 text-amber-400";
-  if (z.includes("fash") || z.includes("busana")) return "bg-emerald-500/15 border-emerald-500/40 text-emerald-400";
-  if (z.includes("craft") || z.includes("kriya")) return "bg-rose-500/15 border-rose-500/40 text-rose-400";
-  if (z.includes("edu") || z.includes("tech")) return "bg-purple-500/15 border-purple-500/40 text-purple-400";
-  if (z.includes("auto")) return "bg-blue-500/15 border-blue-500/40 text-blue-400";
-  return "bg-cyan-500/15 border-cyan-500/40 text-cyan-400";
+  if (z.includes("fnb") || z.includes("food") || z.includes("makanan")) return "bg-amber-500/15 border-amber-500/40 text-amber-700";
+  if (z.includes("fash") || z.includes("busana")) return "bg-emerald-500/15 border-emerald-500/40 text-emerald-700";
+  if (z.includes("craft") || z.includes("kriya")) return "bg-rose-500/15 border-rose-500/40 text-rose-700";
+  if (z.includes("edu") || z.includes("tech")) return "bg-purple-500/15 border-purple-500/40 text-purple-700";
+  if (z.includes("auto")) return "bg-blue-500/15 border-blue-500/40 text-blue-700";
+  return "bg-cyan-500/15 border-cyan-500/40 text-cyan-700";
 };
 
 const getZoneDisplay = (zone: string) => {
@@ -147,13 +147,13 @@ function EventDetailContent() {
 
           {/* Hero */}
           <div className="card-base overflow-hidden mb-8">
-            <div className={`h-48 sm:h-64 bg-gradient-to-br ${event.gradient || "from-emerald-500/20 to-teal-500/20"} flex items-center justify-center relative`}>
+            <div className={`h-48 sm:h-64 bg-gradient-to-br ${event.gradient || "from-amber-500/20 to-orange-500/20"} flex items-center justify-center relative`}>
               <span className="text-8xl">{event.image}</span>
               <div className="absolute top-4 right-4 flex items-center gap-2">
                 <span className="badge badge-primary">{event.category}</span>
                 <Link
                   href={`/events/${eventId}/guide`}
-                  className="btn btn-secondary btn-sm text-xs backdrop-blur-md bg-black/40 border-white/20"
+                  className="btn btn-secondary btn-sm text-xs backdrop-blur-md bg-black/40 border-foreground/20"
                   id="btn-goto-visitor-guide"
                 >
                   📱 Buka Panduan Digital →
@@ -251,7 +251,7 @@ function EventDetailContent() {
                   <h2 className="text-lg font-semibold mb-4">Zona Booth</h2>
                   <div className="space-y-3">
                     {(event.zones || []).map((zone) => (
-                      <div key={zone.name} className="flex items-center gap-3 p-3 rounded-xl bg-white/3">
+                      <div key={zone.name} className="flex items-center gap-3 p-3 rounded-xl bg-foreground/3">
                         <div className="w-3 h-3 rounded-full bg-primary" />
                         <span className="text-sm flex-1">{zone.name}</span>
                         <span className="text-xs text-muted-foreground">{zone.booths} booth</span>
@@ -275,7 +275,7 @@ function EventDetailContent() {
                 <div className="card-base p-6">
                   <h2 className="text-lg font-semibold mb-4">Penyelenggara</h2>
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center text-white font-bold">
+                    <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center text-secondary font-bold">
                       {event.organizer.slice(0, 2).toUpperCase()}
                     </div>
                     <div>
@@ -300,7 +300,7 @@ function EventDetailContent() {
                     </div>
                     <p className="text-sm text-muted-foreground">booth tersedia dari total {booths.length} booth</p>
                   </div>
-                  <div className="h-2 rounded-full bg-white/5 overflow-hidden mb-4">
+                  <div className="h-2 rounded-full bg-foreground/5 overflow-hidden mb-4">
                     <div
                       className="h-full rounded-full gradient-primary"
                       style={{
@@ -340,9 +340,9 @@ function EventDetailContent() {
                     </div>
 
                     {/* Legend */}
-                    <div className="flex flex-wrap items-center gap-4 mb-6 text-xs p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                    <div className="flex flex-wrap items-center gap-4 mb-6 text-xs p-3 rounded-xl bg-foreground/[0.02] border border-foreground/5">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-4 h-4 rounded bg-white/[0.05] border border-white/20" />
+                        <div className="w-4 h-4 rounded bg-foreground/[0.05] border border-foreground/20" />
                         <span>Tersedia</span>
                       </div>
                       <div className="flex items-center gap-1.5">
@@ -350,7 +350,7 @@ function EventDetailContent() {
                         <span>Dipilih Anda</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <div className="w-4 h-4 rounded bg-white/10 border border-white/5 opacity-50" />
+                        <div className="w-4 h-4 rounded bg-foreground/10 border border-foreground/5 opacity-50" />
                         <span>Sudah Terisi</span>
                       </div>
                     </div>
@@ -372,10 +372,10 @@ function EventDetailContent() {
                             // PERUBAHAN: Tambah `flex flex-col overflow-hidden` dan kurangi padding ke p-1.5/p-2
                             className={`public-floor-plan-booth absolute p-1.5 sm:p-2 flex flex-col overflow-hidden rounded-xl border text-left transition-all ${
                               isTaken
-                                ? "bg-white/[0.02] border-white/5 opacity-60 cursor-not-allowed"
+                                ? "bg-foreground/[0.02] border-foreground/5 opacity-60 cursor-not-allowed"
                                 : isSelected
                                 ? "bg-primary/10 border-2 border-primary shadow-lg shadow-primary/10 cursor-pointer scale-[1.02]"
-                                : "bg-card hover:bg-white/[0.04] border-border hover:border-primary/50 cursor-pointer"
+                                : "bg-card hover:bg-foreground/[0.04] border-border hover:border-primary/50 cursor-pointer"
                             }`}
                             style={{
                               left: `${(b.x / 600) * 100}%`,
@@ -403,18 +403,18 @@ function EventDetailContent() {
 
                             {/* PERUBAHAN: mt-auto memastikan status selalu nempel di bawah kotak */}
                             {isTaken ? (
-                              <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-white/5 w-full min-w-0">
+                              <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-foreground/5 w-full min-w-0">
                                 <span className="text-[8px] sm:text-[9px] text-muted-foreground block truncate w-full leading-tight">
                                   ✓ Terisi: {tenant?.name || "Tenant"}
                                 </span>
                               </div>
                             ) : isSelected ? (
-                              <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-primary/30 flex items-center justify-between text-[9px] sm:text-[10px] font-medium text-emerald-400 w-full min-w-0 leading-tight">
+                              <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-primary/30 flex items-center justify-between text-[9px] sm:text-[10px] font-medium text-emerald-700 w-full min-w-0 leading-tight">
                                 <span>Dipilih</span>
                                 <span>✓</span>
                               </div>
                             ) : (
-                              <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-white/5 text-[8px] sm:text-[9px] text-muted-foreground truncate w-full leading-tight">
+                              <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-foreground/5 text-[8px] sm:text-[9px] text-muted-foreground truncate w-full leading-tight">
                                 Pilih booth
                               </div>
                             )}
@@ -442,7 +442,7 @@ function EventDetailContent() {
                       <div className="space-y-4">
                         <div className="space-y-2">
                           {selectedBoothsData.map((b) => (
-                            <div key={b.label} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5">
+                            <div key={b.label} className="flex items-center justify-between p-3 rounded-xl bg-foreground/[0.02] border border-foreground/5">
                               <div className="flex items-center gap-2.5">
                                 <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center text-xs font-bold text-primary-light">
                                   {b.label}
@@ -514,9 +514,9 @@ function EventDetailContent() {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {registeredTenantsList.map((tenant) => (
-                    <div key={tenant.id} className="card-base p-5 border border-white/5 hover:border-primary/40 transition">
+                    <div key={tenant.id} className="card-base p-5 border border-foreground/5 hover:border-primary/40 transition">
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center text-white font-bold text-sm">
+                        <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center text-secondary font-bold text-sm">
                           {tenant.name.slice(0, 2).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -557,7 +557,7 @@ function EventDetailContent() {
               </button>
 
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center text-white font-bold">
+                <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center text-secondary font-bold">
                   {event.organizer.slice(0, 2).toUpperCase()}
                 </div>
                 <div>
@@ -576,7 +576,7 @@ function EventDetailContent() {
                   href={`https://wa.me/6281234567890?text=${encodeURIComponent(`Halo Organizer ${event.title}, saya tertarik seputar sewa booth`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2.5 border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 text-emerald-400"
+                  className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2.5 border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 text-emerald-700"
                   id="contact-whatsapp"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>

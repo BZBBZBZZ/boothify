@@ -315,7 +315,7 @@ export default function TenantDashboard() {
               </div>
             </div>
             {bookings.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground border border-dashed border-white/10 rounded-xl p-6">
+              <div className="text-center py-8 text-muted-foreground border border-dashed border-foreground/10 rounded-xl p-6">
                 <span className="text-3xl block mb-2">🏪</span>
                 <p className="font-semibold text-foreground mb-1">Belum Ada Booth yang Disewa</p>
                 <p className="text-xs mb-4">Akun brand ini belum memiliki sewa booth aktif. Jelajahi event yang cocok untuk brand kamu.</p>
@@ -326,7 +326,7 @@ export default function TenantDashboard() {
             ) : (
               <div className="space-y-3">
                 {bookings.map((booking, i) => (
-                  <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition border border-white/[0.03]">
+                  <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-foreground/[0.02] hover:bg-foreground/[0.04] transition border border-foreground/[0.03]">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center font-bold text-sm">
                         {booking.booth}
@@ -373,7 +373,7 @@ export default function TenantDashboard() {
             </p>
 
             {visitorOrders.length === 0 ? (
-              <div className="p-6 rounded-xl bg-white/[0.02] border border-dashed border-white/10 text-center">
+              <div className="p-6 rounded-xl bg-foreground/[0.02] border border-dashed border-foreground/10 text-center">
                 <span className="text-3xl block mb-2">📋</span>
                 <p className="font-semibold text-xs text-foreground mb-1">Belum Ada Pesanan Masuk</p>
                 <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
@@ -394,7 +394,7 @@ export default function TenantDashboard() {
                           : status === "ready"
                           ? "bg-emerald-500/[0.04] border-emerald-500/40"
                           : status === "done"
-                          ? "bg-white/[0.01] border-white/5 opacity-70"
+                          ? "bg-foreground/[0.01] border-foreground/5 opacity-70"
                           : "bg-amber-500/[0.03] border-amber-500/30"
                       }`}
                     >
@@ -407,16 +407,16 @@ export default function TenantDashboard() {
                           <span className="badge badge-secondary text-[9px]">{order.method}</span>
                           <span className="text-[10px] text-muted-foreground">{order.time}</span>
                           {status === "pending" && (
-                            <span className="badge text-[9px] bg-amber-500/15 text-amber-400">🟡 Baru Masuk</span>
+                            <span className="badge text-[9px] bg-amber-500/15 text-amber-700">🟡 Baru Masuk</span>
                           )}
                           {status === "making" && (
-                            <span className="badge text-[9px] bg-sky-500/15 text-sky-400 animate-pulse">🔵 Sedang Dibuat</span>
+                            <span className="badge text-[9px] bg-sky-500/15 text-sky-700 animate-pulse">🔵 Sedang Dibuat</span>
                           )}
                           {status === "ready" && (
-                            <span className="badge text-[9px] bg-emerald-500/15 text-emerald-400">🟢 Siap Diambil</span>
+                            <span className="badge text-[9px] bg-emerald-500/15 text-emerald-700">🟢 Siap Diambil</span>
                           )}
                           {status === "done" && (
-                            <span className="badge text-[9px] bg-white/10 text-muted-foreground">✅ Selesai</span>
+                            <span className="badge text-[9px] bg-foreground/10 text-muted-foreground">✅ Selesai</span>
                           )}
                         </div>
                         <p className="font-medium text-foreground mt-1">
@@ -445,7 +445,7 @@ export default function TenantDashboard() {
                           {status === "making" && (
                             <button
                               onClick={() => updateOrderStatus(order.id, "ready")}
-                              className="btn btn-sm text-[11px] py-1 px-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-medium"
+                              className="btn btn-sm text-[11px] py-1 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
                               id={`dash-ready-${order.id}`}
                             >
                               🔔 Siap
@@ -483,7 +483,7 @@ export default function TenantDashboard() {
             <p className="text-xs text-muted-foreground mb-5">Event yang cocok dengan profil produk kamu</p>
             <div className="space-y-3">
               {RECOMMENDED_EVENTS.map((event) => (
-                <Link key={event.id} href={`/events/${event.id}`} className="block p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition">
+                <Link key={event.id} href={`/events/${event.id}`} className="block p-4 rounded-xl bg-foreground/[0.02] hover:bg-foreground/[0.04] transition">
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="font-medium text-sm">{event.title}</h3>
                     <span className="text-xs font-bold text-primary-light">{event.match}</span>

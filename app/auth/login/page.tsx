@@ -63,7 +63,7 @@ export default function LoginPage() {
         <div className="relative z-10 max-w-md text-center px-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-8">
             <div className="w-12 h-12 rounded-2xl gradient-primary flex items-center justify-center">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
@@ -86,7 +86,7 @@ export default function LoginPage() {
                     ? "bg-primary/20 border border-primary/30"
                     : [3, 7, 11].includes(i)
                     ? "bg-secondary/15 border border-secondary/20"
-                    : "bg-white/5 border border-white/10"
+                    : "bg-foreground/5 border border-foreground/10"
                 }`}
               />
             ))}
@@ -102,7 +102,7 @@ export default function LoginPage() {
           <div className="lg:hidden text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2">
               <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                   <polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
@@ -244,7 +244,7 @@ export default function LoginPage() {
             <p className="text-[10px] text-muted-foreground mt-2 text-center">
               💡 Tiap akun memiliki data, booth, dan katalog terpisah di Local Storage.
             </p>
-            <div className="mt-3 pt-3 border-t border-white/5 text-center">
+            <div className="mt-3 pt-3 border-t border-foreground/5 text-center">
               <button
                 type="button"
                 onClick={() => {
@@ -253,7 +253,7 @@ export default function LoginPage() {
                     window.location.reload();
                   }
                 }}
-                className="text-[11px] text-muted-foreground hover:text-amber-400 transition inline-flex items-center gap-1.5 cursor-pointer font-medium"
+                className="text-[11px] text-muted-foreground hover:text-amber-700 transition inline-flex items-center gap-1.5 cursor-pointer font-medium"
                 title="Hapus data input pengujian dan kembalikan ke kondisi default demo"
                 id="reset-demo-data-btn"
               >

@@ -166,7 +166,7 @@ function CheckoutContent() {
           {items.map((item) => (
             <div key={item.booth} className="flex items-center justify-between text-sm">
               <span>Booth {item.booth} ({item.zone})</span>
-              <span className="font-medium text-emerald-400">✓ Confirmed &amp; Paid</span>
+              <span className="font-medium text-emerald-700">✓ Confirmed &amp; Paid</span>
             </div>
           ))}
           <hr className="border-border" />
@@ -215,7 +215,7 @@ function CheckoutContent() {
                 </div>
               </div>
               {items.map((item) => (
-                <div key={item.booth} className="flex items-center justify-between p-3 rounded-xl bg-white/3">
+                <div key={item.booth} className="flex items-center justify-between p-3 rounded-xl bg-foreground/3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center text-xs font-bold text-primary-light">{item.booth}</div>
                     <div>
@@ -247,7 +247,7 @@ function CheckoutContent() {
                   className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all ${
                     paymentMethod === method.id
                       ? "bg-primary/5 border-2 border-primary"
-                      : "bg-white/[0.02] border-2 border-transparent hover:bg-white/[0.04]"
+                      : "bg-foreground/[0.02] border-2 border-transparent hover:bg-foreground/[0.04]"
                   }`}
                 >
                   <input
@@ -264,7 +264,7 @@ function CheckoutContent() {
                     paymentMethod === method.id ? "border-primary bg-primary" : "border-border"
                   }`}>
                     {paymentMethod === method.id && (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><polyline points="20 6 9 17 4 12" /></svg>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="4"><polyline points="20 6 9 17 4 12" /></svg>
                     )}
                   </div>
                 </label>

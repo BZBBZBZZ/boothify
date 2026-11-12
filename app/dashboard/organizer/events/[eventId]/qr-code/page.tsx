@@ -101,7 +101,7 @@ function QRCodeContent() {
 
   return (
     <div className="animate-fade-in" id="qr-code-page">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/[0.08]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-foreground/[0.08]">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold">QR Code Event</h1>
@@ -118,7 +118,7 @@ function QRCodeContent() {
                 setActiveOrganizerEventId(e.target.value);
                 router.push(`/dashboard/organizer/events/${e.target.value}/qr-code`);
               }}
-              className="bg-card/90 border border-white/10 rounded-lg px-2 py-1 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:outline-none"
+              className="bg-card/90 border border-foreground/10 rounded-lg px-2 py-1 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:outline-none"
             >
               {allEvents.map((ev) => (
                 <option key={ev.id} value={ev.id}>
@@ -219,7 +219,7 @@ function QRCodeContent() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <Link
                 href={`/events/${eventId}/guide`}
-                className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2 border-emerald-500/30 text-emerald-700 hover:bg-emerald-500/10"
                 id="test-visitor-flow"
               >
                 📱 Uji sbg Pengunjung (Scan)
@@ -249,7 +249,7 @@ function QRCodeContent() {
                 { step: "4", title: "Akses Panduan Digital", desc: "Pengunjung bisa melihat denah interaktif, info booth, pesan makanan (F&B), dan baca brosur digital (Non-F&B)." },
               ].map((item) => (
                 <li key={item.step} className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                  <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center text-secondary text-sm font-bold flex-shrink-0">
                     {item.step}
                   </div>
                   <div>
@@ -282,7 +282,7 @@ function QRCodeContent() {
                 </div>
                 <button
                   onClick={() => setShowLogo(!showLogo)}
-                  className={`w-10 h-6 rounded-full flex items-center px-0.5 transition-colors ${showLogo ? "bg-primary/50" : "bg-white/10"}`}
+                  className={`w-10 h-6 rounded-full flex items-center px-0.5 transition-colors ${showLogo ? "bg-primary/50" : "bg-foreground/10"}`}
                 >
                   <div className={`w-5 h-5 rounded-full bg-white transition-transform ${showLogo ? "translate-x-4" : "translate-x-0"}`} />
                 </button>
@@ -294,7 +294,7 @@ function QRCodeContent() {
                 </div>
                 <button
                   onClick={() => setShowEventInfo(!showEventInfo)}
-                  className={`w-10 h-6 rounded-full flex items-center px-0.5 transition-colors ${showEventInfo ? "bg-primary/50" : "bg-white/10"}`}
+                  className={`w-10 h-6 rounded-full flex items-center px-0.5 transition-colors ${showEventInfo ? "bg-primary/50" : "bg-foreground/10"}`}
                 >
                   <div className={`w-5 h-5 rounded-full bg-white transition-transform ${showEventInfo ? "translate-x-4" : "translate-x-0"}`} />
                 </button>

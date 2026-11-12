@@ -101,7 +101,7 @@ function RegisterFormContent() {
         <div className="relative z-10 max-w-md text-center px-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-8">
             <div className="w-12 h-12 rounded-2xl gradient-primary flex items-center justify-center">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
@@ -124,7 +124,7 @@ function RegisterFormContent() {
             {[1, 2, 3].map((s) => (
               <div key={s} className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                  s <= step ? "gradient-primary text-white" : "bg-white/5 text-muted-foreground border border-border"
+                  s <= step ? "gradient-primary text-secondary" : "bg-foreground/5 text-muted-foreground border border-border"
                 }`}>
                   {s < step ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
@@ -147,7 +147,7 @@ function RegisterFormContent() {
           <div className="lg:hidden text-center mb-6">
             <Link href="/" className="inline-flex items-center gap-2">
               <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                   <polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
@@ -182,7 +182,7 @@ function RegisterFormContent() {
                       role === "organizer" ? "border-primary bg-primary/5 shadow-lg shadow-primary/10" : "border-border hover:border-border-light bg-card"
                     }`} id="role-organizer">
                     <div className="flex items-start gap-4">
-                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${role === "organizer" ? "bg-primary/20" : "bg-white/5"}`}>
+                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${role === "organizer" ? "bg-primary/20" : "bg-foreground/5"}`}>
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={role === "organizer" ? "var(--primary-light)" : "currentColor"} strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
                       </div>
                       <div className="flex-1">
@@ -190,7 +190,7 @@ function RegisterFormContent() {
                         <p className="text-sm text-muted-foreground">Buat & kelola event, atur denah booth interaktif, generate QR Code, dan terima pendaftaran tenant.</p>
                       </div>
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${role === "organizer" ? "border-primary bg-primary" : "border-border"}`}>
-                        {role === "organizer" && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><polyline points="20 6 9 17 4 12" /></svg>}
+                        {role === "organizer" && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="4"><polyline points="20 6 9 17 4 12" /></svg>}
                       </div>
                     </div>
                   </button>
@@ -200,7 +200,7 @@ function RegisterFormContent() {
                       role === "tenant" ? "border-secondary bg-secondary/5 shadow-lg shadow-secondary/10" : "border-border hover:border-border-light bg-card"
                     }`} id="role-tenant">
                     <div className="flex items-start gap-4">
-                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${role === "tenant" ? "bg-secondary/20" : "bg-white/5"}`}>
+                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${role === "tenant" ? "bg-secondary/20" : "bg-foreground/5"}`}>
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={role === "tenant" ? "var(--secondary-light)" : "currentColor"} strokeWidth="1.8" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
                       </div>
                       <div className="flex-1">
@@ -208,7 +208,7 @@ function RegisterFormContent() {
                         <p className="text-sm text-muted-foreground">Cari event, booking booth strategis, upload katalog produk, dan kelola transaksi saat acara.</p>
                       </div>
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${role === "tenant" ? "border-secondary bg-secondary" : "border-border"}`}>
-                        {role === "tenant" && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><polyline points="20 6 9 17 4 12" /></svg>}
+                        {role === "tenant" && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="4"><polyline points="20 6 9 17 4 12" /></svg>}
                       </div>
                     </div>
                   </button>

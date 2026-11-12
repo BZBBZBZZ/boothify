@@ -1,30 +1,33 @@
 @import "tailwindcss";
 
 :root {
-  --background: #08100f;
-  --foreground: #e8edf3;
-  --card: #0d1816;
-  --card-hover: #12221e;
-  --border: #1d3430;
-  --border-light: #2b4a42;
-  --muted: #a1b5ae;
-  --muted-foreground: #78918a;
+  --background: #f4f5f9;
+  --foreground: #1b2547;
+  --card: #ffffff;
+  --card-hover: #f9fafd;
+  --border: #e4e7f0;
+  --border-light: #cdd3e3;
+  --muted: #4a5578;
+  --muted-foreground: #66709a;
 
-  /* Primary - Emerald/Teal */
-  --primary: #10b981;
-  --primary-light: #34d399;
-  --primary-dark: #059669;
-  --primary-glow: rgba(16, 185, 129, 0.15);
-  --primary-glow-strong: rgba(16, 185, 129, 0.3);
+  /* Sidebar / navy surface (Figma) */
+  --sidebar: #1e2a4a;
 
-  /* Secondary - restrained sea green for supporting states */
-  --secondary: #2b8f83;
-  --secondary-light: #61c5b4;
-  --secondary-dark: #206e65;
+  /* Primary - Amber (Figma). *-light is the darker amber used for text on light surfaces */
+  --primary: #f5a623;
+  --primary-light: #a85f00;
+  --primary-dark: #d98a0a;
+  --primary-glow: rgba(245, 166, 35, 0.16);
+  --primary-glow-strong: rgba(245, 166, 35, 0.32);
+
+  /* Secondary - Navy */
+  --secondary: #1e2a4a;
+  --secondary-light: #3b4b80;
+  --secondary-dark: #141d36;
 
   /* Accent - Amber */
-  --accent: #f59e0b;
-  --accent-light: #fbbf24;
+  --accent: #f5a623;
+  --accent-light: #a85f00;
 
   /* Status */
   --success: #22c55e;
@@ -54,9 +57,9 @@
   --zone-maritime: #0284c7;
 
   /* Glass */
-  --glass-bg: rgba(13, 17, 23, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(30, 42, 74, 0.08);
+  --glass-shadow: 0 8px 32px rgba(30, 42, 74, 0.1);
 }
 
 @theme inline {
@@ -71,6 +74,7 @@
   --color-primary: var(--primary);
   --color-primary-light: var(--primary-light);
   --color-primary-dark: var(--primary-dark);
+  --color-sidebar: var(--sidebar);
   --color-secondary: var(--secondary);
   --color-secondary-light: var(--secondary-light);
   --color-accent: var(--accent);
@@ -113,11 +117,11 @@ body {
 
 ::selection {
   background: var(--primary);
-  color: #04100d;
+  color: var(--secondary);
 }
 
 :focus-visible {
-  outline: 2px solid var(--primary-light);
+  outline: 2px solid var(--primary-dark);
   outline-offset: 3px;
 }
 
@@ -190,7 +194,7 @@ main,
 .animate-float { animation: float 3s ease-in-out infinite; }
 .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
 .animate-shimmer {
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+  background: linear-gradient(90deg, transparent, rgba(30,42,74,0.06), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
@@ -207,28 +211,28 @@ main,
 
 /* ===== GLASS ===== */
 .glass {
-  background: rgba(8, 16, 15, 0.94);
+  background: rgba(255, 255, 255, 0.94);
   border-bottom: 1px solid var(--border);
 }
 
 .glass-light {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(30, 42, 74, 0.03);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(30, 42, 74, 0.08);
 }
 
 /* ===== GRADIENTS ===== */
 .gradient-primary {
-  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
 }
 
 .gradient-hero {
-  background: linear-gradient(135deg, var(--primary-dark), var(--secondary), var(--primary));
+  background: linear-gradient(135deg, var(--secondary), var(--secondary-light), var(--primary));
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
+  background: linear-gradient(135deg, #c47a00, #8a4f00);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -257,6 +261,7 @@ main,
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(30, 42, 74, 0.04);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -264,13 +269,14 @@ main,
   background: var(--card-hover);
   border-color: var(--border-light);
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 12px 32px rgba(30, 42, 74, 0.1);
 }
 
 .card-interactive {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(30, 42, 74, 0.04);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -279,7 +285,7 @@ main,
   background: var(--card-hover);
   border-color: var(--primary);
   transform: translateY(-3px);
-  box-shadow: 0 12px 40px rgba(16, 185, 129, 0.1);
+  box-shadow: 0 12px 32px rgba(245, 166, 35, 0.18);
 }
 
 /* ===== BUTTONS ===== */
@@ -302,11 +308,11 @@ main,
 
 .btn-primary {
   background: var(--primary);
-  color: #04100d;
+  color: var(--secondary);
   box-shadow: none;
 }
 .btn-primary:hover {
-  background: var(--primary-light);
+  background: var(--primary-dark);
 }
 
 .btn-secondary {
@@ -325,7 +331,7 @@ main,
   color: var(--muted);
 }
 .btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(30, 42, 74, 0.06);
   color: var(--foreground);
 }
 
@@ -394,9 +400,9 @@ main,
   align-items: flex-end;
   padding: 1.25rem;
   background:
-    linear-gradient(135deg, rgba(52, 211, 153, 0.18), transparent 60%),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 14px),
-    #102621;
+    linear-gradient(135deg, rgba(245, 166, 35, 0.2), transparent 60%),
+    repeating-linear-gradient(135deg, rgba(30, 42, 74, 0.05) 0 1px, transparent 1px 14px),
+    #fdf3e0;
 }
 
 .event-mark {
@@ -408,7 +414,7 @@ main,
 }
 
 .home-section {
-  border-top: 1px solid rgba(43, 74, 66, 0.45);
+  border-top: 1px solid var(--border);
 }
 
 .badge-primary {
@@ -417,12 +423,12 @@ main,
 }
 
 .badge-secondary {
-  background: rgba(139, 92, 246, 0.15);
+  background: rgba(30, 42, 74, 0.08);
   color: var(--secondary-light);
 }
 
 .badge-accent {
-  background: rgba(245, 158, 11, 0.15);
+  background: rgba(245, 166, 35, 0.16);
   color: var(--accent-light);
 }
 
@@ -449,22 +455,22 @@ main,
 }
 
 .booth-available {
-  background: rgba(16, 185, 129, 0.08);
-  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(245, 166, 35, 0.1);
+  border-color: rgba(245, 166, 35, 0.45);
   color: var(--primary-light);
 }
 
 .booth-selected {
   background: var(--primary);
-  border-color: var(--primary-light);
-  color: white;
+  border-color: var(--primary-dark);
+  color: var(--secondary);
   box-shadow: 0 0 16px var(--primary-glow-strong);
   transform: scale(1.05);
 }
 
 .booth-taken {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(30, 42, 74, 0.05);
+  border-color: rgba(30, 42, 74, 0.1);
   color: var(--muted-foreground);
   cursor: not-allowed;
   opacity: 0.5;
@@ -481,7 +487,7 @@ main,
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(20, 29, 54, 0.55);
   backdrop-filter: blur(4px);
   z-index: 50;
   display: flex;
@@ -504,11 +510,36 @@ main,
 }
 
 /* ===== SIDEBAR ===== */
+/* Navy surface: re-point the theme tokens so every utility inside it reads correctly */
+.sidebar,
+.sidebar-dark,
+.glass.dashboard-mobile-header {
+  --foreground: #ffffff;
+  --card: #2a3760;
+  --card-hover: #34426f;
+  --muted: #c3cbe3;
+  --muted-foreground: #98a3c8;
+  --border: rgba(255, 255, 255, 0.12);
+  --border-light: rgba(255, 255, 255, 0.2);
+  --primary-light: #f5a623;
+  --secondary-light: #f5a623;
+  color: var(--foreground);
+}
+
+.sidebar,
+.sidebar-dark {
+  background: var(--sidebar);
+}
+
+.glass.dashboard-mobile-header {
+  background: var(--sidebar);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .sidebar {
   width: 260px;
   min-height: 100vh;
-  background: var(--card);
-  border-right: 1px solid var(--border);
+  border-right: none;
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
@@ -520,7 +551,7 @@ main,
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  border-radius: 10px;
+  border-radius: 8px;
   color: var(--muted);
   font-size: 14px;
   font-weight: 500;
@@ -529,13 +560,14 @@ main,
 }
 
 .sidebar-link:hover {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--foreground);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
 }
 
 .sidebar-link.active {
-  background: var(--primary-glow);
-  color: var(--primary-light);
+  background: var(--primary);
+  color: var(--secondary);
+  font-weight: 600;
 }
 
 /* ===== STAT CARD ===== */
@@ -569,7 +601,7 @@ main,
   position: absolute;
   border: 2px solid var(--border-light);
   border-radius: 8px;
-  background: rgba(16, 185, 129, 0.08);
+  background: rgba(245, 166, 35, 0.1);
   cursor: grab;
   display: flex;
   align-items: center;

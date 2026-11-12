@@ -107,7 +107,7 @@ export default function OrganizerMessagesPage() {
           <div className="px-3 py-2 rounded-lg border border-border bg-card">
             <span className="text-muted-foreground">Total </span><strong>{messages.length}</strong>
           </div>
-          <div className="px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300">
+          <div className="px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-700">
             <span>Belum dibaca </span><strong>{unreadCount}</strong>
           </div>
         </div>
@@ -147,7 +147,7 @@ export default function OrganizerMessagesPage() {
                   <p className="text-sm leading-6 text-foreground/90">{message.message}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 shrink-0 lg:max-w-[260px] lg:justify-end">
-                  {message.senderPhone && <a href={`https://wa.me/${message.senderPhone.replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm min-h-11 text-xs text-emerald-300">WhatsApp</a>}
+                  {message.senderPhone && <a href={`https://wa.me/${message.senderPhone.replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm min-h-11 text-xs text-emerald-700">WhatsApp</a>}
                   <a href={`mailto:${message.senderEmail}?subject=Re: Pertanyaan Event ${encodeURIComponent(message.eventTitle)}`} className="btn btn-secondary btn-sm min-h-11 text-xs">Email</a>
                   {message.status === "unread" && <button type="button" onClick={() => markAsRead(message.id)} className="btn btn-ghost btn-sm min-h-11 text-xs text-primary-light">Tandai dibaca</button>}
                   <button type="button" onClick={() => deleteMessage(message.id)} className="btn btn-ghost btn-sm min-h-11 text-xs text-error">Hapus</button>

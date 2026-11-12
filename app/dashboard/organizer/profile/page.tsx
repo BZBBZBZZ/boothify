@@ -106,7 +106,7 @@ export default function OrganizerProfilePage() {
           </div>
           <div>
             <h2 className="font-semibold text-lg">{profile.orgName}</h2>
-            <p className="text-sm text-emerald-400 font-medium">Verified Event Organizer ✓</p>
+            <p className="text-sm text-emerald-700 font-medium">Verified Event Organizer ✓</p>
             <button
               type="button"
               onClick={() => photoInputRef.current?.click()}
@@ -200,7 +200,7 @@ export default function OrganizerProfilePage() {
             { name: "Indonesia Food Festival 2026", date: "22–24 Nov 2026", attendees: "10 booth", status: "Aktif" },
             { name: "EduTech Innovation Fair 2026", date: "1–3 Des 2026", attendees: "8 booth", status: "Aktif" },
           ].map((event) => (
-            <div key={event.name} className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.02]">
+            <div key={event.name} className="flex items-center gap-4 p-3 rounded-xl bg-foreground/[0.02]">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary-light">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /></svg>
               </div>
@@ -230,7 +230,7 @@ export default function OrganizerProfilePage() {
               window.location.reload();
             }
           }}
-          className="btn btn-sm text-xs bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 font-medium cursor-pointer"
+          className="btn btn-sm text-xs bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border border-amber-500/30 font-medium cursor-pointer"
           id="btn-reset-demo-org"
         >
           Reset ke Data Demo Awal

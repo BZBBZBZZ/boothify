@@ -211,7 +211,7 @@ export default function OrganizerDashboard() {
         <div className="stat-card">
           <div className="flex items-center justify-between mb-3">
             <span className="text-2xl">📬</span>
-            <span className={`text-[11px] font-medium ${unreadCount > 0 ? "text-amber-400 font-bold" : "text-primary-light"}`}>
+            <span className={`text-[11px] font-medium ${unreadCount > 0 ? "text-amber-700 font-bold" : "text-primary-light"}`}>
               {unreadCount > 0 ? `${unreadCount} Belum Dibaca` : "Semua Terbaca"}
             </span>
           </div>
@@ -245,18 +245,18 @@ export default function OrganizerDashboard() {
             ) : (
               <div className="space-y-4">
                 {events.map((event) => (
-                  <div key={event.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition border border-white/[0.03]">
+                  <div key={event.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-foreground/[0.02] hover:bg-foreground/[0.04] transition border border-foreground/[0.03]">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-medium text-sm truncate">{event.title}</h3>
-                        <span className={`badge text-[10px] ${event.status === "active" ? "badge-primary" : "bg-white/5 text-muted-foreground"}`}>
+                        <span className={`badge text-[10px] ${event.status === "active" ? "badge-primary" : "bg-foreground/5 text-muted-foreground"}`}>
                           {event.status === "active" ? "Aktif" : "Draft"}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground">{event.date}</p>
                       {event.boothsTotal > 0 && (
                         <div className="mt-2 flex items-center gap-2">
-                          <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden max-w-[120px]">
+                          <div className="flex-1 h-1.5 rounded-full bg-foreground/5 overflow-hidden max-w-[120px]">
                             <div className="h-full rounded-full gradient-primary" style={{ width: `${Math.min(100, ((event.boothsFilled || 0) / event.boothsTotal) * 100)}%` }} />
                           </div>
                           <span className="text-[11px] text-muted-foreground">{event.boothsFilled || 0}/{event.boothsTotal} booth</span>
@@ -308,8 +308,8 @@ export default function OrganizerDashboard() {
             ) : (
               <div className="space-y-3">
                 {bookings.slice(0, 5).map((booking, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.03]">
-                    <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center text-white text-xs font-bold">
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-foreground/[0.02] border border-foreground/[0.03]">
+                    <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center text-secondary text-xs font-bold">
                       {booking.booth}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -318,7 +318,7 @@ export default function OrganizerDashboard() {
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-semibold">{booking.amount}</p>
-                      <span className={`text-[10px] ${booking.status === "paid" ? "text-emerald-400" : "text-amber-400"}`}>
+                      <span className={`text-[10px] ${booking.status === "paid" ? "text-emerald-700" : "text-amber-700"}`}>
                         {booking.status === "paid" ? "✓ Terbayar" : "⏳ Pending"}
                       </span>
                     </div>

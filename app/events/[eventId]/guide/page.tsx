@@ -22,12 +22,12 @@ interface CartItem {
 
 const getZoneBadgeColor = (zone: string) => {
   const z = zone.toLowerCase();
-  if (z.includes("fnb") || z.includes("food") || z.includes("makanan")) return "bg-amber-500/15 border-amber-500/40 text-amber-400";
-  if (z.includes("fash") || z.includes("busana")) return "bg-emerald-500/15 border-emerald-500/40 text-emerald-400";
-  if (z.includes("craft") || z.includes("kriya")) return "bg-rose-500/15 border-rose-500/40 text-rose-400";
-  if (z.includes("edu") || z.includes("tech")) return "bg-purple-500/15 border-purple-500/40 text-purple-400";
-  if (z.includes("auto")) return "bg-blue-500/15 border-blue-500/40 text-blue-400";
-  return "bg-cyan-500/15 border-cyan-500/40 text-cyan-400";
+  if (z.includes("fnb") || z.includes("food") || z.includes("makanan")) return "bg-amber-500/15 border-amber-500/40 text-amber-700";
+  if (z.includes("fash") || z.includes("busana")) return "bg-emerald-500/15 border-emerald-500/40 text-emerald-700";
+  if (z.includes("craft") || z.includes("kriya")) return "bg-rose-500/15 border-rose-500/40 text-rose-700";
+  if (z.includes("edu") || z.includes("tech")) return "bg-purple-500/15 border-purple-500/40 text-purple-700";
+  if (z.includes("auto")) return "bg-blue-500/15 border-blue-500/40 text-blue-700";
+  return "bg-cyan-500/15 border-cyan-500/40 text-cyan-700";
 };
 
 const getZoneDisplay = (zone: string) => {
@@ -367,7 +367,7 @@ function EventGuideContent() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push(searchParams.get("demo") === "visitor" ? "/" : `/events/${eventId}`)}
-              className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center hover:bg-white/10 transition"
+              className="w-8 h-8 rounded-lg bg-foreground/5 flex items-center justify-center hover:bg-foreground/10 transition"
               id="btn-back-to-event"
             >
               ←
@@ -405,7 +405,7 @@ function EventGuideContent() {
                 : activeOrder.status === "ready"
                 ? "bg-emerald-500/15 border-emerald-500/50 shadow-lg shadow-emerald-500/10"
                 : activeOrder.status === "done"
-                ? "bg-white/[0.02] border-white/10"
+                ? "bg-foreground/[0.02] border-foreground/10"
                 : "bg-amber-500/10 border-amber-500/30"
             }`}
             id="visitor-order-tracker"
@@ -498,8 +498,8 @@ function EventGuideContent() {
                 onClick={() => setCategoryFilter(cat)}
                 className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-xs font-medium transition ${
                   categoryFilter === cat
-                    ? "bg-primary text-white"
-                    : "bg-white/5 text-muted-foreground hover:bg-white/10"
+                    ? "bg-primary text-secondary"
+                    : "bg-foreground/5 text-muted-foreground hover:bg-foreground/10"
                 }`}
               >
                 {cat}
@@ -544,7 +544,7 @@ function EventGuideContent() {
                       ? tenant.type === "fnb"
                         ? "bg-amber-500/10 border-amber-500/30 hover:border-amber-500 hover:scale-[1.02]"
                         : "bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500 hover:scale-[1.02]"
-                      : "bg-white/[0.02] border-white/5 hover:border-white/20"
+                      : "bg-foreground/[0.02] border-foreground/5 hover:border-foreground/20"
                   }`}
                   style={{
                     left: `${(b.x / 600) * 100}%`,
@@ -590,7 +590,7 @@ function EventGuideContent() {
           </div>
 
           {/* Legend */}
-          <div className="flex flex-wrap items-center justify-center gap-4 text-[10px] text-muted-foreground pt-3 border-t border-white/5">
+          <div className="flex flex-wrap items-center justify-center gap-4 text-[10px] text-muted-foreground pt-3 border-t border-foreground/5">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded bg-amber-500/30 border border-amber-500/50" />
               <span>F&amp;B (Bisa Pesan)</span>
@@ -600,7 +600,7 @@ function EventGuideContent() {
               <span>Fashion / Info</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded bg-white/5 border border-white/10" />
+              <div className="w-3 h-3 rounded bg-foreground/5 border border-foreground/10" />
               <span>Booth Kosong</span>
             </div>
           </div>
@@ -641,7 +641,7 @@ function EventGuideContent() {
                 >
                   <div
                     className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                      t.type === "fnb" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400"
+                      t.type === "fnb" ? "bg-amber-500/20 text-amber-700" : "bg-emerald-500/20 text-emerald-700"
                     }`}
                   >
                     {t.id}
@@ -668,7 +668,7 @@ function EventGuideContent() {
               <div className="flex items-center gap-3">
                 <div
                   className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm ${
-                    selectedBooth.type === "fnb" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400"
+                    selectedBooth.type === "fnb" ? "bg-amber-500/20 text-amber-700" : "bg-emerald-500/20 text-emerald-700"
                   }`}
                 >
                   {selectedBooth.id}
@@ -703,7 +703,7 @@ function EventGuideContent() {
                 </div>
                 <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
                   {selectedBooth.menu.map((item) => (
-                    <div key={item.name} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
+                    <div key={item.name} className="flex items-center gap-3 p-3 rounded-xl bg-foreground/[0.03] border border-foreground/5 hover:border-foreground/10 transition-colors">
                       <span className="text-2xl">{item.image || (selectedBooth.type === "fnb" ? "☕" : "🛍️")}</span>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-medium text-foreground truncate">{item.name}</h4>
@@ -764,7 +764,7 @@ function EventGuideContent() {
                 <h3 className="font-semibold text-xs mb-2">📁 Brosur &amp; Media Digital</h3>
                 <div className="space-y-2">
                   {selectedBooth.media.map((med) => (
-                    <div key={med} className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-xs">
+                    <div key={med} className="flex items-center justify-between p-2.5 rounded-xl bg-foreground/[0.02] border border-foreground/5 text-xs">
                       <span className="truncate">{med}</span>
                       <span className="text-primary-light font-medium cursor-pointer">Lihat ↗</span>
                     </div>
@@ -846,7 +846,7 @@ function EventGuideContent() {
               {activeMiniWebsite.highlights && (
                 <div className="grid grid-cols-2 gap-2 mb-6 text-xs">
                   {activeMiniWebsite.highlights.map((h) => (
-                    <div key={h} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 font-medium">
+                    <div key={h} className="p-2.5 rounded-xl bg-foreground/[0.03] border border-foreground/5 font-medium">
                       ✓ {h}
                     </div>
                   ))}
@@ -863,7 +863,7 @@ function EventGuideContent() {
                     {activeMiniWebsite.menu.map((prod) => (
                       <div
                         key={prod.name}
-                        className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/5 text-xs"
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-foreground/[0.03] border border-foreground/5 text-xs"
                       >
                         <div className="flex items-center gap-2.5">
                           <span className="text-xl">{prod.image || "🛍️"}</span>
@@ -921,17 +921,17 @@ function EventGuideContent() {
 
             <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
               {cart.map((item) => (
-                <div key={`${item.boothId}-${item.name}`} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/5 text-sm">
+                <div key={`${item.boothId}-${item.name}`} className="flex items-center justify-between p-3 rounded-xl bg-foreground/[0.02] border border-foreground/5 text-sm">
                   <div>
                     <p className="font-medium">{item.name}</p>
                     <p className="text-xs text-muted-foreground">Booth {item.boothId} • Rp {item.price.toLocaleString("id-ID")}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => updateQty(item.boothId, item.name, -1)} className="w-6 h-6 rounded bg-white/5 flex items-center justify-center text-xs">
+                    <button onClick={() => updateQty(item.boothId, item.name, -1)} className="w-6 h-6 rounded bg-foreground/5 flex items-center justify-center text-xs">
                       -
                     </button>
                     <span className="font-bold text-xs w-4 text-center">{item.qty}</span>
-                    <button onClick={() => updateQty(item.boothId, item.name, 1)} className="w-6 h-6 rounded bg-white/5 flex items-center justify-center text-xs">
+                    <button onClick={() => updateQty(item.boothId, item.name, 1)} className="w-6 h-6 rounded bg-foreground/5 flex items-center justify-center text-xs">
                       +
                     </button>
                     <button onClick={() => removeFromCart(item.boothId, item.name)} className="text-xs text-error ml-2">
@@ -1006,7 +1006,7 @@ function EventGuideContent() {
             <h3 className="font-bold text-base mb-1">Pembayaran Pesanan</h3>
             <p className="text-xs text-muted-foreground mb-4">Total: Rp {totalCart.toLocaleString("id-ID")}</p>
 
-            <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 mb-4 text-xs space-y-3 text-left">
+            <div className="p-4 rounded-xl bg-foreground/[0.03] border border-foreground/5 mb-4 text-xs space-y-3 text-left">
               <div>
                 <label className="text-[10px] text-muted-foreground block mb-1">Metode Pembayaran</label>
                 <div className="grid grid-cols-2 gap-1.5">
@@ -1018,7 +1018,7 @@ function EventGuideContent() {
                       className={`p-2 rounded-lg text-center font-medium border text-xs transition ${
                         selectedPaymentMethod === m
                           ? "bg-primary/20 border-primary text-primary-light"
-                          : "bg-white/[0.02] border-white/5 text-muted-foreground hover:bg-white/[0.05]"
+                          : "bg-foreground/[0.02] border-foreground/5 text-muted-foreground hover:bg-foreground/[0.05]"
                       }`}
                     >
                       {m}
@@ -1026,7 +1026,7 @@ function EventGuideContent() {
                   ))}
                 </div>
               </div>
-              <div className="flex justify-between pt-1 border-t border-white/5">
+              <div className="flex justify-between pt-1 border-t border-foreground/5">
                 <span className="text-muted-foreground">Nama Pemesan</span>
                 <span className="font-semibold">{user?.name || guestName || "Pengunjung"}</span>
               </div>

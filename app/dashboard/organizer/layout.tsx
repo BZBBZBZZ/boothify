@@ -152,7 +152,7 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
     <div className="space-y-4">
       {/* Event Context Switcher Widget in Sidebar */}
       <div className="px-1">
-        <div className="p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs">
+        <div className="p-2.5 rounded-xl bg-foreground/[0.04] border border-foreground/[0.08] text-xs">
           <div className="flex items-center justify-between mb-1.5 text-muted-foreground font-medium text-[11px]">
             <span>Acara Aktif</span>
             <span className="badge badge-primary text-[9px] py-0 px-1.5">ID #{activeEventId}</span>
@@ -160,7 +160,7 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
           <select
             value={activeEventId}
             onChange={(e) => handleSwitchEvent(e.target.value)}
-            className="w-full bg-card/90 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary truncate"
+            className="w-full bg-card/90 border border-foreground/10 rounded-lg px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary truncate"
           >
             {eventsList.length === 0 ? (
               <option value="new">+ Buat Acara Pertama</option>
@@ -225,7 +225,7 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
       <div className="dashboard-mobile-header glass sticky top-0 z-40 px-4 py-3 items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="2.5" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
           </div>
           <span className="font-bold text-sm">Boothify <span className="text-primary-light">Organizer</span></span>
         </Link>
@@ -237,10 +237,10 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Mobile nav drawer */}
       {sidebarOpen && (
         <div className="dashboard-mobile-drawer fixed inset-0 z-50 bg-black/50" onClick={() => setSidebarOpen(false)}>
-          <div className="w-64 h-full bg-card border-r border-border p-4 animate-slide-in-right" onClick={(e) => e.stopPropagation()}>
+          <div className="w-64 h-full sidebar-dark p-4 animate-slide-in-right" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2 mb-8 mt-2">
               <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="2.5" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
               </div>
               <span className="font-bold text-sm">Boothify <span className="text-primary-light">Organizer</span></span>
             </div>
@@ -255,7 +255,7 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
       <div className="dashboard-desktop-sidebar sidebar">
         <Link href="/" className="flex items-center gap-2 mb-8 px-2">
           <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="2.5" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
           </div>
           <div>
             <span className="font-bold text-sm block">Boothify</span>
@@ -271,7 +271,7 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
 
         <div className="pt-4 border-t border-border mt-4">
           {user && (
-            <div className="px-3 py-2 mb-2 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+            <div className="px-3 py-2 mb-2 rounded-xl bg-foreground/[0.03] border border-foreground/[0.05]">
               <p className="text-xs font-semibold truncate text-foreground">{user.name}</p>
               <p className="text-[11px] text-muted-foreground truncate">{user.businessName || user.email}</p>
               {user.role === "tenant" && (
@@ -279,7 +279,7 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
               )}
             </div>
           )}
-          <button onClick={handleLogout} className="sidebar-link text-xs w-full text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition">
+          <button onClick={handleLogout} className="sidebar-link text-xs w-full text-primary hover:bg-foreground/10 transition">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
             Keluar
           </button>

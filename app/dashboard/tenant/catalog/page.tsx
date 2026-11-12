@@ -396,7 +396,7 @@ export default function CatalogPage() {
             ) : (
               <div className="space-y-3">
                 {menuItems.map((item) => (
-                  <div key={item.id} className="p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition border border-white/5">
+                  <div key={item.id} className="p-4 rounded-xl bg-foreground/[0.02] hover:bg-foreground/[0.04] transition border border-foreground/5">
                     {editingMenuId === item.id ? (
                       <div className="space-y-3 animate-fade-in">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -524,7 +524,7 @@ export default function CatalogPage() {
             ) : (
               <div className="space-y-3">
                 {mediaItems.map((item) => (
-                  <div key={item.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                  <div key={item.id} className="p-4 rounded-xl bg-foreground/[0.02] border border-foreground/5">
                     {editingMediaId === item.id ? (
                       <div className="space-y-3 animate-fade-in">
                         <input

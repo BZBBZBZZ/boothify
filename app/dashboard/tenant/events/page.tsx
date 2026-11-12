@@ -140,7 +140,7 @@ export default function TenantEventsPage() {
                 </div>
               </div>
               <div className="text-center flex-shrink-0">
-                <div className={`text-xl font-bold ${parseInt(event.match) >= 85 ? "text-primary-light" : parseInt(event.match) >= 60 ? "text-accent-light" : "text-muted-foreground"}`}>
+                <div className={`text-xl font-bold ${parseInt(event.match) >= 85 ? "text-foreground" : parseInt(event.match) >= 60 ? "text-accent-light" : "text-muted-foreground"}`}>
                   {event.match}
                 </div>
                 <div className="text-[10px] text-muted-foreground">Match</div>

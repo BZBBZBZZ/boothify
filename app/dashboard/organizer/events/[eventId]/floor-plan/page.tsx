@@ -357,7 +357,7 @@ function FloorPlanContent() {
 
   return (
     <div className="animate-fade-in" id="floor-plan-builder">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/[0.08]">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-foreground/[0.08]">
         <div>
           <div className="flex flex-wrap items-center gap-2 mb-1.5">
             <h1 className="text-2xl font-bold tracking-tight">Interactive Floor Plan Builder</h1>
@@ -378,7 +378,7 @@ function FloorPlanContent() {
                 setActiveOrganizerEventId(e.target.value);
                 router.push(`/dashboard/organizer/events/${e.target.value}/floor-plan`);
               }}
-              className="bg-card/90 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:outline-none"
+              className="bg-card/90 border border-foreground/10 rounded-lg px-2.5 py-1 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:outline-none"
             >
               {allEvents.map((ev) => (
                 <option key={ev.id} value={ev.id}>
@@ -386,7 +386,7 @@ function FloorPlanContent() {
                 </option>
               ))}
             </select>
-            <span className="text-emerald-400 font-medium">● Perubahan denah langsung sinkron ke halaman Tenant & Pengunjung</span>
+            <span className="text-emerald-700 font-medium">● Perubahan denah langsung sinkron ke halaman Tenant & Pengunjung</span>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -503,7 +503,7 @@ function FloorPlanContent() {
             <p className="text-[11px] text-muted-foreground mb-3 mt-2">Kelola kategori zona yang dipakai booth event ini.</p>
             <div className="space-y-2 mb-3">
               {zones.map((zone) => (
-                <div key={zone.value} className="flex items-center gap-2 p-2 rounded-lg bg-white/[0.03] border border-white/5">
+                <div key={zone.value} className="flex items-center gap-2 p-2 rounded-lg bg-foreground/[0.03] border border-foreground/5">
                   <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: zone.color }} />
                   <span className="text-xs flex-1 truncate">{zone.label}</span>
                   <button type="button" onClick={() => removeZone(zone.value)} className="text-[10px] text-error disabled:opacity-40" disabled={zones.length <= 1 || booths.some((booth) => booth.zone === zone.value)} aria-label={`Hapus zona ${zone.label}`}>

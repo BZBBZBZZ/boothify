@@ -25,7 +25,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 group" id="navbar-logo">
             <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
@@ -57,8 +57,8 @@ export default function Navbar() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
                   Dashboard
                 </Link>}
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5">
-                  <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center text-white text-xs font-bold">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-foreground/5">
+                  <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center text-secondary text-xs font-bold">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="text-xs">
@@ -114,35 +114,35 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="md:hidden border-t border-border animate-fade-in" id="mobile-navigation">
           <div className="px-4 py-4 space-y-2">
-            <Link href="/events" className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-white/5 transition" onClick={() => setMobileOpen(false)}>
+            <Link href="/events" className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-foreground/5 transition" onClick={() => setMobileOpen(false)}>
               Jelajahi Event
             </Link>
-            <Link href="/#features" className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-white/5 transition" onClick={() => setMobileOpen(false)}>
+            <Link href="/#features" className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-foreground/5 transition" onClick={() => setMobileOpen(false)}>
               Fitur
             </Link>
-            <Link href="/#how-it-works" className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-white/5 transition" onClick={() => setMobileOpen(false)}>
+            <Link href="/#how-it-works" className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-foreground/5 transition" onClick={() => setMobileOpen(false)}>
               Cara Kerja
             </Link>
             {user ? (
               <>
-                {user.role !== "guest" && <Link href={dashboardLink} className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-white/5 transition" onClick={() => setMobileOpen(false)}>
+                {user.role !== "guest" && <Link href={dashboardLink} className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-foreground/5 transition" onClick={() => setMobileOpen(false)}>
                   Dashboard
                 </Link>}
                 <div className="flex items-center gap-2 py-2 px-3">
-                  <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center text-white text-xs font-bold">
+                  <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center text-secondary text-xs font-bold">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
                   <span className="text-sm font-medium">{user.name}</span>
                   <span className="badge badge-primary text-[10px] ml-auto">{user.role}</span>
                 </div>
-                <button onClick={() => { logout(); setMobileOpen(false); }} className="block w-full text-left py-2 px-3 rounded-lg text-sm text-error hover:bg-white/5 transition">
+                <button onClick={() => { logout(); setMobileOpen(false); }} className="block w-full text-left py-2 px-3 rounded-lg text-sm text-error hover:bg-foreground/5 transition">
                   Keluar
                 </button>
               </>
             ) : (
               <>
                 <hr className="border-border" />
-                <Link href="/auth/login" className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-white/5 transition" onClick={() => setMobileOpen(false)}>
+                <Link href="/auth/login" className="block py-2 px-3 rounded-lg text-sm text-muted hover:text-foreground hover:bg-foreground/5 transition" onClick={() => setMobileOpen(false)}>
                   Masuk
                 </Link>
                 <Link href="/auth/register" className="block py-2 px-3" onClick={() => setMobileOpen(false)}>
