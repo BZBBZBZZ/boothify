@@ -92,7 +92,7 @@ function CheckoutContent() {
         // Get tenant brand name & email
         const tenantProfile = JSON.parse(localStorage.getItem(`boothify_profile_${user?.email}`) || localStorage.getItem("boothify_tenant_profile") || "{}");
         const currentUser = JSON.parse(localStorage.getItem("boothify_current_user") || "{}");
-        const tenantEmail = user?.email || currentUser.email || "demo-tenant@boothify.id";
+        const tenantEmail = user?.email || currentUser.email || "";
         const tenantBrand = user?.businessName || tenantProfile.brandName || currentUser.businessName || user?.name || "EcoWear Studio";
 
         // Persist booked booths per-event and global

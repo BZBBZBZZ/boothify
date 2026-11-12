@@ -209,21 +209,15 @@ function EventGuideContent() {
     let targetTenantEmail = targetTenant?.tenantEmail || "";
 
     if (!targetTenantEmail) {
-      if (firstBoothId === "A1" || firstBoothId === "A2" || firstBoothId === "C3") {
-        targetTenantEmail = "demo-tenant@boothify.id";
-      } else if (firstBoothId === "C1" || firstBoothId === "B1" || firstBoothId === "F2") {
-        targetTenantEmail = "kopi@boothify.id";
-      } else {
-        try {
-          const tBookings = JSON.parse(localStorage.getItem("boothify_tenant_bookings") || "[]");
-          const foundB = tBookings.find(
-            (b: { eventId?: string; booth?: string; tenantEmail?: string }) =>
-              String(b.eventId) === String(eventId) && b.booth === firstBoothId
-          );
-          if (foundB?.tenantEmail) targetTenantEmail = foundB.tenantEmail;
-        } catch {
-          // ignore
-        }
+      try {
+        const tBookings = JSON.parse(localStorage.getItem("boothify_tenant_bookings") || "[]");
+        const foundB = tBookings.find(
+          (b: { eventId?: string; booth?: string; tenantEmail?: string }) =>
+            String(b.eventId) === String(eventId) && b.booth === firstBoothId
+        );
+        if (foundB?.tenantEmail) targetTenantEmail = foundB.tenantEmail;
+      } catch {
+        // ignore
       }
     }
 

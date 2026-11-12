@@ -1,5 +1,7 @@
 -- ============================================================================
 -- BOOTHIFY INITIAL SEED DATA FOR SUPABASE
+-- !! HANYA UNTUK DEVELOPMENT/STAGING. JANGAN dijalankan di database produksi:
+-- berisi akun & event contoh (demo-*@boothify.id).
 -- Jalankan script ini SETELAH menjalankan schema.sql di SQL Editor Supabase
 -- ============================================================================
 

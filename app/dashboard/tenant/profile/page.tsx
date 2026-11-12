@@ -1,18 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { resetDemoWorkspace, useAuth } from "@/app/components/AuthContext";
+import { useAuth } from "@/app/components/AuthContext";
 import { EVENT_CATEGORY_OPTIONS, getEventCategoryLabel } from "@/app/lib/event-categories";
 
 export default function TenantProfilePage() {
   const { user, updateProfile } = useAuth();
-  const email = user?.email || "demo-tenant@boothify.id";
+  const email = user?.email || "";
   const isKopi = email === "kopi@boothify.id";
 
   const [profile, setProfile] = useState({
     brandName: user?.businessName || (isKopi ? "Kopi Keliling Nusantara" : "EcoWear Studio"),
     category: user?.businessCategory || user?.category || (isKopi ? "fnb" : "fashion"),
-    email: user?.email || "demo-tenant@boothify.id",
+    email: user?.email || "",
     phone: user?.phone || (isKopi ? "+62 812 3456 7890" : "+62 812 9876 5432"),
     description: user?.description || (isKopi
       ? "Spesialisasi seduhan kopi keliling dan espresso bar di event pameran dan festival."
@@ -51,9 +51,6 @@ export default function TenantProfilePage() {
   const handleSave = () => {
     try {
       localStorage.setItem(`boothify_profile_${email}`, JSON.stringify(profile));
-      if (email === "demo-tenant@boothify.id") {
-        localStorage.setItem("boothify_tenant_profile", JSON.stringify(profile));
-      }
       updateProfile({
         businessName: profile.brandName,
         category: profile.category,
@@ -208,29 +205,6 @@ export default function TenantProfilePage() {
           {saved ? "✓ Tersimpan!" : "Simpan Perubahan"}
         </button>
       </form>
-
-      {/* Reset Demo Data */}
-      <div className="card-base p-6 mt-6 border border-amber-500/20 bg-amber-500/[0.02]">
-        <h2 className="font-semibold text-sm mb-1 text-foreground flex items-center gap-2">
-          <span>🔄</span> Reset Data Uji Coba
-        </h2>
-        <p className="text-xs text-muted-foreground mb-4">
-          Ingin mengulang pengujian dari awal? Menekan tombol ini akan menghapus semua data input pengujian (perubahan katalog, mini website kustom, riwayat pesanan buatan Anda) dan mengembalikan seluruh akun &amp; data ke kondisi demo awal bawaan.
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            if (confirm("Reset semua input pengujian dan kembalikan ke data demo awal? Semua akun demo (Organizer, Tenant, Pengunjung) dan event bawaan akan tetap ada.")) {
-              resetDemoWorkspace(true);
-              window.location.reload();
-            }
-          }}
-          className="btn btn-sm text-xs bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border border-amber-500/30 font-medium cursor-pointer"
-          id="btn-reset-demo-tenant"
-        >
-          Reset ke Data Demo Awal
-        </button>
-      </div>
     </div>
   );
 }

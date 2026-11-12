@@ -25,7 +25,7 @@ type InboxMessage = {
 
 export default function OrganizerMessagesPage() {
   const { user } = useAuth();
-  const email = user?.email || "demo-organizer@boothify.id";
+  const email = user?.email || "";
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [filter, setFilter] = useState<"all" | "unread">("all");
 

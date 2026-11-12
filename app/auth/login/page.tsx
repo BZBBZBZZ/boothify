@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { resetDemoWorkspace, useAuth } from "../../components/AuthContext";
+import { useAuth } from "../../components/AuthContext";
 import Navbar from "../../components/Navbar";
 
 export default function LoginPage() {
@@ -191,93 +191,6 @@ export default function LoginPage() {
             <div className="flex-1 h-px bg-border" />
             <span className="text-xs text-muted-foreground">atau</span>
             <div className="flex-1 h-px bg-border" />
-          </div>
-
-          {/* Quick demo access */}
-          <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 mb-4">
-            <p className="text-xs text-muted-foreground mb-3 font-semibold">
-              🚀 Demo Cepat — klik untuk langsung masuk sebagai:
-            </p>
-            <div className="mb-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const res = login("admin@boothify.id", "demo1234");
-                  if (res.success) router.push("/dashboard/admin");
-                }}
-                className="w-full btn btn-sm text-xs py-2 flex items-center justify-center gap-1.5 bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 transition shadow-sm"
-                id="demo-admin-btn"
-              >
-                👑 Super Admin (Tingkat Tertinggi: Kelola Campaign &amp; Kurasi)
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const res = login("demo-organizer@boothify.id", "demo1234");
-                  if (res.success) router.push("/dashboard/organizer");
-                }}
-                className="btn btn-secondary btn-sm text-xs py-2 flex items-center justify-center gap-1.5"
-                id="demo-organizer-btn"
-              >
-                📅 Organizer
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const res = login("demo-tenant@boothify.id", "demo1234");
-                  if (res.success) router.push("/dashboard/tenant");
-                }}
-                className="btn btn-secondary btn-sm text-xs py-2 flex items-center justify-center gap-1.5"
-                id="demo-tenant-btn"
-              >
-                👗 Tenant Fashion
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const res = login("kopi@boothify.id", "demo1234");
-                  if (res.success) router.push("/dashboard/tenant");
-                }}
-                className="btn btn-secondary btn-sm text-xs py-2 flex items-center justify-center gap-1.5"
-                id="demo-tenant-fnb-btn"
-              >
-                ☕ Tenant F&amp;B
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  router.push("/events/1/guide?demo=visitor");
-                }}
-                className="btn btn-secondary btn-sm text-xs py-2 flex items-center justify-center gap-1.5"
-                id="demo-guest-btn"
-              >
-                👤 Pengunjung
-              </button>
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-2 text-center">
-              💡 Tiap akun memiliki data, booth, dan katalog terpisah di Local Storage.
-            </p>
-            <div className="mt-3 pt-3 border-t border-foreground/5 text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  if (confirm("Reset semua data input pengujian dan kembalikan ke data demo awal? Semua akun demo (Organizer, Tenant, Pengunjung) dan event bawaan akan tetap ada.")) {
-                    resetDemoWorkspace(true);
-                    window.location.reload();
-                  }
-                }}
-                className="text-[11px] text-muted-foreground hover:text-amber-700 transition inline-flex items-center gap-1.5 cursor-pointer font-medium"
-                title="Hapus data input pengujian dan kembalikan ke kondisi default demo"
-                id="reset-demo-data-btn"
-              >
-                <span>🔄</span>
-                <span>Reset ke Data Demo Awal</span>
-              </button>
-            </div>
           </div>
 
           {/* Register link */}

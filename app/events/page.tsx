@@ -197,11 +197,20 @@ export default function EventsPage() {
             })}
           </div>
 
-          {filtered.length === 0 && (
+          {!loading && filtered.length === 0 && (
             <div className="text-center py-20">
-              <div className="text-6xl mb-4">🔍</div>
-              <h3 className="text-lg font-semibold mb-2">Tidak ada event ditemukan</h3>
-              <p className="text-sm text-muted-foreground">Coba ubah kata kunci atau filter pencarian</p>
+              <div className="text-6xl mb-4">{eventsList.length === 0 ? "🎪" : "🔍"}</div>
+              <h3 className="text-lg font-semibold mb-2">
+                {eventsList.length === 0 ? "Belum ada event yang dipublikasikan" : "Tidak ada event ditemukan"}
+              </h3>
+              <p className="text-muted-foreground text-sm mb-6">
+                {eventsList.length === 0
+                  ? "Event akan muncul di sini setelah organizer membuat dan mempublikasikannya."
+                  : "Coba kata kunci lain."}
+              </p>
+              {eventsList.length === 0 && (
+                <Link href="/auth/register" className="btn btn-primary btn-sm">Daftar sebagai Organizer</Link>
+              )}
             </div>
           )}
         </div>

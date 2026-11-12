@@ -41,7 +41,7 @@ export interface MatchBreakdown {
  * Mengambil profil tenant yang sedang login dari localStorage atau fallback default
  */
 export function getLoggedInTenantProfile(email?: string): TenantProfile {
-  const fallbackEmail = email || "demo-tenant@boothify.id";
+  const fallbackEmail = email || "";
   const isKopi = fallbackEmail.toLowerCase().includes("kopi");
 
   if (typeof window !== "undefined") {

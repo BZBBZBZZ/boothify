@@ -148,8 +148,6 @@ function EventDetailContent() {
     (
       // 1. Matches event organizer email
       (event.organizerEmail && user.email?.toLowerCase() === event.organizerEmail.toLowerCase()) ||
-      // 2. Demo organizer owns default events (1, 2, 3) or events without specific email
-      (user.email === "demo-organizer@boothify.id" && (!event.organizerEmail || event.organizerEmail === "demo-organizer@boothify.id")) ||
       // 3. Matches organizer organization/business name or user name
       (event.organizer && (
         user.businessName?.toLowerCase() === event.organizer.toLowerCase() ||
@@ -666,7 +664,7 @@ function EventDetailContent() {
                           id: "MSG-" + Date.now().toString().slice(-4),
                           eventId: event.id,
                           eventTitle: event.title,
-                          organizerEmail: event.organizerEmail || "demo-organizer@boothify.id",
+                          organizerEmail: event.organizerEmail || "",
                           senderName: contactForm.name,
                           senderEmail: contactForm.email,
                           senderPhone: contactForm.phone,

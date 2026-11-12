@@ -104,7 +104,7 @@ export async function saveEventToSupabase(
       categories: event.categories || [],
       description: event.description || "",
       organizer: event.organizer || "PT. Event Kreasi Nusantara",
-      organizer_email: event.organizerEmail || "demo-organizer@boothify.id",
+      organizer_email: event.organizerEmail || "",
       booths_filled: event.boothsFilled || 0,
       booths_total: event.boothsTotal || 30,
       price_range: event.priceRange || "Rp 2.000.000 – Rp 4.500.000",

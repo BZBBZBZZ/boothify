@@ -10,7 +10,7 @@ import { saveEventToSupabase } from "@/app/lib/supabase-service";
 export default function CreateEventPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const organizerEmail = user?.email || "demo-organizer@boothify.id";
+  const organizerEmail = user?.email || "";
   const organizerName = user?.businessName || user?.name || "PT. Event Kreasi Nusantara";
 
   const bannerInputRef = useRef<HTMLInputElement>(null);

@@ -39,10 +39,10 @@ export default function OrganizerCampaignsPage() {
           category: e.category,
           location: e.location,
           date: e.date,
-          organizerEmail: e.organizerEmail || "demo-organizer@boothify.id",
+          organizerEmail: e.organizerEmail || "",
         }));
         const filtered = mapped.filter(
-          (e) => !e.organizerEmail || e.organizerEmail === user?.email || user?.email === "demo-organizer@boothify.id" || user?.email === "organizer@boothify.id"
+          (e) => !e.organizerEmail || e.organizerEmail === user?.email
         );
         setMyEvents(filtered);
         if (filtered.length > 0) {
@@ -59,12 +59,12 @@ export default function OrganizerCampaignsPage() {
             category: e.category || "Umum",
             location: e.location || "Venue Resmi",
             date: e.date || "Terjadwal",
-            organizerEmail: e.organizerEmail || user?.email || "demo-organizer@boothify.id",
+            organizerEmail: e.organizerEmail || user?.email || "",
           }))
         : [];
 
       const filtered = storedList.filter(
-        (e) => !e.organizerEmail || e.organizerEmail === user?.email || user?.email === "demo-organizer@boothify.id"
+        (e) => !e.organizerEmail || e.organizerEmail === user?.email
       );
       setMyEvents(filtered);
       if (filtered.length > 0) {
@@ -86,7 +86,7 @@ export default function OrganizerCampaignsPage() {
 
   // Applications submitted by this organizer
   const myApplications = applications.filter(
-    (a) => a.organizerEmail === user?.email || user?.email === "demo-organizer@boothify.id"
+    (a) => a.organizerEmail === user?.email
   );
 
   const selectedEvent = myEvents.find((e) => String(e.id) === String(selectedEventId));
@@ -174,7 +174,7 @@ export default function OrganizerCampaignsPage() {
         eventCategory: selectedEvent.category || "Umum",
         eventLocation: selectedEvent.location || "Venue Resmi",
         eventDate: selectedEvent.date || "Jadwal Terjadwal",
-        organizerEmail: user?.email || "demo-organizer@boothify.id",
+        organizerEmail: user?.email || "",
         organizerName: user?.businessName || user?.name || "PT. Event Kreasi Nusantara",
         submissionPitch: finalPitch,
       });

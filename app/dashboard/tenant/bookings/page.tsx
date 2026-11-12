@@ -48,7 +48,7 @@ export default function TenantBookingsAndOrdersPage() {
 
   // Load from localStorage scoped to user
   useEffect(() => {
-    const email = user?.email || "demo-tenant@boothify.id";
+    const email = user?.email || "";
 
     // 1. Load tenant bookings from Supabase
     getTenantBookingsFromSupabase(email).then((supabaseBookings) => {

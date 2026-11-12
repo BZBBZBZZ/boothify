@@ -339,8 +339,6 @@ function FloorPlanContent() {
     (
       // 1. Matches event organizer email
       (eventMeta.organizerEmail && user.email?.toLowerCase() === eventMeta.organizerEmail.toLowerCase()) ||
-      // 2. Demo organizer owns default events (1, 2, 3) or events without specific email
-      (user.email === "demo-organizer@boothify.id" && (!eventMeta.organizerEmail || eventMeta.organizerEmail === "demo-organizer@boothify.id")) ||
       // 3. Matches organizer organization/business name or user name
       (eventMeta.organizer && (
         user.businessName?.toLowerCase() === eventMeta.organizer.toLowerCase() ||

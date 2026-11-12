@@ -44,7 +44,7 @@ export default function TenantDashboard() {
   const [recommendedEvents, setRecommendedEvents] = useState<Array<{ id: string; title: string; date: string; location: string; match: string; reason: string }>>([]);
 
   useEffect(() => {
-    const email = user?.email || "demo-tenant@boothify.id";
+    const email = user?.email || "";
 
     // 1. Load tenant bookings from Supabase
     getTenantBookingsFromSupabase(email).then((supabaseBookings) => {

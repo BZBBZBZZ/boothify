@@ -49,119 +49,15 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-export const DEMO_USERS: Array<User & { password: string }> = [
-  {
-    id: "usr_org_01",
-    name: "Budi Santoso",
-    email: "demo-organizer@boothify.id",
-    password: "demo1234",
-    role: "organizer",
-    businessName: "PT. Event Kreasi Nusantara",
-    phone: "+62 812 3456 7890",
-    description: "Penyelenggara pameran, expo dan festival terkemuka di Indonesia",
-    website: "https://kreasi-expo.id",
-    instagram: "@kreasiexpo.id",
-  },
-  {
-    id: "usr_tenant_01",
-    name: "Siti Rahmawati",
-    email: "demo-tenant@boothify.id",
-    password: "demo1234",
-    role: "tenant",
-    businessName: "EcoWear Studio",
-    businessCategory: "fashion",
-    phone: "+62 813 9876 5432",
-    description: "Brand fashion berkelanjutan dari bahan organik & daur ulang ramah lingkungan",
-    website: "https://ecowear.id",
-    instagram: "@ecowearstudio",
-  },
-  {
-    id: "usr_tenant_02",
-    name: "Ahmad Barista",
-    email: "kopi@boothify.id",
-    password: "demo1234",
-    role: "tenant",
-    businessName: "Kopi Keliling Nusantara",
-    businessCategory: "fnb",
-    phone: "+62 878 1122 3344",
-    description: "Artisan coffee roastery & minuman kopi kekinian dengan biji kopi lokal nusantara",
-    website: "https://kopikeliling.id",
-    instagram: "@kopikeliling.id",
-  },
-  {
-    id: "usr_admin_01",
-    name: "Super Admin Boothify",
-    email: "admin@boothify.id",
-    password: "demo1234",
-    role: "admin",
-    businessName: "Boothify Official Authority",
-    phone: "+62 811 0000 0001",
-    description: "Administrator sistem dan otoritas pengelola Boothify",
-  },
-];
-
-const DEMO_DATA_VERSION = "boothify_demo_seed_v5";
-
-export function resetDemoWorkspace(force = false) {
-  if (typeof window === "undefined" || (!force && localStorage.getItem(DEMO_DATA_VERSION) === "1")) return;
-
-  const keysToRemove = [
-    "boothify_current_user",
-    "boothify_events",
-    "boothify_event_1_booked_booths",
-    "boothify_event_2_booked_booths",
-    "boothify_event_3_booked_booths",
-    "boothify_tenant_bookings",
-    "boothify_recent_bookings",
-    "boothify_visitor_orders",
-    "boothify_my_order_code",
-    "boothify_organizer_inbox",
-  ];
-  keysToRemove.forEach((key) => localStorage.removeItem(key));
-  Object.keys(localStorage)
-    .filter((key) =>
-      (key.startsWith("boothify_event_") && (key.endsWith("_booths") || key.endsWith("_booth_tenants") || key.endsWith("_zones") || key.endsWith("_objects"))) ||
-      key.startsWith("boothify_catalog_") ||
-      key.startsWith("boothify_profile_") ||
-      key.startsWith("boothify_org_profile") ||
-      ["boothify_booked_booths", "boothify_floor_plan", "boothify_checkout_items", "boothify_checkout_eventId", "boothify_active_organizer_event_id"].includes(key)
-    )
-    .forEach((key) => localStorage.removeItem(key));
-
-  localStorage.setItem("boothify_users", JSON.stringify(DEMO_USERS));
-  localStorage.setItem(DEMO_DATA_VERSION, "1");
-}
-
 // Helper to safely access localStorage
 function getStoredUsers(): Array<User & { password: string }> {
-  if (typeof window === "undefined") return DEMO_USERS;
+  if (typeof window === "undefined") return [];
   try {
     const data = localStorage.getItem("boothify_users");
-    if (!data) {
-      localStorage.setItem("boothify_users", JSON.stringify(DEMO_USERS));
-      return DEMO_USERS;
-    }
-    const parsed = JSON.parse(data);
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      localStorage.setItem("boothify_users", JSON.stringify(DEMO_USERS));
-      return DEMO_USERS;
-    }
-    // Ensure all demo users exist in storage
-    const updated = [...parsed];
-    let changed = false;
-    DEMO_USERS.forEach((demo) => {
-      const idx = updated.findIndex((u) => u.email === demo.email);
-      if (idx === -1) {
-        updated.push(demo);
-        changed = true;
-      }
-    });
-    if (changed) {
-      localStorage.setItem("boothify_users", JSON.stringify(updated));
-    }
-    return updated;
+    const parsed = data ? JSON.parse(data) : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return DEMO_USERS;
+    return [];
   }
 }
 
@@ -196,7 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Load user from localStorage on mount
   useEffect(() => {
-    resetDemoWorkspace();
     const storedUser = getStoredCurrentUser();
     if (storedUser) {
       setUser(storedUser);
@@ -234,16 +129,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const cleanPass = (password || "").trim();
     const users = getStoredUsers();
 
-    // Support flexible demo email aliases
-    const found = users.find((u) => {
-      const uEmail = u.email.toLowerCase();
-      if (cleanEmail === "admin@boothify.id" && uEmail === "admin@boothify.id") return true;
-      if (cleanEmail === "organizer@boothify.id" && uEmail === "demo-organizer@boothify.id") return true;
-      if (cleanEmail === "tenant@boothify.id" && uEmail === "demo-tenant@boothify.id") return true;
-      if (cleanEmail === "tenant@kreasinusantara.com" && uEmail === "demo-tenant@boothify.id") return true;
-      if (cleanEmail === "pengunjung@boothify.id" && uEmail === "demo-guest@boothify.id") return true;
-      return uEmail === cleanEmail && (u.password === cleanPass || cleanPass === "password123" || cleanPass === "demo1234");
-    });
+    const found = users.find(
+      (u) => u.email.toLowerCase() === cleanEmail && u.password === cleanPass
+    );
 
     if (!found) {
       return { success: false, message: "Email atau kata sandi salah. Belum punya akun? Silakan daftar." };

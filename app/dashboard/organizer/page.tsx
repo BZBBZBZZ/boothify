@@ -49,9 +49,8 @@ import {
 
 export default function OrganizerDashboard() {
   const { user } = useAuth();
-  const email = user?.email || "demo-organizer@boothify.id";
-  const isDemoOrg = email === "demo-organizer@boothify.id" || email === "organizer@boothify.id";
-
+  const email = user?.email || "";
+  
   const [events, setEvents] = useState<EventItem[]>([]);
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [inbox, setInbox] = useState<InboxMessage[]>([]);
@@ -66,7 +65,7 @@ export default function OrganizerDashboard() {
         status: "active",
         boothsFilled: e.boothsFilled,
         boothsTotal: e.boothsTotal,
-        organizerEmail: e.organizerEmail || "demo-organizer@boothify.id",
+        organizerEmail: e.organizerEmail || "",
       }));
 
       // Cek apakah ada event di localStorage yang belum masuk ke Supabase
@@ -89,7 +88,7 @@ export default function OrganizerDashboard() {
                 status: e.status || "active",
                 boothsFilled: e.boothsFilled || 0,
                 boothsTotal: e.boothsTotal || 30,
-                organizerEmail: e.organizerEmail || "demo-organizer@boothify.id",
+                organizerEmail: e.organizerEmail || "",
               }));
               combinedEvents = [...mappedMissing, ...combinedEvents];
             }
@@ -97,7 +96,7 @@ export default function OrganizerDashboard() {
         }
       } catch { /* ignore */ }
 
-      setEvents(isDemoOrg ? combinedEvents : combinedEvents.filter((e) => e.organizerEmail?.toLowerCase() === email.toLowerCase()));
+      setEvents(combinedEvents.filter((e) => e.organizerEmail?.toLowerCase() === email.toLowerCase()));
     });
 
     // 2. Load Bookings from Supabase
@@ -121,7 +120,7 @@ export default function OrganizerDashboard() {
     });
 
     // 3. Load Inbox Messages from Supabase
-    getOrganizerMessagesFromSupabase(isDemoOrg ? undefined : email).then((supabaseMessages) => {
+    getOrganizerMessagesFromSupabase(email).then((supabaseMessages) => {
       if (supabaseMessages && supabaseMessages.length > 0) {
         const mapped: InboxMessage[] = supabaseMessages.map((m) => ({
           id: m.id,
@@ -142,7 +141,7 @@ export default function OrganizerDashboard() {
         } catch { /* ignore */ }
       }
     });
-  }, [user, email, isDemoOrg]);
+  }, [user, email]);
 
   const unreadCount = inbox.filter((m) => m.status === "unread").length;
 

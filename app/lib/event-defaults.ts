@@ -73,8 +73,8 @@ const createEventFallback = (id: string): EventDetail => ({
   location: "Convention Hall",
   category: "Pameran",
   description: "Data pameran terhubung langsung ke database Supabase.",
-  organizer: "PT. Event Kreasi Nusantara",
-  organizerEmail: "demo-organizer@boothify.id",
+  organizer: "",
+  organizerEmail: "",
   boothsFilled: 0,
   boothsTotal: 10,
   priceRange: "Rp 2.000.000",
@@ -226,8 +226,8 @@ export function getEventMeta(eventId: string): EventDetail {
       location: "Venue Pameran Terpilih",
       category: "General",
       description: "Pameran resmi dengan tata letak booth eksklusif dan terstruktur.",
-      organizer: "PT. Event Kreasi Nusantara",
-      organizerEmail: "demo-organizer@boothify.id",
+      organizer: "",
+      organizerEmail: "",
       boothsFilled: 0,
       boothsTotal: 10,
       priceRange: "Rp 2.000.000 – Rp 3.000.000",
@@ -240,49 +240,21 @@ export function getEventMeta(eventId: string): EventDetail {
  * Get available events for Organizer management, filtered strictly by owner organizer
  */
 export function getAllOrganizerEvents(organizerEmail?: string): Array<{ id: string; title: string; category: string; date: string }> {
-  const isDemo = !organizerEmail || organizerEmail === "demo-organizer@boothify.id" || organizerEmail === "organizer@boothify.id";
-  
-  // Default events owned by the demo organizer (PT. Event Kreasi Nusantara)
-  const demoEvents = [
-    { id: "1", title: "Green Fashion Expo 2026", category: "Fashion", date: "15–17 Nov 2026" },
-    { id: "2", title: "Indonesia Food Festival 2026", category: "F&B", date: "22–24 Nov 2026" },
-    { id: "3", title: "EduTech Innovation Fair 2026", category: "Education", date: "1–3 Des 2026" },
-  ];
-
-  if (typeof window !== "undefined") {
-    try {
-      const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-      if (Array.isArray(stored)) {
-        if (isDemo) {
-          // For demo organizer: show demo events + any events created by demo organizer
-          const myCustom = stored
-            .filter((e) => !e.organizerEmail || e.organizerEmail === "demo-organizer@boothify.id")
-            .map((e) => ({
-              id: String(e.id),
-              title: e.title || `Event #${e.id}`,
-              category: e.category || "General",
-              date: e.date || "2026",
-            }));
-          const existingIds = new Set(myCustom.map((c) => c.id));
-          const remDemo = demoEvents.filter((d) => !existingIds.has(d.id));
-          return [...myCustom, ...remDemo];
-        } else {
-          // For newly registered organizer: ONLY show events created by this organizer
-          const myEvents = stored
-            .filter((e) => e.organizerEmail?.toLowerCase() === organizerEmail.toLowerCase())
-            .map((e) => ({
-              id: String(e.id),
-              title: e.title || `Event #${e.id}`,
-              category: e.category || "General",
-              date: e.date || "2026",
-            }));
-          return myEvents;
-        }
-      }
-    } catch { /* ignore */ }
+  if (!organizerEmail || typeof window === "undefined") return [];
+  try {
+    const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+    if (!Array.isArray(stored)) return [];
+    return stored
+      .filter((e) => e.organizerEmail?.toLowerCase() === organizerEmail.toLowerCase())
+      .map((e) => ({
+        id: String(e.id),
+        title: e.title || `Event #${e.id}`,
+        category: e.category || "General",
+        date: e.date || "2026",
+      }));
+  } catch {
+    return [];
   }
-
-  return isDemo ? demoEvents : [];
 }
 
 /**
@@ -295,7 +267,7 @@ export function getActiveOrganizerEventId(): string {
       if (stored) return stored;
     } catch { /* ignore */ }
   }
-  return "1";
+  return "";
 }
 
 /**

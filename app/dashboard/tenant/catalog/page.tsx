@@ -34,7 +34,7 @@ const DEMO_FASHION_MEDIA: MediaItem[] = [
 
 export default function CatalogPage() {
   const { user } = useAuth();
-  const email = user?.email || "demo-tenant@boothify.id";
+  const email = user?.email || "";
   const isKopi = email === "kopi@boothify.id";
   const isEcoWear = email === "demo-tenant@boothify.id" || email === "tenant@boothify.id";
 

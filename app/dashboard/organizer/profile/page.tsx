@@ -1,22 +1,19 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { resetDemoWorkspace, useAuth } from "@/app/components/AuthContext";
+import { useAuth } from "@/app/components/AuthContext";
 
 export default function OrganizerProfilePage() {
   const { user, updateProfile } = useAuth();
-  const email = user?.email || "demo-organizer@boothify.id";
-  const isDemoOrg = email === "demo-organizer@boothify.id" || email === "organizer@boothify.id";
-
+  const email = user?.email || "";
+  
   const [profile, setProfile] = useState({
-    orgName: user?.businessName || (isDemoOrg ? "PT. Event Kreasi Nusantara" : user?.name || "Organisasi Saya"),
-    email: user?.email || "demo-organizer@boothify.id",
-    phone: user?.phone || "+62 812 3456 7890",
-    description: user?.description || (isDemoOrg
-      ? "Penyelenggara expo dan festival pameran industri kreatif profesional berstandar nasional dan internasional di Indonesia."
-      : "Penyelenggara event pameran, expo dan festival terpercaya."),
-    website: user?.website || (isDemoOrg ? "https://eventkreasi.id" : "https://boothify.id"),
-    instagram: user?.instagram || (isDemoOrg ? "@eventkreasi.id" : "@organizer"),
+    orgName: user?.businessName || (user?.name || "Organisasi Saya"),
+    email: user?.email || "",
+    phone: user?.phone || "",
+    description: user?.description || "Penyelenggara event pameran, expo dan festival terpercaya.",
+    website: user?.website || "",
+    instagram: user?.instagram || "",
   });
 
   const [saved, setSaved] = useState(false);
@@ -30,27 +27,22 @@ export default function OrganizerProfilePage() {
         setProfile(JSON.parse(stored));
       } else if (user) {
         setProfile({
-          orgName: user.businessName || (isDemoOrg ? "PT. Event Kreasi Nusantara" : user.name || "Organisasi Saya"),
+          orgName: user.businessName || (user.name || "Organisasi Saya"),
           email: user.email,
-          phone: user.phone || "+62 812 3456 7890",
-          description: user.description || (isDemoOrg
-            ? "Penyelenggara expo dan festival pameran industri kreatif profesional berstandar nasional di Indonesia."
-            : "Penyelenggara event pameran, expo dan festival terpercaya."),
-          website: user.website || (isDemoOrg ? "https://eventkreasi.id" : "https://boothify.id"),
-          instagram: user.instagram || (isDemoOrg ? "@eventkreasi.id" : "@organizer"),
+          phone: user.phone || "",
+          description: user.description || "Penyelenggara event pameran, expo dan festival terpercaya.",
+          website: user.website || "",
+          instagram: user.instagram || "",
         });
       }
     } catch {
       // ignore
     }
-  }, [user, email, isDemoOrg]);
+  }, [user, email]);
 
   const handleSave = () => {
     try {
       localStorage.setItem(`boothify_org_profile_${email}`, JSON.stringify(profile));
-      if (isDemoOrg) {
-        localStorage.setItem("boothify_org_profile", JSON.stringify(profile));
-      }
       updateProfile({
         businessName: profile.orgName,
         phone: profile.phone,
@@ -212,29 +204,6 @@ export default function OrganizerProfilePage() {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Reset Demo Data */}
-      <div className="card-base p-6 mt-6 border border-amber-500/20 bg-amber-500/[0.02]">
-        <h2 className="font-semibold text-sm mb-1 text-foreground flex items-center gap-2">
-          <span>🔄</span> Reset Data Uji Coba
-        </h2>
-        <p className="text-xs text-muted-foreground mb-4">
-          Ingin mengulang pengujian dari awal? Menekan tombol ini akan menghapus semua data input pengujian (event baru, perubahan katalog, riwayat pesanan buatan Anda) dan mengembalikan seluruh akun &amp; data ke kondisi demo awal bawaan.
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            if (confirm("Reset semua input pengujian dan kembalikan ke data demo awal? Semua akun demo (Organizer, Tenant, Pengunjung) dan event bawaan akan tetap ada.")) {
-              resetDemoWorkspace(true);
-              window.location.reload();
-            }
-          }}
-          className="btn btn-sm text-xs bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border border-amber-500/30 font-medium cursor-pointer"
-          id="btn-reset-demo-org"
-        >
-          Reset ke Data Demo Awal
-        </button>
       </div>
     </div>
   );
