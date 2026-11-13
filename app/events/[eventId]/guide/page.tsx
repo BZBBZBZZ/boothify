@@ -17,6 +17,7 @@ import {
   getBoothsFromSupabase,
   getTenantsFromSupabase,
 } from "@/app/lib/supabase-service";
+import Icon from "../../../components/Icon";
 
 interface CartItem {
   boothId: string;
@@ -308,15 +309,16 @@ function EventGuideContent() {
               onClick={() => router.push(searchParams.get("demo") === "visitor" ? "/" : `/events/${eventId}`)}
               className="w-8 h-8 rounded-lg bg-foreground/5 flex items-center justify-center hover:bg-foreground/10 transition"
               id="btn-back-to-event"
+              aria-label="Kembali"
             >
-              ←
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
             </button>
             <div>
               <h1 className="font-bold text-sm leading-tight truncate max-w-[200px] sm:max-w-xs">
                 {eventInfo.title}
               </h1>
               <p className="text-[10px] text-muted-foreground">
-                📱 Panduan Interaktif Pengunjung
+                Panduan Interaktif Pengunjung
               </p>
             </div>
           </div>
@@ -327,7 +329,7 @@ function EventGuideContent() {
                 className="btn btn-primary btn-sm text-xs relative"
                 id="floating-cart-btn"
               >
-                🛒 Keranjang ({cart.reduce((s, i) => s + i.qty, 0)})
+                Keranjang ({cart.reduce((s, i) => s + i.qty, 0)})
               </button>
             )}
           </div>
@@ -338,7 +340,7 @@ function EventGuideContent() {
         {/* Live Order Tracker Banner */}
         {activeOrder && (
           <div
-            className={`p-4 rounded-2xl mb-6 border transition-all animate-fade-in ${
+            className={`p-4 rounded-2xl mb-6 border transition-colors animate-fade-in ${
               activeOrder.status === "making"
                 ? "bg-sky-500/10 border-sky-500/40"
                 : activeOrder.status === "ready"
@@ -351,24 +353,27 @@ function EventGuideContent() {
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className="text-xl">
-                  {activeOrder.status === "making"
-                    ? "🍳"
-                    : activeOrder.status === "ready"
-                    ? "🔔"
-                    : activeOrder.status === "done"
-                    ? "✅"
-                    : "⏳"}
+                <span className="text-foreground">
+                  <Icon
+                    name={activeOrder.status === "making"
+                      ? "flame"
+                      : activeOrder.status === "ready"
+                      ? "bell"
+                      : activeOrder.status === "done"
+                      ? "check-circle"
+                      : "clock"}
+                    size={24}
+                  />
                 </span>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <p className="text-[10px] font-semibold text-muted-foreground">
                     Status Pesanan #{activeOrder.id}
                   </p>
                   <p className="text-sm font-bold text-foreground">
                     {activeOrder.status === "making"
                       ? "Sedang Dibuat oleh Merchant"
                       : activeOrder.status === "ready"
-                      ? "🎉 SIAP DIAMBIL DI BOOTH!"
+                      ? "Siap diambil di booth"
                       : activeOrder.status === "done"
                       ? "Pesanan Telah Selesai"
                       : "Menunggu Antrean Pembuatan"}
@@ -406,7 +411,7 @@ function EventGuideContent() {
         {/* Event Quick Info Banner */}
         <div className="card-base p-4 mb-6">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">{eventInfo.image || "🎪"}</span>
+            <span className="mono-chip mono-chip--lg" aria-hidden="true">{(eventInfo.title || "E").split(" ").filter(Boolean).slice(0, 2).map((w: string) => w[0]).join("").toUpperCase()}</span>
             <div className="flex-1 min-w-0">
               <h2 className="font-bold text-sm text-foreground truncate">{eventInfo.title}</h2>
               <p className="text-xs text-muted-foreground">{eventInfo.date} • {eventInfo.location}</p>
@@ -476,7 +481,7 @@ function EventGuideContent() {
                     }
                   }}
                   // PERUBAHAN: Tambah `flex flex-col overflow-hidden p-1.5` (padding sedikit dikurangi agar text punya lebih banyak ruang)
-                  className={`public-floor-plan-booth absolute p-1.5 sm:p-2 flex flex-col overflow-hidden rounded-xl border text-left transition-all ${
+                  className={`public-floor-plan-booth absolute p-1.5 sm:p-2 flex flex-col overflow-hidden rounded-xl border text-left transition-colors ${
                     matchesFilter ? "opacity-100 scale-100" : "opacity-40"
                   } ${
                     isOccupied
@@ -513,7 +518,7 @@ function EventGuideContent() {
                     <div className="public-floor-plan-booth-status mt-auto w-full pt-1 min-w-0">
                       <p className="text-[10px] sm:text-xs font-semibold text-foreground truncate w-full">{tenant.name}</p>
                       <p className="text-[8px] sm:text-[10px] text-muted-foreground truncate w-full">
-                        {tenant.type === "fnb" ? "🍜 Menu" : "📁 Info"}
+                        {tenant.type === "fnb" ? "Menu" : "Info"}
                       </p>
                     </div>
                   ) : (
@@ -618,7 +623,7 @@ function EventGuideContent() {
                 </div>
               </div>
               <button onClick={() => setSelectedBooth(null)} className="btn btn-ghost btn-icon">
-                ✕
+
               </button>
             </div>
 
@@ -626,8 +631,8 @@ function EventGuideContent() {
 
             {cartToast && (
               <button type="button" onClick={() => { setCartToast(null); setShowCart(true); }} className="w-full text-left p-3 rounded-xl mb-5 bg-primary/10 border border-primary/30 text-sm animate-fade-in" id="cart-toast">
-                <span className="font-semibold text-primary-light">✓ Produk berhasil ditambahkan ke keranjang.</span>
-                <span className="block text-xs text-muted-foreground mt-1">Ketuk untuk melihat keranjang Anda →</span>
+                <span className="font-semibold text-primary-light">Produk berhasil ditambahkan ke keranjang.</span>
+                <span className="block text-xs text-muted-foreground mt-1">Ketuk untuk melihat keranjang Anda</span>
               </button>
             )}
 
@@ -636,14 +641,14 @@ function EventGuideContent() {
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-sm flex items-center gap-1.5 text-foreground">
-                    <span>{selectedBooth.type === "fnb" ? "📋 Menu Sajian — Pesan Langsung" : "🛍️ Katalog Produk & Merchandise — Pesan Langsung"}</span>
+                    <span>{selectedBooth.type === "fnb" ? "Menu Sajian — Pesan Langsung" : "Katalog Produk & Merchandise — Pesan Langsung"}</span>
                   </h3>
                   <span className="badge badge-primary text-[10px]">{selectedBooth.menu.length} Item</span>
                 </div>
                 <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
                   {selectedBooth.menu.map((item) => (
                     <div key={item.name} className="flex items-center gap-3 p-3 rounded-xl bg-foreground/[0.03] border border-foreground/5 hover:border-foreground/10 transition-colors">
-                      <span className="text-2xl">{item.image || (selectedBooth.type === "fnb" ? "☕" : "🛍️")}</span>
+                      <span className="mono-chip" aria-hidden="true">{item.name.charAt(0).toUpperCase()}</span>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-medium text-foreground truncate">{item.name}</h4>
                         {item.description && <p className="text-[11px] text-muted-foreground truncate">{item.description}</p>}
@@ -693,19 +698,19 @@ function EventGuideContent() {
                   className="btn btn-primary btn-sm w-full text-xs"
                   id="open-mini-website-btn"
                 >
-                  🌐 Kunjungi Mini Website Brand
+                  Kunjungi Mini Website Brand
                 </button>
               </div>
             )}
 
             {selectedBooth.media && selectedBooth.media.length > 0 && (
               <div className="mb-2">
-                <h3 className="font-semibold text-xs mb-2">📁 Brosur &amp; Media Digital</h3>
+                <h3 className="font-semibold text-xs mb-2">Brosur &amp; Media Digital</h3>
                 <div className="space-y-2">
                   {selectedBooth.media.map((med) => (
                     <div key={med} className="flex items-center justify-between p-2.5 rounded-xl bg-foreground/[0.02] border border-foreground/5 text-xs">
                       <span className="truncate">{med}</span>
-                      <span className="text-primary-light font-medium cursor-pointer">Lihat ↗</span>
+                      <span className="text-primary-light font-medium cursor-pointer">Lihat</span>
                     </div>
                   ))}
                 </div>
@@ -719,7 +724,7 @@ function EventGuideContent() {
       {emptyBoothSelected && (
         <div className="modal-overlay" onClick={() => setEmptyBoothSelected(null)}>
           <div className="modal-content max-w-sm text-center py-6" onClick={(e) => e.stopPropagation()}>
-            <span className="text-4xl block mb-2">🏪</span>
+            <span className="text-4xl block mb-2"><Icon name="store" size={32} /></span>
             <h3 className="font-bold text-base mb-1">Booth {emptyBoothSelected.label} Masih Kosong</h3>
             <p className="text-xs text-muted-foreground mb-4">
               Zona {getZoneDisplay(emptyBoothSelected.zone)} • Biaya Sewa Rp {(emptyBoothSelected.price || 2500000).toLocaleString("id-ID")}
@@ -760,7 +765,7 @@ function EventGuideContent() {
                 onClick={() => setShowMiniWebsite(false)}
                 className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center text-sm"
               >
-                ✕
+
               </button>
               <div
                 className="w-20 h-20 rounded-2xl flex items-center justify-center font-bold text-2xl shadow-xl"
@@ -786,7 +791,7 @@ function EventGuideContent() {
                 <div className="grid grid-cols-2 gap-2 mb-6 text-xs">
                   {activeMiniWebsite.highlights.map((h) => (
                     <div key={h} className="p-2.5 rounded-xl bg-foreground/[0.03] border border-foreground/5 font-medium">
-                      ✓ {h}
+                      {h}
                     </div>
                   ))}
                 </div>
@@ -795,8 +800,8 @@ function EventGuideContent() {
               {/* Products Catalog Inside Mini Website */}
               {activeMiniWebsite.menu && activeMiniWebsite.menu.length > 0 && (
                 <div className="mb-6 text-left">
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-muted-foreground mb-3 text-center">
-                    🛍️ Produk &amp; Layanan Resmi
+                  <h4 className="font-bold text-xs text-muted-foreground mb-3 text-center">
+                    Produk &amp; Layanan Resmi
                   </h4>
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                     {activeMiniWebsite.menu.map((prod) => (
@@ -805,7 +810,7 @@ function EventGuideContent() {
                         className="flex items-center justify-between p-2.5 rounded-xl bg-foreground/[0.03] border border-foreground/5 text-xs"
                       >
                         <div className="flex items-center gap-2.5">
-                          <span className="text-xl">{prod.image || "🛍️"}</span>
+                          <span className="mono-chip mono-chip--sm" aria-hidden="true">{prod.name.charAt(0).toUpperCase()}</span>
                           <div>
                             <div className="font-semibold text-foreground">{prod.name}</div>
                             <div className="text-[11px] font-bold" style={{ color: activeMiniWebsite.primaryColor }}>
@@ -832,8 +837,8 @@ function EventGuideContent() {
               )}
 
               <div className="pt-4 border-t border-border flex items-center justify-center gap-4 text-xs text-muted-foreground">
-                <span>📸 {activeMiniWebsite.instagram}</span>
-                <span>🌐 {activeMiniWebsite.website}</span>
+                <span>{activeMiniWebsite.instagram}</span>
+                <span>{activeMiniWebsite.website}</span>
               </div>
             </div>
           </div>
@@ -845,15 +850,15 @@ function EventGuideContent() {
         <div className="modal-overlay" onClick={() => setShowCart(false)}>
           <div className="modal-content max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-base">🛒 Keranjang Pesanan</h3>
+              <h3 className="font-bold text-base">Keranjang Pesanan</h3>
               <button onClick={() => setShowCart(false)} className="btn btn-ghost btn-icon">
-                ✕
+
               </button>
             </div>
 
             {cartToast && (
               <div className="p-3 rounded-xl mb-4 bg-primary/10 border border-primary/30 text-sm animate-fade-in" id="cart-toast-drawer">
-                <p className="font-semibold text-primary-light">✓ Produk berhasil ditambahkan ke keranjang.</p>
+                <p className="font-semibold text-primary-light">Produk berhasil ditambahkan ke keranjang.</p>
                 <p className="text-xs text-muted-foreground mt-1">Pesanan Anda sudah tercatat di keranjang ini.</p>
               </div>
             )}
@@ -874,7 +879,7 @@ function EventGuideContent() {
                       +
                     </button>
                     <button onClick={() => removeFromCart(item.boothId, item.name)} className="text-xs text-error ml-2">
-                      ✕
+
                     </button>
                   </div>
                 </div>
@@ -891,7 +896,7 @@ function EventGuideContent() {
               className="btn btn-primary w-full"
               id="checkout-cart-btn"
             >
-              Lanjut Pembayaran →
+              Lanjut Pembayaran
             </button>
           </div>
         </div>
@@ -941,7 +946,7 @@ function EventGuideContent() {
       {showCheckout && (
         <div className="modal-overlay" onClick={() => setShowCheckout(false)}>
           <div className="modal-content max-w-sm text-center" onClick={(e) => e.stopPropagation()}>
-            <div className="text-4xl mb-2">📱</div>
+            <div className="text-4xl mb-2"><Icon name="phone" size={32} /></div>
             <h3 className="font-bold text-base mb-1">Pembayaran Pesanan</h3>
             <p className="text-xs text-muted-foreground mb-4">Total: Rp {totalCart.toLocaleString("id-ID")}</p>
 
@@ -976,7 +981,7 @@ function EventGuideContent() {
               className="btn btn-primary w-full btn-sm mb-2"
               id="confirm-pay-btn"
             >
-              Simulasikan Bayar Sukses ✓
+              Simulasikan Bayar Sukses
             </button>
             <button onClick={() => setShowCheckout(false)} className="btn btn-ghost btn-sm w-full text-xs">
               Batal

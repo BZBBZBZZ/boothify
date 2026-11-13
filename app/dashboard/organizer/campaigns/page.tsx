@@ -12,6 +12,7 @@ import {
   calculateAlignmentScore,
 } from "@/app/lib/admin-campaigns";
 import { getEventsFromSupabase } from "@/app/lib/supabase-service";
+import Icon from "../../../components/Icon";
 
 export default function OrganizerCampaignsPage() {
   const { user } = useAuth();
@@ -141,7 +142,7 @@ export default function OrganizerCampaignsPage() {
     if (!selectedCampaign) return;
 
     if (!selectedEvent) {
-      showNotification("⚠️ Silakan pilih event yang ingin diajukan.");
+      showNotification("Silakan pilih event yang ingin diajukan.");
       return;
     }
 
@@ -156,10 +157,10 @@ export default function OrganizerCampaignsPage() {
     if (existing) {
       showNotification(
         existing.status === "approved"
-          ? "⚠️ Event ini sudah resmi lolos kurasi dalam campaign ini."
+          ? "Event ini sudah resmi lolos kurasi dalam campaign ini."
           : existing.status === "pending"
-          ? "⚠️ Event ini sedang dalam proses peninjauan kurasi admin."
-          : "⚠️ Event ini sudah pernah diajukan sebelumnya."
+          ? "Event ini sedang dalam proses peninjauan kurasi admin."
+          : "Event ini sudah pernah diajukan sebelumnya."
       );
       return;
     }
@@ -182,7 +183,7 @@ export default function OrganizerCampaignsPage() {
       refreshData();
       setSubmitting(false);
       setSelectedCampaign(null);
-      showNotification("🚀 Pengajuan berhasil dikirim ke Admin untuk proses kurasi keselarasan!");
+      showNotification("Pengajuan berhasil dikirim ke Admin untuk proses kurasi keselarasan!");
     }, 400);
   };
 
@@ -191,21 +192,21 @@ export default function OrganizerCampaignsPage() {
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-purple-600 text-white shadow-2xl border border-purple-400/40 text-xs font-semibold flex items-center gap-2 animate-bounce">
-          <span>👑</span>
+          <span><Icon name="shield" size={16} /></span>
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Header Banner */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-900/30 via-card to-indigo-900/20 border border-purple-500/20 relative overflow-hidden shadow-sm">
+      <div className="p-6 rounded-2xl bg-info/10 border border-purple-500/20 relative overflow-hidden shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-info border border-purple-500/30">
                 Program Kurasi Admin
               </span>
-              <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
-                <span>🎁</span> Benefit Bebas Pajak (Free Tax 0%) &amp; Spotlight
+              <span className="text-xs text-success font-semibold flex items-center gap-1">
+                <span><Icon name="gift" size={16} /></span> Benefit Bebas Pajak (Free Tax 0%) &amp; Spotlight
               </span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight">
@@ -219,7 +220,7 @@ export default function OrganizerCampaignsPage() {
           <div className="flex items-center gap-2 self-start md:self-auto">
             <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-right">
               <div className="text-[10px] text-muted-foreground font-semibold">Event Lolos Kurasi</div>
-              <div className="text-xl font-black text-emerald-400">
+              <div className="text-xl font-black text-success">
                 {myApplications.filter((a) => a.status === "approved").length} Event
               </div>
             </div>
@@ -231,7 +232,7 @@ export default function OrganizerCampaignsPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold flex items-center gap-2">
-            <span>📋 Status Pengajuan Event Saya</span>
+            <span>Status Pengajuan Event Saya</span>
             <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 font-normal text-muted-foreground">
               {myApplications.length} Pengajuan
             </span>
@@ -240,7 +241,7 @@ export default function OrganizerCampaignsPage() {
 
         {myApplications.length === 0 ? (
           <div className="card-base p-8 text-center border border-white/10 space-y-2">
-            <span className="text-2xl">🌱</span>
+            <span className="text-2xl"><Icon name="leaf" size={24} /></span>
             <p className="text-sm font-semibold">Belum ada event yang diajukan ke Campaign Admin</p>
             <p className="text-xs text-muted-foreground max-w-md mx-auto">
               Pilih salah satu campaign aktif di bawah ini dan ajukan event Anda untuk mendapatkan benefit Bebas Pajak dan Highlight.
@@ -255,7 +256,7 @@ export default function OrganizerCampaignsPage() {
               return (
                 <div
                   key={app.id}
-                  className={`card-base p-5 border transition-all ${
+                  className={`card-base p-5 border transition-colors ${
                     isApproved
                       ? "border-emerald-500/30 bg-emerald-500/[0.02]"
                       : isPending
@@ -266,23 +267,23 @@ export default function OrganizerCampaignsPage() {
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div>
                       <span
-                        className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
+                        className={`text-xs font-bold px-2 py-0.5 border ${
                           isApproved
-                            ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                            ? "bg-emerald-500/15 text-success border-emerald-500/30"
                             : isPending
-                            ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
-                            : "bg-red-500/15 text-red-300 border-red-500/30"
+                            ? "bg-amber-500/15 text-primary-light border-amber-500/30"
+                            : "bg-red-500/15 text-error border-red-500/30"
                         }`}
                       >
                         {isApproved
-                          ? "✓ Lolos Kurasi (Benefit Aktif)"
+                          ? "Lolos Kurasi (Benefit Aktif)"
                           : isPending
-                          ? "⏳ Menunggu Kurasi Admin"
-                          : "❌ Belum Disetujui"}
+                          ? "Menunggu Kurasi Admin"
+                          : "Belum Disetujui"}
                       </span>
                       <h3 className="text-base font-bold mt-1 text-foreground">{app.eventTitle}</h3>
                       <p className="text-xs text-muted-foreground">
-                        Program: <strong className="text-purple-300">{app.campaignTitle}</strong>
+                        Program: <strong className="text-info">{app.campaignTitle}</strong>
                       </p>
                     </div>
 
@@ -290,7 +291,7 @@ export default function OrganizerCampaignsPage() {
                       <span className="text-[10px] text-muted-foreground block">Skor Keselarasan</span>
                       <span
                         className={`text-lg font-black ${
-                          app.alignmentScore >= 80 ? "text-emerald-400" : "text-teal-400"
+                          app.alignmentScore >= 80 ? "text-success" : "text-success"
                         }`}
                       >
                         {app.alignmentScore}%
@@ -305,8 +306,8 @@ export default function OrganizerCampaignsPage() {
                   {/* Catatan Admin jika ada */}
                   {app.adminNotes && (
                     <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs mb-3 space-y-1">
-                      <div className="font-semibold text-purple-300 flex items-center gap-1.5">
-                        <span>💬</span> Catatan Kurator Admin:
+                      <div className="font-semibold text-info flex items-center gap-1.5">
+                        <span><Icon name="message" size={16} /></span> Catatan Kurator Admin:
                       </div>
                       <p className="text-muted-foreground text-[11px] leading-relaxed">
                         {app.adminNotes}
@@ -318,15 +319,15 @@ export default function OrganizerCampaignsPage() {
                   <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
                     <div>
                       {isApproved ? (
-                        <span className="text-emerald-300 font-semibold flex items-center gap-1 text-[11px]">
-                          <span>🎁</span> Free Tax Tenant (0%) &amp; Highlight Aktif
+                        <span className="text-success font-semibold flex items-center gap-1 text-[11px]">
+                          <span><Icon name="gift" size={16} /></span> Free Tax Tenant (0%) &amp; Highlight Aktif
                         </span>
                       ) : isPending ? (
-                        <span className="text-amber-300 text-[11px]">
+                        <span className="text-primary-light text-[11px]">
                           Sedang ditelaah tim kurasi platform
                         </span>
                       ) : (
-                        <span className="text-red-400 text-[11px]">
+                        <span className="text-error text-[11px]">
                           Dapat diajukan kembali setelah penyesuaian konsep
                         </span>
                       )}
@@ -337,7 +338,7 @@ export default function OrganizerCampaignsPage() {
                       target="_blank"
                       className="text-primary-light hover:underline text-xs"
                     >
-                      Lihat Event ↗
+                      Lihat Event
                     </Link>
                   </div>
                 </div>
@@ -377,7 +378,7 @@ export default function OrganizerCampaignsPage() {
                         {camp.icon}
                       </span>
                       <div>
-                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-success border border-emerald-500/30">
                           {camp.status === "active" ? "Terbuka untuk Diajukan" : "Ditutup"}
                         </span>
                         <h3 className="text-lg font-bold text-foreground mt-1">{camp.title}</h3>
@@ -385,7 +386,7 @@ export default function OrganizerCampaignsPage() {
                     </div>
                   </div>
 
-                  <p className="text-xs text-purple-200 font-medium">{camp.tagline}</p>
+                  <p className="text-xs text-info font-medium">{camp.tagline}</p>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {camp.description}
                   </p>
@@ -398,7 +399,7 @@ export default function OrganizerCampaignsPage() {
                     <ul className="space-y-1 text-[11px] text-foreground/80">
                       {camp.alignmentCriteria.map((crit, idx) => (
                         <li key={idx} className="flex items-start gap-1.5">
-                          <span className="text-purple-400 font-bold">•</span>
+                          <span className="text-info font-bold">•</span>
                           <span>{crit}</span>
                         </li>
                       ))}
@@ -406,10 +407,10 @@ export default function OrganizerCampaignsPage() {
                   </div>
 
                   {/* Benefit Banner */}
-                  <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-purple-500/10 to-transparent border border-emerald-500/20 space-y-1">
-                    <div className="flex items-center justify-between text-xs font-bold text-emerald-300">
+                  <div className="p-3.5 rounded-xl bg-success/10 border border-emerald-500/20 space-y-1">
+                    <div className="flex items-center justify-between text-xs font-bold text-success">
                       <span className="flex items-center gap-1.5">
-                        <span>🎁</span> Benefit Resmi saat Disetujui:
+                        <span><Icon name="gift" size={16} /></span> Benefit Resmi saat Disetujui:
                       </span>
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40">
                         Free Tax (PPN 0%)
@@ -423,19 +424,19 @@ export default function OrganizerCampaignsPage() {
 
                 <div className="pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
                   <span className="text-xs text-muted-foreground">
-                    📅 Periode: <strong className="text-foreground">{camp.startDate} – {camp.endDate}</strong>
+                    Periode: <strong className="text-foreground">{camp.startDate} – {camp.endDate}</strong>
                   </span>
 
                   <div className="flex items-center gap-2">
                     {isJoined && (
-                      <span className="text-[11px] font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                        <span>✓</span>
+                      <span className="text-[11px] font-semibold text-success bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                        <span><Icon name="check" size={16} /></span>
                         <span>Tergabung</span>
                       </span>
                     )}
                     {isPending && !isJoined && (
-                      <span className="text-[11px] font-semibold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                        <span>⏳</span>
+                      <span className="text-[11px] font-semibold text-primary-light bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                        <span><Icon name="clock" size={16} /></span>
                         <span>Dalam Kurasi</span>
                       </span>
                     )}
@@ -445,7 +446,7 @@ export default function OrganizerCampaignsPage() {
                       className="btn btn-primary btn-sm text-xs py-2 px-3.5 shadow-sm bg-purple-600 hover:bg-purple-500 text-white border-none cursor-pointer flex items-center gap-1 font-semibold"
                       id={`apply-camp-${camp.id}`}
                     >
-                      <span>{isJoined || isPending ? "+ Ajukan Event Lainnya →" : "Ajukan Event Saya →"}</span>
+                      <span>{isJoined || isPending ? "+ Ajukan Event Lainnya" : "Ajukan Event Saya"}</span>
                     </button>
                   </div>
                 </div>
@@ -466,7 +467,7 @@ export default function OrganizerCampaignsPage() {
                 <span className="text-2xl">{selectedCampaign.icon}</span>
                 <div>
                   <h3 className="text-base font-bold text-foreground">Ajukan Event ke Campaign</h3>
-                  <p className="text-xs text-purple-300">{selectedCampaign.title}</p>
+                  <p className="text-xs text-info">{selectedCampaign.title}</p>
                 </div>
               </div>
               <button
@@ -474,14 +475,14 @@ export default function OrganizerCampaignsPage() {
                 onClick={() => setSelectedCampaign(null)}
                 className="text-muted-foreground hover:text-foreground text-lg cursor-pointer"
               >
-                ✕
+
               </button>
             </div>
 
             <form onSubmit={handleSubmitApplication} className="space-y-4 text-xs">
               {myEvents.length === 0 ? (
                 <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center space-y-2">
-                  <p className="text-xs text-amber-300 font-semibold">
+                  <p className="text-xs text-primary-light font-semibold">
                     Anda belum memiliki event terdaftar di akun organizer ini.
                   </p>
                   <Link
@@ -510,7 +511,7 @@ export default function OrganizerCampaignsPage() {
                         );
                         return (
                           <option key={ev.id} value={ev.id}>
-                            {ev.title} ({ev.category || "Umum"}) {alreadyApplied ? "(Sudah Pernah Diajukan)" : "✓ Siap Diajukan"}
+                            {ev.title} ({ev.category || "Umum"}) {alreadyApplied ? "(Sudah Pernah Diajukan)" : "Siap Diajukan"}
                           </option>
                         );
                       })}
@@ -528,9 +529,9 @@ export default function OrganizerCampaignsPage() {
                       <button
                         type="button"
                         onClick={handleUseTemplatePitch}
-                        className="text-[11px] text-purple-300 hover:text-purple-200 underline cursor-pointer"
+                        className="text-[11px] text-info hover:text-info underline cursor-pointer"
                       >
-                        ✨ Template Otomatis
+                        Template Otomatis
                       </button>
                     </div>
                     <textarea
@@ -548,12 +549,12 @@ export default function OrganizerCampaignsPage() {
                   {previewAlignment && (
                     <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/20 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-purple-200">
-                          ⚡ Estimasi Skor Keselarasan Awal:
+                        <span className="font-semibold text-info">
+                          Estimasi Skor Keselarasan Awal:
                         </span>
                         <strong
                           className={`text-sm font-black ${
-                            previewAlignment.score >= 80 ? "text-emerald-400" : "text-teal-400"
+                            previewAlignment.score >= 80 ? "text-success" : "text-success"
                           }`}
                         >
                           {previewAlignment.score}%
@@ -561,7 +562,7 @@ export default function OrganizerCampaignsPage() {
                       </div>
                       <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-purple-500 to-emerald-500 rounded-full"
+                          className="h-full bg-info/10 rounded-full"
                           style={{ width: `${previewAlignment.score}%` }}
                         />
                       </div>
@@ -587,11 +588,11 @@ export default function OrganizerCampaignsPage() {
                     >
                       {submitting ? (
                         <>
-                          <span className="animate-spin text-sm">⏳</span>
+                          <span className="inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin keep-motion" aria-hidden="true" />
                           <span>Mengirim Pengajuan...</span>
                         </>
                       ) : (
-                        <span>Kirim Pengajuan ke Admin →</span>
+                        <span>Kirim Pengajuan ke Admin</span>
                       )}
                     </button>
                   </div>

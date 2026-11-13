@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/app/components/AuthContext";
 import { EVENT_CATEGORY_OPTIONS, getEventCategoryLabel } from "@/app/lib/event-categories";
+import Icon from "../../../components/Icon";
 
 export default function TenantProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -89,7 +90,7 @@ export default function TenantProfilePage() {
       />
       {logoToast && (
         <div className="fixed top-20 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 shadow-xl flex items-center gap-3 animate-fade-in text-sm font-medium text-foreground">
-          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-xs font-bold">✓</div>
+          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-xs font-bold"><Icon name="check" size={16} /></div>
           Logo brand berhasil diperbarui!
         </div>
       )}
@@ -102,7 +103,7 @@ export default function TenantProfilePage() {
       {/* Avatar */}
       <div className="card-base p-6 mb-6">
         <div className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/30 to-secondary/30 border border-primary/20 flex items-center justify-center text-foreground text-2xl font-bold shadow-md">
+          <div className="w-20 h-20 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center text-foreground text-2xl font-bold shadow-md">
             {initials}
           </div>
           <div>
@@ -202,7 +203,7 @@ export default function TenantProfilePage() {
           </div>
         </div>
         <button type="submit" className="btn btn-primary" id="save-tenant-profile">
-          {saved ? "✓ Tersimpan!" : "Simpan Perubahan"}
+          {saved ? "Tersimpan!" : "Simpan Perubahan"}
         </button>
       </form>
     </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/app/components/AuthContext";
+import Icon from "../../../components/Icon";
 
 type CatalogType = "fnb" | "non-fnb";
 
@@ -43,7 +44,7 @@ export default function CatalogPage() {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [websiteConfig, setWebsiteConfig] = useState({
     headline: user?.businessName || user?.name || "Brand Saya",
-    tagline: "Fashion yang merawat bumi 🌿",
+    tagline: "Fashion yang merawat bumi",
     aboutText: "Kami adalah brand resmi yang berpartisipasi dalam pameran ini.",
     primaryColor: "#10b981",
     socialLinks: {
@@ -114,7 +115,7 @@ export default function CatalogPage() {
       } else if (isKopi) {
         setWebsiteConfig({
           headline: "Kopi Keliling Nusantara",
-          tagline: "Secangkir Cerita di Setiap Sudut Event ☕",
+          tagline: "Secangkir Cerita di Setiap Sudut Event",
           aboutText: "Spesialisasi kopi keliling lokal bermutu tinggi menyajikan manual brew dan espresso machine portabel untuk memanjakan pengunjung expo.",
           primaryColor: "#d97706",
           socialLinks: { instagram: "@kopikeliling.id", website: "https://kopikeliling.id", whatsapp: "+6281234567890" },
@@ -122,7 +123,7 @@ export default function CatalogPage() {
       } else if (isEcoWear) {
         setWebsiteConfig({
           headline: "EcoWear Studio",
-          tagline: "Fashion yang merawat bumi 🌿",
+          tagline: "Fashion yang merawat bumi",
           aboutText: "Kami adalah brand fashion sirkular berkelanjutan yang menggunakan 100% serat organik dan daur ulang tekstil dengan etika fair trade.",
           primaryColor: "#10b981",
           socialLinks: { instagram: "@ecowearstudio", website: "https://ecowear.id", whatsapp: "+6281298765432" },
@@ -264,7 +265,7 @@ export default function CatalogPage() {
       if (isEcoWear) {
         localStorage.setItem("boothify_catalog_website", JSON.stringify(websiteConfig));
       }
-      showToast("✓ Pengaturan Mini Website Berhasil Disimpan!");
+      showToast("Pengaturan Mini Website Berhasil Disimpan!");
     } catch {
       // ignore
     }
@@ -275,7 +276,7 @@ export default function CatalogPage() {
       {/* Toast notification */}
       {notificationToast && (
         <div className="fixed top-20 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 shadow-xl flex items-center gap-3 animate-fade-in text-sm font-medium text-foreground">
-          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-xs font-bold">✓</div>
+          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-xs font-bold"><Icon name="check" size={16} /></div>
           {notificationToast}
         </div>
       )}
@@ -321,7 +322,7 @@ export default function CatalogPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
           <h1 className="text-2xl font-bold">Katalog Produk &amp; Media</h1>
           <span className="badge badge-primary text-xs">
-            🏢 {user?.businessName || user?.name || "Akun Tenant"}
+            {user?.businessName || user?.name || "Akun Tenant"}
           </span>
         </div>
         <p className="text-sm text-muted-foreground">
@@ -384,7 +385,7 @@ export default function CatalogPage() {
             {/* Menu list */}
             {menuItems.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-border rounded-xl">
-                <p className="text-4xl mb-2">🍽️</p>
+                <p className="text-4xl mb-2"><Icon name="utensils" size={32} /></p>
                 <p className="font-medium text-sm mb-1">Belum Ada Menu Produk</p>
                 <p className="text-xs text-muted-foreground mb-4">
                   Tambahkan menu makanan, minuman, atau produk fisik Anda untuk mulai menerima order.
@@ -440,7 +441,7 @@ export default function CatalogPage() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-4">
-                        <span className="text-3xl">{item.image}</span>
+                        <span className="mono-chip" aria-hidden="true">{item.name.charAt(0).toUpperCase()}</span>
                         <div className="flex-1">
                           <h3 className="font-medium text-sm">{item.name}</h3>
                           <p className="text-xs text-muted-foreground">{item.description}</p>
@@ -512,7 +513,7 @@ export default function CatalogPage() {
 
             {mediaItems.length === 0 ? (
               <div className="text-center py-8 border border-dashed border-border rounded-xl">
-                <p className="text-4xl mb-2">📁</p>
+                <p className="text-4xl mb-2"><Icon name="folder" size={32} /></p>
                 <p className="font-medium text-sm mb-1">Belum Ada Media Digital</p>
                 <p className="text-xs text-muted-foreground mb-4">
                   Unggah katalog PDF, video promosi, atau galeri portofolio brand Anda.
@@ -601,7 +602,7 @@ export default function CatalogPage() {
           {/* Mini Website Builder */}
           <div className="card-base p-6">
             <h2 className="font-semibold mb-1 flex items-center gap-2">
-              🌐 Mini Website Builder
+              Mini Website Builder
               <span className="badge badge-accent text-[10px]">AKTIF</span>
             </h2>
             <p className="text-xs text-muted-foreground mb-5">
@@ -684,7 +685,7 @@ export default function CatalogPage() {
                   />
                 </div>
                 <button type="button" onClick={handleSaveWebsite} className="btn btn-primary btn-sm" id="save-mini-website">
-                  💾 Simpan Mini Website
+                  Simpan Mini Website
                 </button>
               </div>
 
@@ -712,8 +713,8 @@ export default function CatalogPage() {
                       {websiteConfig.aboutText}
                     </p>
                     <div className="flex items-center justify-center gap-3 pt-2 border-t border-border/50">
-                      <span className="text-xs text-muted-foreground">📸 {websiteConfig.socialLinks.instagram}</span>
-                      <span className="text-xs text-muted-foreground">🌐 {websiteConfig.socialLinks.website}</span>
+                      <span className="text-xs text-muted-foreground">{websiteConfig.socialLinks.instagram}</span>
+                      <span className="text-xs text-muted-foreground">{websiteConfig.socialLinks.website}</span>
                     </div>
                   </div>
                 </div>
@@ -735,7 +736,7 @@ export default function CatalogPage() {
                 className="text-muted-foreground hover:text-foreground text-xl p-1"
                 id="close-add-media-modal"
               >
-                ✕
+
               </button>
             </div>
             <form

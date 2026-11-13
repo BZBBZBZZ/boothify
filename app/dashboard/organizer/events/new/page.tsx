@@ -253,7 +253,7 @@ export default function CreateEventPage() {
             <label htmlFor="event-theme" className="block text-sm font-medium mb-2">Tema / Campaign</label>
             <input id="event-theme" type="text" className="input-base" placeholder="Sustainable Fashion, Green Living, dll." value={formData.theme} onChange={(e) => update("theme", e.target.value)} />
             <p className="text-xs text-muted-foreground mt-1">
-              💡 Gunakan <a href="/dashboard/organizer/events/1/ai-campaign" className="text-primary-light underline">AI Campaign Generator</a> untuk mendapatkan rekomendasi tema
+              Gunakan <a href="/dashboard/organizer/events/1/ai-campaign" className="text-primary-light underline">AI Campaign Generator</a> untuk mendapatkan rekomendasi tema
             </p>
           </div>
 
@@ -287,7 +287,7 @@ export default function CreateEventPage() {
             {bannerUploaded ? (
               <div className="text-primary-light">
                 <svg className="mx-auto mb-2 text-primary" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
-                <p className="text-sm font-semibold">✓ Banner Event Berhasil Diunggah!</p>
+                <p className="text-sm font-semibold">Banner Event Berhasil Diunggah!</p>
                 <p className="text-xs text-muted-foreground mt-1">Klik untuk mengganti banner</p>
               </div>
             ) : (
@@ -303,7 +303,7 @@ export default function CreateEventPage() {
         {/* Actions */}
         <div className="flex items-center gap-3">
           <button type="submit" className="btn btn-primary btn-lg" id="create-event-submit">
-            Lanjut ke Floor Plan Builder →
+            Lanjut ke Floor Plan Builder
           </button>
           <button
             type="button"

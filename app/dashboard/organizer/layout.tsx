@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "../../components/AuthContext";
 
+import BrandMark from "../../components/BrandMark";
 import {
   getAllOrganizerEvents,
   getActiveOrganizerEventId,
@@ -199,7 +200,7 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
               {item.icon} {item.label}
             </span>
             {"badge" in item && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-emerald-500/20 text-success border border-emerald-500/30">
                 {(item as { badge?: string }).badge}
               </span>
             )}
@@ -242,10 +243,8 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Mobile header */}
       <div className="dashboard-mobile-header glass sticky top-0 z-40 px-4 py-3 items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="2.5" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-          </div>
-          <span className="font-bold text-sm">Boothify <span className="text-primary-light">Organizer</span></span>
+          <span className="text-primary"><BrandMark size={20} /></span>
+          <span className="wordmark text-base">Boothify <span className="text-primary-light">Organizer</span></span>
         </Link>
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="btn btn-ghost btn-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
@@ -257,10 +256,8 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
         <div className="dashboard-mobile-drawer fixed inset-0 z-50 bg-black/50" onClick={() => setSidebarOpen(false)}>
           <div className="w-64 h-full sidebar-dark p-4 animate-slide-in-right" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2 mb-8 mt-2">
-              <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="2.5" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-              </div>
-              <span className="font-bold text-sm">Boothify <span className="text-primary-light">Organizer</span></span>
+              <span className="text-primary"><BrandMark size={20} /></span>
+              <span className="wordmark text-base">Boothify <span className="text-primary-light">Organizer</span></span>
             </div>
             <Suspense fallback={<NavFallback />}>
               <OrganizerNavLinks onNavigate={() => setSidebarOpen(false)} />
@@ -272,12 +269,10 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Desktop sidebar */}
       <div className="dashboard-desktop-sidebar sidebar">
         <Link href="/" className="flex items-center gap-2 mb-8 px-2">
-          <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="2.5" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-          </div>
-          <div>
-            <span className="font-bold text-sm block">Boothify</span>
-            <span className="text-[10px] text-primary-light font-semibold">ORGANIZER</span>
+          <span className="text-primary"><BrandMark size={24} /></span>
+          <div className="grid gap-1">
+            <span className="wordmark text-lg block">Boothify</span>
+            <span className="text-xs text-primary-light font-medium">Organizer</span>
           </div>
         </Link>
 

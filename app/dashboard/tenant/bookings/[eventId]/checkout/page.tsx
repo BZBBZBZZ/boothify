@@ -9,6 +9,7 @@ import { getEventCategoryLabel, isFoodCategory } from "@/app/lib/event-categorie
 import { isEventInApprovedCampaign } from "@/app/lib/admin-campaigns";
 import { supabase } from "@/app/lib/supabase";
 import { getEventByIdFromSupabase } from "@/app/lib/supabase-service";
+import Icon from "../../../../../components/Icon";
 
 interface CheckoutItem {
   booth: string;
@@ -197,7 +198,7 @@ function CheckoutContent() {
   if (success) {
     return (
       <div className="animate-fade-in-up text-center py-16 max-w-md mx-auto" id="checkout-success">
-        <div className="text-7xl mb-6">🎉</div>
+        <div className="text-7xl mb-6"><Icon name="check-circle" size={40} /></div>
         <h1 className="text-2xl font-bold mb-3">Pembayaran Berhasil!</h1>
         <p className="text-muted-foreground mb-1">Booth kamu telah resmi terkonfirmasi untuk</p>
         <p className="font-semibold text-lg text-primary-light mb-6">{eventTitle}</p>
@@ -205,7 +206,7 @@ function CheckoutContent() {
           {items.map((item) => (
             <div key={item.booth} className="flex items-center justify-between text-sm">
               <span>Booth {item.booth} ({item.zone})</span>
-              <span className="font-medium text-emerald-700">✓ Confirmed &amp; Paid</span>
+              <span className="font-medium text-emerald-700">Confirmed &amp; Paid</span>
             </div>
           ))}
           <hr className="border-border" />
@@ -219,10 +220,10 @@ function CheckoutContent() {
         </p>
         <div className="flex flex-col gap-3">
           <Link href="/dashboard/tenant/catalog" className="btn btn-primary btn-lg" id="goto-catalog-btn">
-            Kelola Katalog Produk &amp; Mini Website →
+            Kelola Katalog Produk &amp; Mini Website
           </Link>
           <Link href={`/events/${eventId}/guide`} className="btn btn-secondary" id="preview-guide-btn">
-            📱 Lihat Booth Kamu di Panduan Pengunjung
+            Lihat Booth Kamu di Panduan Pengunjung
           </Link>
           <Link href="/dashboard/tenant" className="btn btn-ghost text-xs">
             Kembali ke Dashboard Tenant
@@ -247,7 +248,7 @@ function CheckoutContent() {
             <h2 className="font-semibold mb-4">Detail Pesanan</h2>
             <div className="space-y-3">
               <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5">
-                <span className="text-2xl">🌿</span>
+                <span className="text-2xl"><Icon name="leaf" size={24} /></span>
                 <div>
                   <p className="font-medium text-sm">{eventTitle}</p>
                   <p className="text-xs text-muted-foreground">{eventDate} • Venue Resmi Acara</p>
@@ -283,7 +284,7 @@ function CheckoutContent() {
               ].map((method) => (
                 <label
                   key={method.id}
-                  className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all ${
+                  className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-colors ${
                     paymentMethod === method.id
                       ? "bg-primary/5 border-2 border-primary"
                       : "bg-foreground/[0.02] border-2 border-transparent hover:bg-foreground/[0.04]"
@@ -297,7 +298,7 @@ function CheckoutContent() {
                     onChange={() => setPaymentMethod(method.id)}
                     className="sr-only"
                   />
-                  <span className="text-xl">{method.icon}</span>
+                  <Icon name={method.id === "qris" ? "phone" : method.id === "cc" ? "card" : method.id === "bca" || method.id === "mandiri" ? "bank" : "wallet"} size={20} />
                   <span className="text-sm font-medium">{method.label}</span>
                   <div className={`ml-auto w-5 h-5 rounded-full border-2 flex items-center justify-center ${
                     paymentMethod === method.id ? "border-primary bg-primary" : "border-border"
@@ -318,10 +319,10 @@ function CheckoutContent() {
 
           {/* Campaign Free Tax Highlight Banner */}
           {isFreeTax && (
-            <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/15 to-transparent border border-emerald-500/30 text-xs mb-4 space-y-1">
-              <div className="flex items-center justify-between font-bold text-emerald-300">
+            <div className="p-3.5 rounded-xl bg-success/10 border border-emerald-500/30 text-xs mb-4 space-y-1">
+              <div className="flex items-center justify-between font-bold text-success">
                 <span className="flex items-center gap-1.5">
-                  <span>🎁</span> Bebas Pajak (Free Tax 0%)
+                  <span><Icon name="gift" size={16} /></span> Bebas Pajak (Free Tax 0%)
                 </span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40">
                   Resmi Admin
@@ -346,7 +347,7 @@ function CheckoutContent() {
                   <span className="line-through text-xs text-muted-foreground mr-1.5">
                     Rp {standardTax.toLocaleString("id-ID")}
                   </span>
-                  <span className="font-bold text-emerald-400">Rp 0 (Free Tax)</span>
+                  <span className="font-bold text-success">Rp 0 (Free Tax)</span>
                 </div>
               ) : (
                 <span>Rp {appliedTax.toLocaleString("id-ID")}</span>
@@ -358,7 +359,7 @@ function CheckoutContent() {
               {isFreeTax ? (
                 <div className="text-right">
                   <span className="line-through text-xs text-muted-foreground mr-1.5">Rp 50.000</span>
-                  <span className="font-bold text-emerald-400">Rp 0 (Disubsidi)</span>
+                  <span className="font-bold text-success">Rp 0 (Disubsidi)</span>
                 </div>
               ) : (
                 <span>Rp {serviceFee.toLocaleString("id-ID")}</span>
@@ -428,7 +429,7 @@ function CheckoutContent() {
                 className="text-muted-foreground hover:text-foreground text-xl p-1"
                 id="close-terms-modal"
               >
-                ✕
+
               </button>
             </div>
             <div className="space-y-3 text-xs text-muted-foreground leading-relaxed">
@@ -466,7 +467,7 @@ function CheckoutContent() {
                 className="text-muted-foreground hover:text-foreground text-xl p-1"
                 id="close-cancel-modal"
               >
-                ✕
+
               </button>
             </div>
             <div className="space-y-3 text-xs text-muted-foreground leading-relaxed">

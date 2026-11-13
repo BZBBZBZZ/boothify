@@ -46,6 +46,7 @@ import {
   getOrganizerMessagesFromSupabase,
   saveEventToSupabase,
 } from "@/app/lib/supabase-service";
+import Icon from "../../components/Icon";
 
 export default function OrganizerDashboard() {
   const { user } = useAuth();
@@ -172,7 +173,7 @@ export default function OrganizerDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="stat-card">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-2xl">📅</span>
+            <span className="text-2xl"><Icon name="calendar" size={24} /></span>
             <span className="text-[11px] text-primary-light font-medium">Event Aktif</span>
           </div>
           <div className="text-2xl font-bold mb-1">{events.length}</div>
@@ -181,7 +182,7 @@ export default function OrganizerDashboard() {
 
         <div className="stat-card">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-2xl">🏪</span>
+            <span className="text-2xl"><Icon name="store" size={24} /></span>
             <span className="text-[11px] text-primary-light font-medium">Terisi</span>
           </div>
           <div className="text-2xl font-bold mb-1">{totalBoothsFilled}</div>
@@ -190,7 +191,7 @@ export default function OrganizerDashboard() {
 
         <div className="stat-card">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-2xl">💰</span>
+            <span className="text-2xl"><Icon name="wallet" size={24} /></span>
             <span className="text-[11px] text-primary-light font-medium">Estimasi</span>
           </div>
           <div className="text-2xl font-bold mb-1">{formattedRevenue}</div>
@@ -199,7 +200,7 @@ export default function OrganizerDashboard() {
 
         <div className="stat-card">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-2xl">📬</span>
+            <span className="text-2xl"><Icon name="inbox" size={24} /></span>
             <span className={`text-[11px] font-medium ${unreadCount > 0 ? "text-amber-700 font-bold" : "text-primary-light"}`}>
               {unreadCount > 0 ? `${unreadCount} Belum Dibaca` : "Semua Terbaca"}
             </span>
@@ -222,7 +223,7 @@ export default function OrganizerDashboard() {
 
             {events.length === 0 ? (
               <div className="text-center py-12 border border-dashed border-border rounded-xl">
-                <span className="text-4xl block mb-2">🎪</span>
+                <span className="text-4xl block mb-2"><Icon name="store" size={32} /></span>
                 <p className="font-semibold text-sm mb-1">Belum Ada Event Dibuat</p>
                 <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto">
                   Mulai buat expo, bazar, atau festival Anda dan sediakan denah booth interaktif untuk tenant.
@@ -258,21 +259,21 @@ export default function OrganizerDashboard() {
                         onClick={() => setActiveOrganizerEventId(event.id)}
                         className="btn btn-ghost btn-sm text-xs"
                       >
-                        Lihat Panduan ↗
+                        Lihat Panduan
                       </Link>
                       <Link
                         href={`/dashboard/organizer/events/${event.id}/qr-code`}
                         onClick={() => setActiveOrganizerEventId(event.id)}
                         className="btn btn-secondary btn-sm text-xs"
                       >
-                        QR ↗
+                        QR
                       </Link>
                       <Link
                         href={`/dashboard/organizer/events/${event.id}/floor-plan`}
                         onClick={() => setActiveOrganizerEventId(event.id)}
                         className="btn btn-primary btn-sm text-xs"
                       >
-                        Denah Booth →
+                        Denah Booth
                       </Link>
                     </div>
                   </div>
@@ -288,7 +289,7 @@ export default function OrganizerDashboard() {
             <h2 className="font-semibold mb-5 text-lg">Pendaftaran Booth</h2>
             {bookings.length === 0 ? (
               <div className="text-center py-8 border border-dashed border-border rounded-xl">
-                <span className="text-3xl block mb-2">🏪</span>
+                <span className="text-3xl block mb-2"><Icon name="store" size={32} /></span>
                 <p className="font-medium text-xs mb-1">Belum Ada Pendaftaran</p>
                 <p className="text-[11px] text-muted-foreground">
                   Pendaftaran sewa booth dari tenant akan langsung tampil di sini.
@@ -308,7 +309,7 @@ export default function OrganizerDashboard() {
                     <div className="text-right">
                       <p className="text-xs font-semibold">{booking.amount}</p>
                       <span className={`text-[10px] ${booking.status === "paid" ? "text-emerald-700" : "text-amber-700"}`}>
-                        {booking.status === "paid" ? "✓ Terbayar" : "⏳ Pending"}
+                        {booking.status === "paid" ? "Terbayar" : "Pending"}
                       </span>
                     </div>
                   </div>

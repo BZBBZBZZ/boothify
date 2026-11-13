@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../components/AuthContext";
 import Navbar from "../../components/Navbar";
 import { EVENT_CATEGORY_OPTIONS } from "../../lib/event-categories";
+import BrandMark from "../../components/BrandMark";
 
 type Role = "tenant" | "organizer" | null;
 
@@ -93,25 +94,14 @@ function RegisterFormContent() {
       <Navbar />
       <div className="min-h-screen flex pt-16" id="register-page">
       {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center">
-        <div className="absolute inset-0 bg-gradient-to-br from-secondary/20 via-card to-primary/20" />
-        <div className="absolute top-1/3 -right-20 w-[400px] h-[400px] rounded-full bg-secondary/10 blur-[100px] animate-float" />
-        <div className="absolute bottom-1/3 -left-20 w-[300px] h-[300px] rounded-full bg-primary/10 blur-[100px] animate-float delay-300" />
+      <div className="auth-panel hidden lg:flex lg:w-1/2 relative overflow-hidden items-center">
 
-        <div className="relative z-10 max-w-md text-center px-8">
+        <div className="relative z-10 max-w-md px-12">
           <Link href="/" className="inline-flex items-center gap-2 mb-8">
-            <div className="w-12 h-12 rounded-2xl gradient-primary flex items-center justify-center">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                <polyline points="9 22 9 12 15 12 15 22" />
-              </svg>
-            </div>
-            <span className="text-2xl font-bold">
-              Booth<span className="gradient-text">ify</span>
-            </span>
+            <span className="wordmark text-3xl"><BrandMark size={32} /><span>Boothify</span></span>
           </Link>
-          <h2 className="text-3xl font-bold mb-4">Bergabung dengan Boothify</h2>
-          <p className="text-muted leading-relaxed">
+          <h2 className="text-4xl font-extrabold leading-tight mb-4">Bergabung dengan Boothify</h2>
+          <p className="auth-panel-text leading-relaxed">
             {role === "organizer"
               ? "Buat event menakjubkan, kelola booth interaktif, dan jangkau ribuan tenant potensial."
               : role === "tenant"
@@ -120,21 +110,21 @@ function RegisterFormContent() {
           </p>
 
           {/* Step indicator */}
-          <div className="mt-12 flex items-center justify-center gap-3">
+          <div className="mt-12 flex items-center gap-3">
             {[1, 2, 3].map((s) => (
               <div key={s} className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                  s <= step ? "gradient-primary text-secondary" : "bg-foreground/5 text-muted-foreground border border-border"
+                <div className={`w-10 h-10 flex items-center justify-center text-sm font-bold transition-colors ${
+                  s <= step ? "gradient-primary text-secondary" : "text-muted-foreground border-2 border-border"
                 }`}>
                   {s < step ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                   ) : s}
                 </div>
-                {s < 3 && <div className={`w-12 h-0.5 rounded ${s < step ? "bg-primary" : "bg-border"}`} />}
+                {s < 3 && <div className={`w-12 h-0.5 ${s < step ? "bg-primary" : "bg-border"}`} />}
               </div>
             ))}
           </div>
-          <div className="mt-3 text-xs text-muted-foreground">
+          <div className="mt-3 text-sm auth-panel-text">
             {step === 1 ? "Pilih Peran" : step === 2 ? "Data Akun" : "Profil Bisnis"}
           </div>
         </div>
@@ -146,20 +136,14 @@ function RegisterFormContent() {
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-6">
             <Link href="/" className="inline-flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                  <polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
-              </div>
-              <span className="text-xl font-bold">Booth<span className="gradient-text">ify</span></span>
+              <span className="wordmark text-2xl"><BrandMark size={24} /><span>Boothify</span></span>
             </Link>
           </div>
 
           {/* Mobile step indicator */}
           <div className="lg:hidden flex items-center justify-center gap-2 mb-6">
             {[1, 2, 3].map((s) => (
-              <div key={s} className={`h-1.5 rounded-full transition-all ${s <= step ? "w-8 bg-primary" : "w-4 bg-border"}`} />
+              <div key={s} className={`h-1.5 rounded-full transition-colors ${s <= step ? "w-8 bg-primary" : "w-4 bg-border"}`} />
             ))}
           </div>
 
@@ -178,7 +162,7 @@ function RegisterFormContent() {
                 <p className="text-muted-foreground text-sm mb-8">Kamu mau bergabung sebagai apa di Boothify?</p>
                 <div className="space-y-4">
                   <button type="button" onClick={() => setRole("organizer")}
-                    className={`w-full p-6 rounded-2xl border-2 text-left transition-all ${
+                    className={`w-full p-6 rounded-2xl border-2 text-left transition-colors ${
                       role === "organizer" ? "border-primary bg-primary/5 shadow-lg shadow-primary/10" : "border-border hover:border-border-light bg-card"
                     }`} id="role-organizer">
                     <div className="flex items-start gap-4">
@@ -196,7 +180,7 @@ function RegisterFormContent() {
                   </button>
 
                   <button type="button" onClick={() => setRole("tenant")}
-                    className={`w-full p-6 rounded-2xl border-2 text-left transition-all ${
+                    className={`w-full p-6 rounded-2xl border-2 text-left transition-colors ${
                       role === "tenant" ? "border-secondary bg-secondary/5 shadow-lg shadow-secondary/10" : "border-border hover:border-border-light bg-card"
                     }`} id="role-tenant">
                     <div className="flex items-start gap-4">
@@ -285,7 +269,7 @@ function RegisterFormContent() {
                   </div>
                 </div>
                 <button type="submit" className="btn btn-primary w-full btn-lg mt-8" id="register-submit">
-                  🚀 Buat Akun & Mulai
+                  Buat Akun & Mulai
                 </button>
               </div>
             )}

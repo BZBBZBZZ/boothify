@@ -108,7 +108,7 @@ function QRCodeContent() {
             <span className="badge badge-primary text-xs">Event #{eventId}</span>
           </div>
           <p className="text-sm text-primary-light font-medium">
-            🎯 {eventTitle} <span className="text-muted-foreground text-xs font-normal">({eventDate})</span>
+            {eventTitle} <span className="text-muted-foreground text-xs font-normal">({eventDate})</span>
           </p>
           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
             <span>Ganti Acara:</span>
@@ -134,7 +134,7 @@ function QRCodeContent() {
             target="_blank"
             className="btn btn-secondary btn-sm text-xs"
           >
-            📱 Buka Panduan Digital ↗
+            Buka Panduan Digital
           </Link>
         </div>
       </div>
@@ -167,7 +167,7 @@ function QRCodeContent() {
           </div>
 
           <div className="mb-2">
-            <span className="badge badge-primary">✅ QR Code Scannable</span>
+            <span className="badge badge-primary">QR Code Scannable</span>
           </div>
 
           <p className="text-sm text-muted-foreground mb-4">
@@ -187,7 +187,7 @@ function QRCodeContent() {
               className="btn btn-secondary btn-sm whitespace-nowrap"
               id="copy-url-btn"
             >
-              {copied ? "✓ Tersalin!" : "Salin"}
+              {copied ? "Tersalin!" : "Salin"}
             </button>
           </div>
 
@@ -213,8 +213,8 @@ function QRCodeContent() {
 
           {/* Direct Role Test Buttons */}
           <div className="border-t border-border pt-5 space-y-2 text-left">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              🧪 Uji Coba Alur Langsung (Demo Flow):
+            <p className="text-xs font-semibold text-muted-foreground mb-2">
+              Uji Coba Alur Langsung (Demo Flow):
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <Link
@@ -222,14 +222,14 @@ function QRCodeContent() {
                 className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2 border-emerald-500/30 text-emerald-700 hover:bg-emerald-500/10"
                 id="test-visitor-flow"
               >
-                📱 Uji sbg Pengunjung (Scan)
+                Uji sbg Pengunjung (Scan)
               </Link>
               <Link
                 href={`/events/${eventId}`}
                 className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2 border-primary/30 text-primary-light hover:bg-primary/10"
                 id="test-tenant-flow"
               >
-                🏪 Uji sbg Tenant (Sewa Booth)
+                Uji sbg Tenant (Sewa Booth)
               </Link>
             </div>
           </div>
@@ -239,7 +239,7 @@ function QRCodeContent() {
         <div className="space-y-6">
           <div className="card-base p-6">
             <h2 className="font-semibold mb-4 flex items-center gap-2">
-              📋 Cara Penggunaan
+              Cara Penggunaan
             </h2>
             <ol className="space-y-4">
               {[
@@ -263,7 +263,7 @@ function QRCodeContent() {
 
           <div className="card-base p-6">
             <h2 className="font-semibold mb-4 flex items-center gap-2">
-              ⚙️ Pengaturan QR Code
+              Pengaturan QR Code
             </h2>
             <div className="space-y-4">
               <div>
@@ -304,7 +304,7 @@ function QRCodeContent() {
 
           <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
             <p className="text-xs text-muted-foreground">
-              💡 <strong>Tips:</strong> Pasang QR Code minimal ukuran 5×5 cm agar mudah di-scan dari jarak 30cm.
+              <strong>Tips:</strong> Pasang QR Code minimal ukuran 5×5 cm agar mudah di-scan dari jarak 30cm.
               Untuk banner besar, gunakan ukuran A3 atau lebih. URL QR otomatis mengikuti domain kamu (termasuk port forwarding).
             </p>
           </div>

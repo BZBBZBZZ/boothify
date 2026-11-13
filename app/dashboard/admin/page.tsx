@@ -11,6 +11,7 @@ import {
   updateAdminCampaign,
   reviewCampaignApplication,
 } from "@/app/lib/admin-campaigns";
+import Icon from "../../components/Icon";
 
 export default function AdminDashboardPage() {
   const [campaigns, setCampaigns] = useState<AdminCampaign[]>([]);
@@ -65,7 +66,7 @@ export default function AdminDashboardPage() {
       setProcessingId(null);
       showNotification(
         status === "approved"
-          ? "✅ Event berhasil disetujui! Status Highlight dan Bebas Pajak (Free Tax 0%) kini aktif untuk tenant."
+          ? "Event berhasil disetujui! Status Highlight dan Bebas Pajak (Free Tax 0%) kini aktif untuk tenant."
           : "ℹ️ Pengajuan event telah ditolak dengan catatan evaluasi."
       );
     }, 400);
@@ -105,7 +106,7 @@ export default function AdminDashboardPage() {
       icon: newIcon || "🎯",
       benefits: {
         freeTax: true,
-        highlightBadge: "🌟 Official Admin Campaign",
+        highlightBadge: "Official Admin Campaign",
         priorityListing: true,
         description: "Bebas Pajak (PPN 0%) transaksi sewa booth tenant dan pin sorotan prioritas pada halaman Jelajahi Event.",
       },
@@ -122,7 +123,7 @@ export default function AdminDashboardPage() {
     setNewCriteria("");
     refreshData();
     setActiveTab("campaigns");
-    showNotification("🎉 Campaign Master baru berhasil dibuat dan siap diikuti oleh para organizer!");
+    showNotification("Campaign Master baru berhasil dibuat dan siap diikuti oleh para organizer!");
   };
 
   const toggleCategory = (cat: string) => {
@@ -136,17 +137,17 @@ export default function AdminDashboardPage() {
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-purple-600 text-white shadow-2xl border border-purple-400/40 text-xs font-semibold flex items-center gap-2 animate-bounce">
-          <span>👑</span>
+          <span><Icon name="shield" size={16} /></span>
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Header Banner */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-900/40 via-card to-indigo-950/40 border border-purple-500/30 relative overflow-hidden shadow-lg">
+      <div className="p-6 rounded-2xl bg-info/10 border border-purple-500/30 relative overflow-hidden shadow-lg">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">
+              <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-purple-500/20 text-info border border-purple-500/40">
                 Pusat Otoritas Platform
               </span>
               <span className="text-xs text-muted-foreground">Admin di atas Organizer</span>
@@ -166,7 +167,7 @@ export default function AdminDashboardPage() {
               className="btn btn-primary btn-sm text-xs py-2 px-3.5 flex items-center gap-1.5 shadow-md bg-purple-600 hover:bg-purple-500 border-none text-white"
               id="admin-create-campaign-btn"
             >
-              <span>➕</span>
+              <span><Icon name="plus" size={16} /></span>
               <span>Buat Campaign Baru</span>
             </button>
           </div>
@@ -178,36 +179,36 @@ export default function AdminDashboardPage() {
         <div className="card-base p-4 border border-purple-500/20">
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
             <span>Campaign Aktif</span>
-            <span className="text-base">🎯</span>
+            <span className="text-base"><Icon name="target" size={20} /></span>
           </div>
-          <div className="text-2xl font-black text-purple-300">{totalCampaigns}</div>
+          <div className="text-2xl font-black text-info">{totalCampaigns}</div>
           <p className="text-[11px] text-muted-foreground mt-1">Program induk siap diikuti</p>
         </div>
 
         <div className="card-base p-4 border border-amber-500/20">
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
             <span>Butuh Kurasi</span>
-            <span className="text-base">⏳</span>
+            <span className="text-base"><Icon name="clock" size={20} /></span>
           </div>
-          <div className="text-2xl font-black text-amber-400">{pendingApps}</div>
+          <div className="text-2xl font-black text-primary-light">{pendingApps}</div>
           <p className="text-[11px] text-muted-foreground mt-1">Pengajuan organizer pending</p>
         </div>
 
         <div className="card-base p-4 border border-emerald-500/20">
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
             <span>Event Tergabung</span>
-            <span className="text-base">✅</span>
+            <span className="text-base"><Icon name="check-circle" size={20} /></span>
           </div>
-          <div className="text-2xl font-black text-emerald-400">{approvedApps}</div>
+          <div className="text-2xl font-black text-success">{approvedApps}</div>
           <p className="text-[11px] text-muted-foreground mt-1">Lolos kurasi keselarasan</p>
         </div>
 
         <div className="card-base p-4 border border-teal-500/20">
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
             <span>Benefit Free Tax</span>
-            <span className="text-base">🎁</span>
+            <span className="text-base"><Icon name="gift" size={20} /></span>
           </div>
-          <div className="text-2xl font-black text-teal-300">0% PPN</div>
+          <div className="text-2xl font-black text-success">0% PPN</div>
           <p className="text-[11px] text-muted-foreground mt-1">Aktif untuk tenant pameran</p>
         </div>
       </div>
@@ -219,14 +220,14 @@ export default function AdminDashboardPage() {
           onClick={() => setActiveTab("curation")}
           className={`py-3 px-4 text-xs font-semibold border-b-2 transition flex items-center gap-2 cursor-pointer ${
             activeTab === "curation"
-              ? "border-purple-500 text-purple-300"
+              ? "border-purple-500 text-info"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
           id="tab-curation"
         >
-          <span>⚖️ Kurasi Keselarasan Pengajuan</span>
+          <span>Kurasi Keselarasan Pengajuan</span>
           {pendingApps > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/20 text-primary-light font-bold border border-amber-500/30">
               {pendingApps}
             </span>
           )}
@@ -237,12 +238,12 @@ export default function AdminDashboardPage() {
           onClick={() => setActiveTab("campaigns")}
           className={`py-3 px-4 text-xs font-semibold border-b-2 transition flex items-center gap-2 cursor-pointer ${
             activeTab === "campaigns"
-              ? "border-purple-500 text-purple-300"
+              ? "border-purple-500 text-info"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
           id="tab-campaigns"
         >
-          <span>🎯 Daftar Master Campaign ({campaigns.length})</span>
+          <span>Daftar Master Campaign ({campaigns.length})</span>
         </button>
 
         <button
@@ -250,12 +251,12 @@ export default function AdminDashboardPage() {
           onClick={() => setActiveTab("create")}
           className={`py-3 px-4 text-xs font-semibold border-b-2 transition flex items-center gap-2 cursor-pointer ${
             activeTab === "create"
-              ? "border-purple-500 text-purple-300"
+              ? "border-purple-500 text-info"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
           id="tab-create"
         >
-          <span>➕ Buat Campaign Baru</span>
+          <span>Buat Campaign Baru</span>
         </button>
       </div>
 
@@ -298,7 +299,7 @@ export default function AdminDashboardPage() {
 
           {filteredApps.length === 0 ? (
             <div className="card-base p-12 text-center border border-white/10 space-y-3">
-              <span className="text-3xl">📭</span>
+              <span className="text-3xl"><Icon name="inbox" size={32} /></span>
               <p className="text-sm font-semibold">Tidak ada pengajuan pada filter ini</p>
               <p className="text-xs text-muted-foreground">
                 Semua pengajuan organizer untuk kategori ini sudah diproses atau belum ada yang diajukan.
@@ -315,11 +316,11 @@ export default function AdminDashboardPage() {
                 return (
                   <div
                     key={app.id}
-                    className={`card-base p-5 border transition-all ${
+                    className={`card-base p-5 border transition-colors ${
                       isPending
-                        ? "border-amber-500/40 bg-gradient-to-br from-amber-500/[0.03] to-transparent shadow-md"
+                        ? "border-amber-500/40 bg-primary/5 shadow-md"
                         : isApproved
-                        ? "border-emerald-500/30 bg-gradient-to-br from-emerald-500/[0.02] to-transparent"
+                        ? "border-emerald-500/30 bg-success/10"
                         : "border-red-500/20 bg-white/[0.01]"
                     }`}
                   >
@@ -328,15 +329,15 @@ export default function AdminDashboardPage() {
                       <div>
                         <div className="flex flex-wrap items-center gap-2 mb-1">
                           <span
-                            className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
+                            className={`text-xs font-bold px-2 py-0.5 border ${
                               isPending
-                                ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                                ? "bg-amber-500/15 text-primary-light border-amber-500/30"
                                 : isApproved
-                                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                                : "bg-red-500/15 text-red-300 border-red-500/30"
+                                ? "bg-emerald-500/15 text-success border-emerald-500/30"
+                                : "bg-red-500/15 text-error border-red-500/30"
                             }`}
                           >
-                            {isPending ? "⏳ Menunggu Kurasi Admin" : isApproved ? "✅ Terverifikasi Masuk Campaign" : "❌ Ditolak"}
+                            {isPending ? "Menunggu Kurasi Admin" : isApproved ? "Terverifikasi Masuk Campaign" : "Ditolak"}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             Target Campaign: <strong>{app.campaignTitle}</strong>
@@ -347,7 +348,7 @@ export default function AdminDashboardPage() {
                           <span className="badge badge-primary text-[10px]">{app.eventCategory}</span>
                         </h3>
                         <p className="text-xs text-muted-foreground">
-                          Diajukan oleh: <strong className="text-foreground">{app.organizerName}</strong> ({app.organizerEmail}) • 📅 {app.eventDate} • 📍 {app.eventLocation}
+                          Diajukan oleh: <strong className="text-foreground">{app.organizerName}</strong> ({app.organizerEmail}) • {app.eventDate} • {app.eventLocation}
                         </p>
                       </div>
 
@@ -358,17 +359,17 @@ export default function AdminDashboardPage() {
                           <div
                             className={`text-xl font-black ${
                               app.alignmentScore >= 80
-                                ? "text-emerald-400"
+                                ? "text-success"
                                 : app.alignmentScore >= 60
-                                ? "text-teal-400"
-                                : "text-amber-400"
+                                ? "text-success"
+                                : "text-primary-light"
                             }`}
                           >
                             {app.alignmentScore}%
                           </div>
                         </div>
-                        <span className="text-2xl">
-                          {app.alignmentScore >= 80 ? "✨" : app.alignmentScore >= 60 ? "🎯" : "⚠️"}
+                        <span className="text-foreground">
+                          <Icon name={app.alignmentScore >= 80 ? "star" : app.alignmentScore >= 60 ? "target" : "bell"} size={24} />
                         </span>
                       </div>
                     </div>
@@ -378,8 +379,8 @@ export default function AdminDashboardPage() {
                       {/* Left: Uraian pitch keselarasan organizer */}
                       <div className="lg:col-span-2 space-y-3">
                         <div>
-                          <h4 className="text-xs font-semibold text-purple-300 mb-1 flex items-center gap-1.5">
-                            <span>📝 Uraian Keselarasan Konsep (Pitch Organizer):</span>
+                          <h4 className="text-xs font-semibold text-info mb-1 flex items-center gap-1.5">
+                            <span>Uraian Keselarasan Konsep (Pitch Organizer):</span>
                           </h4>
                           <p className="text-xs text-foreground/90 bg-white/[0.02] p-3 rounded-xl border border-white/5 leading-relaxed italic">
                             &ldquo;{app.submissionPitch}&rdquo;
@@ -396,7 +397,7 @@ export default function AdminDashboardPage() {
                               {targetCampaign.alignmentCriteria.map((crit, idx) => (
                                 <span
                                   key={idx}
-                                  className="text-[11px] px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-200"
+                                  className="text-[11px] px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-info"
                                 >
                                   • {crit}
                                 </span>
@@ -416,7 +417,7 @@ export default function AdminDashboardPage() {
                         <div className="space-y-1.5">
                           <div className="flex justify-between text-[11px]">
                             <span className="text-muted-foreground">Kesesuaian Kategori:</span>
-                            <span className="font-bold text-emerald-400">
+                            <span className="font-bold text-success">
                               {app.alignmentBreakdown?.categoryMatch || 90}%
                             </span>
                           </div>
@@ -431,7 +432,7 @@ export default function AdminDashboardPage() {
                         <div className="space-y-1.5">
                           <div className="flex justify-between text-[11px]">
                             <span className="text-muted-foreground">Keselarasan Tema &amp; Nilai:</span>
-                            <span className="font-bold text-teal-400">
+                            <span className="font-bold text-success">
                               {app.alignmentBreakdown?.themeMatch || 85}%
                             </span>
                           </div>
@@ -446,7 +447,7 @@ export default function AdminDashboardPage() {
                         <div className="space-y-1.5">
                           <div className="flex justify-between text-[11px]">
                             <span className="text-muted-foreground">Skala &amp; Kesiapan Pameran:</span>
-                            <span className="font-bold text-purple-400">
+                            <span className="font-bold text-info">
                               {app.alignmentBreakdown?.scaleMatch || 85}%
                             </span>
                           </div>
@@ -460,8 +461,8 @@ export default function AdminDashboardPage() {
 
                         <div className="pt-2 border-t border-white/5 text-[11px] text-muted-foreground">
                           {isApproved ? (
-                            <span className="text-emerald-300 flex items-center gap-1 font-medium">
-                              <span>🎁</span> Benefit aktif: Free Tax tenant &amp; status Highlight katalog publik.
+                            <span className="text-success flex items-center gap-1 font-medium">
+                              <span><Icon name="gift" size={16} /></span> Benefit aktif: Free Tax tenant &amp; status Highlight katalog publik.
                             </span>
                           ) : (
                             <span>Persetujuan admin akan otomatis mengaktifkan benefit Free Tax dan Highlight.</span>
@@ -490,7 +491,7 @@ export default function AdminDashboardPage() {
 
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="text-[11px] text-muted-foreground">
-                          ID Pengajuan: <code className="text-purple-300">{app.id}</code>
+                          ID Pengajuan: <code className="text-info">{app.id}</code>
                           {app.reviewedAt && ` • Dikurasi pada: ${new Date(app.reviewedAt).toLocaleDateString("id-ID")}`}
                         </div>
 
@@ -500,7 +501,7 @@ export default function AdminDashboardPage() {
                             target="_blank"
                             className="btn btn-secondary btn-sm text-xs py-1.5 px-3"
                           >
-                            Lihat Halaman Event ↗
+                            Lihat Halaman Event
                           </Link>
 
                           {isPending ? (
@@ -509,7 +510,7 @@ export default function AdminDashboardPage() {
                                 type="button"
                                 disabled={processingId === app.id}
                                 onClick={() => handleReview(app.id, "rejected")}
-                                className="btn btn-ghost btn-sm text-xs py-1.5 px-3 text-red-400 hover:bg-red-500/10 cursor-pointer"
+                                className="btn btn-ghost btn-sm text-xs py-1.5 px-3 text-error hover:bg-red-500/10 cursor-pointer"
                               >
                                 Tolak
                               </button>
@@ -519,14 +520,14 @@ export default function AdminDashboardPage() {
                                 onClick={() => handleReview(app.id, "approved")}
                                 className="btn btn-primary btn-sm text-xs py-1.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white border-none shadow-sm cursor-pointer"
                               >
-                                {processingId === app.id ? "Memproses..." : "✓ Setujui & Berikan Benefit"}
+                                {processingId === app.id ? "Memproses..." : "Setujui & Berikan Benefit"}
                               </button>
                             </>
                           ) : isApproved ? (
                             <button
                               type="button"
                               onClick={() => handleReview(app.id, "rejected")}
-                              className="text-xs text-muted-foreground hover:text-red-400 underline transition cursor-pointer"
+                              className="text-xs text-muted-foreground hover:text-error underline transition cursor-pointer"
                             >
                               Cabut Persetujuan
                             </button>
@@ -534,7 +535,7 @@ export default function AdminDashboardPage() {
                             <button
                               type="button"
                               onClick={() => handleReview(app.id, "approved")}
-                              className="btn btn-secondary btn-sm text-xs py-1.5 px-3 text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+                              className="btn btn-secondary btn-sm text-xs py-1.5 px-3 text-success hover:bg-emerald-500/10 cursor-pointer"
                             >
                               Tinjau Ulang &amp; Setujui
                             </button>
@@ -567,7 +568,7 @@ export default function AdminDashboardPage() {
               onClick={() => setActiveTab("create")}
               className="btn btn-primary btn-sm text-xs py-1.5 px-3 bg-purple-600 hover:bg-purple-500 text-white border-none"
             >
-              ➕ Buat Campaign
+              Buat Campaign
             </button>
           </div>
 
@@ -590,9 +591,9 @@ export default function AdminDashboardPage() {
                         </span>
                         <div>
                           <span
-                            className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
+                            className={`text-xs font-bold px-2 py-0.5 border ${
                               camp.status === "active"
-                                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                                ? "bg-emerald-500/15 text-success border-emerald-500/30"
                                 : "bg-white/5 text-muted-foreground border-white/10"
                             }`}
                           >
@@ -603,7 +604,7 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    <p className="text-xs text-purple-200/90 font-medium">{camp.tagline}</p>
+                    <p className="text-xs text-info/90 font-medium">{camp.tagline}</p>
                     <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
                       {camp.description}
                     </p>
@@ -627,11 +628,11 @@ export default function AdminDashboardPage() {
 
                     {/* Standard Benefit Banner */}
                     <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 space-y-1">
-                      <div className="flex items-center justify-between text-xs font-semibold text-purple-300">
+                      <div className="flex items-center justify-between text-xs font-semibold text-info">
                         <span className="flex items-center gap-1.5">
-                          <span>🎁</span> Benefit Resmi Campaign
+                          <span><Icon name="gift" size={16} /></span> Benefit Resmi Campaign
                         </span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-success border border-emerald-500/30 font-bold">
                           Free Tax 0%
                         </span>
                       </div>
@@ -643,8 +644,8 @@ export default function AdminDashboardPage() {
 
                   <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs">
                     <div className="text-muted-foreground">
-                      <span>👥 Event Tergabung: </span>
-                      <strong className="text-emerald-400 font-bold">{joinedCount}</strong>
+                      <span>Event Tergabung: </span>
+                      <strong className="text-success font-bold">{joinedCount}</strong>
                       {camp.maxParticipants && ` / max ${camp.maxParticipants}`}
                     </div>
 
@@ -671,8 +672,8 @@ export default function AdminDashboardPage() {
       {activeTab === "create" && (
         <div className="max-w-3xl mx-auto card-base p-6 sm:p-8 border border-purple-500/30 space-y-6">
           <div className="border-b border-white/10 pb-4">
-            <div className="flex items-center gap-2 text-xs text-purple-300 font-semibold mb-1">
-              <span>👑 Form Pembuatan Program Induk</span>
+            <div className="flex items-center gap-2 text-xs text-info font-semibold mb-1">
+              <span>Form Pembuatan Program Induk</span>
             </div>
             <h2 className="text-lg font-bold">Buat Master Campaign untuk Organizer</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -759,7 +760,7 @@ export default function AdminDashboardPage() {
                           : "bg-white/5 border-white/10 text-muted-foreground hover:text-white"
                       }`}
                     >
-                      {selected ? "✓ " : "+ "}
+                      {selected ? "" : "+ "}
                       {cat}
                     </button>
                   );
@@ -827,16 +828,16 @@ export default function AdminDashboardPage() {
 
             {/* Standard Benefits Notice */}
             <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 space-y-2">
-              <div className="flex items-center gap-2 font-bold text-purple-200">
-                <span>🎁</span>
+              <div className="flex items-center gap-2 font-bold text-info">
+                <span><Icon name="gift" size={16} /></span>
                 <span>Benefit Standar Otomatis untuk Seluruh Event Tergabung:</span>
               </div>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground text-[11px]">
                 <li>
-                  <strong className="text-emerald-400">Free Tax (Pajak 0%)</strong>: Otomatis membebaskan pajak/PPN saat tenant checkout menyewa booth.
+                  <strong className="text-success">Free Tax (Pajak 0%)</strong>: Otomatis membebaskan pajak/PPN saat tenant checkout menyewa booth.
                 </li>
                 <li>
-                  <strong className="text-purple-300">Highlight Prioritas</strong>: Event organizer berhak atas lencana <em>Official Admin Campaign</em> dan sorotan utama di halaman Jelajahi Event.
+                  <strong className="text-info">Highlight Prioritas</strong>: Event organizer berhak atas lencana <em>Official Admin Campaign</em> dan sorotan utama di halaman Jelajahi Event.
                 </li>
               </ul>
             </div>
@@ -854,7 +855,7 @@ export default function AdminDashboardPage() {
                 className="btn btn-primary btn-sm text-xs py-2 px-5 bg-purple-600 hover:bg-purple-500 text-white border-none shadow-md"
                 id="btn-submit-new-campaign"
               >
-                🚀 Luncurkan Campaign Master
+                Luncurkan Campaign Master
               </button>
             </div>
           </form>

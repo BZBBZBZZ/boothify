@@ -78,17 +78,17 @@ function AICampaignContent() {
 
       let campaigns = [
         {
-          title: `🌟 #${topic.replace(/\s+/g, "")}Fest — Eksplorasi & Kolaborasi Tanpa Batas`,
+          title: `#${topic.replace(/\s+/g, "")}Fest — Eksplorasi & Kolaborasi Tanpa Batas`,
           narrative: `Kampanye utama yang memposisikan event sebagai episentrum inovasi ${topic}. Menggabungkan showcase brand terbaik, ruang dialog praktisi, dan instalasi interaktif yang memikat ribuan pengunjung.`,
           impact: "Sangat Tinggi — Virality & Community Appeal",
         },
         {
-          title: `🔥 Experience ${topic}: Dari Inspirasi Menjadi Aksi`,
+          title: `Experience ${topic}: Dari Inspirasi Menjadi Aksi`,
           narrative: `Menghubungkan tenant dengan pengunjung melalui workshop langsung, live demonstration, dan exclusive product drop yang hanya bisa didapatkan di venue selama pameran berlangsung.`,
           impact: "Tinggi — Direct Sales & Engagement",
         },
         {
-          title: `💡 Next-Gen ${topic}: Masa Depan Dimulai Hari Ini`,
+          title: `Next-Gen ${topic}: Masa Depan Dimulai Hari Ini`,
           narrative: `Fokus pada terobosan masa depan, keberlanjutan, dan pemberdayaan kreator lokal. Sangat kuat untuk menarik liputan media massa dan kolaborasi sponsor tier 1.`,
           impact: "Sangat Tinggi — Media & Sponsor Value",
         },
@@ -109,9 +109,9 @@ function AICampaignContent() {
           { title: "Zero Waste Event Standards", description: "Event fashion tanpa sampah kemasan plastik sekali pakai kini menjadi standar prestise industri.", source: "Event Industry Report" },
         ];
         campaigns = [
-          { title: "🌿 #FashionForFuture — Mode yang Merawat Bumi", narrative: "Mengajak pengunjung mengenal proses produksi fashion berkelanjutan. Setiap booth menampilkan journey produk dan workshop upcycle.", impact: "Tinggi — Relevan dengan tren global" },
-          { title: "♻️ Circular Fashion Fair — Beli, Pakai, Kembalikan", narrative: "Konsep event yang menonjolkan siklus hidup pakaian dengan program take-back dan kurasi vintage berkualitas.", impact: "Sangat Tinggi — Actionable & Edukatif" },
-          { title: "🌱 Green Lifestyle Expo — Gaya Hidup Berkelanjutan", narrative: "Campaign holistik mencakup fashion etis, kerajinan tangan, dan gaya hidup minim sampah.", impact: "Tinggi — Menjangkau segmen luas" },
+          { title: "#FashionForFuture — Mode yang Merawat Bumi", narrative: "Mengajak pengunjung mengenal proses produksi fashion berkelanjutan. Setiap booth menampilkan journey produk dan workshop upcycle.", impact: "Tinggi — Relevan dengan tren global" },
+          { title: "Circular Fashion Fair — Beli, Pakai, Kembalikan", narrative: "Konsep event yang menonjolkan siklus hidup pakaian dengan program take-back dan kurasi vintage berkualitas.", impact: "Sangat Tinggi — Actionable & Edukatif" },
+          { title: "Green Lifestyle Expo — Gaya Hidup Berkelanjutan", narrative: "Campaign holistik mencakup fashion etis, kerajinan tangan, dan gaya hidup minim sampah.", impact: "Tinggi — Menjangkau segmen luas" },
         ];
       }
 
@@ -135,11 +135,11 @@ function AICampaignContent() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold">AI Campaign & Insights Generator</h1>
-            <span className="badge badge-secondary text-[10px]">✨ POWERED BY GEMINI</span>
+            <span className="badge badge-secondary text-[10px]">POWERED BY GEMINI</span>
             <span className="badge badge-primary text-xs">Event #{eventId}</span>
           </div>
           <p className="text-sm text-primary-light font-medium">
-            🎯 {eventTitle} <span className="text-muted-foreground text-xs font-normal">({eventCategory})</span>
+            {eventTitle} <span className="text-muted-foreground text-xs font-normal">({eventCategory})</span>
           </p>
           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
             <span>Ganti Acara:</span>
@@ -188,12 +188,12 @@ function AICampaignContent() {
                 Menganalisis...
               </>
             ) : (
-              <>✨ Generate</>
+              <>Generate</>
             )}
           </button>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          💡 AI akan melakukan scraping & analisis tren terkait topik ini dari sumber global dan lokal
+          AI akan melakukan scraping & analisis tren terkait topik ini dari sumber global dan lokal
         </p>
       </div>
 
@@ -216,14 +216,14 @@ function AICampaignContent() {
           {/* Trends */}
           <div>
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              📊 Analisis Tren Terkini
+              Analisis Tren Terkini
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {results.trends.map((trend, i) => (
                 <div key={i} className="card-base p-5">
                   <h3 className="font-semibold text-sm mb-2">{trend.title}</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed mb-3">{trend.description}</p>
-                  <span className="badge badge-secondary text-[10px]">📰 {trend.source}</span>
+                  <span className="badge badge-secondary text-[10px]">{trend.source}</span>
                 </div>
               ))}
             </div>
@@ -232,7 +232,7 @@ function AICampaignContent() {
           {/* Campaign Recommendations */}
           <div>
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              🎯 Rekomendasi Campaign
+              Rekomendasi Campaign
             </h2>
             <div className="space-y-4">
               {results.campaigns.map((campaign, i) => (
@@ -247,7 +247,7 @@ function AICampaignContent() {
                     className={`btn btn-sm ${appliedIndex === i ? "btn-primary" : "btn-secondary"}`}
                     id={`use-campaign-${i}`}
                   >
-                    {appliedIndex === i ? "✓ Campaign Diterapkan ke Event" : "Gunakan Campaign Ini"}
+                    {appliedIndex === i ? "Campaign Diterapkan ke Event" : "Gunakan Campaign Ini"}
                   </button>
                 </div>
               ))}
@@ -257,7 +257,7 @@ function AICampaignContent() {
           {/* Tips */}
           <div className="card-base p-6">
             <h2 className="font-semibold mb-4 flex items-center gap-2">
-              💡 Tips Implementasi
+              Tips Implementasi
             </h2>
             <ul className="space-y-2">
               {results.tips.map((tip, i) => (
@@ -271,7 +271,7 @@ function AICampaignContent() {
 
           {/* Disclaimer */}
           <div className="p-4 rounded-xl bg-secondary/5 border border-secondary/20 text-xs text-muted-foreground">
-            ⚠️ <strong>Catatan:</strong> Hasil analisis dan rekomendasi di atas dihasilkan oleh AI (Gemini API) berdasarkan data tren terkini. 
+            <strong>Catatan:</strong> Hasil analisis dan rekomendasi di atas dihasilkan oleh AI (Gemini API) berdasarkan data tren terkini. 
             Konten ini bersifat saran dan sebaiknya dikurasi lebih lanjut oleh tim event organizer. 
             <em className="text-secondary-light ml-1">Template UI — implementasi Gemini API oleh tim developer.</em>
           </div>

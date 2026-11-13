@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/components/AuthContext";
+import Icon from "../../components/Icon";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { user, isLoading, logout } = useAuth();
@@ -18,7 +19,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-2 border-foreground border-t-transparent rounded-full animate-spin keep-motion" />
           <p className="text-xs text-muted-foreground font-medium">Memverifikasi otoritas Super Admin...</p>
         </div>
       </div>
@@ -29,9 +30,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   if (!user || user.role !== "admin") {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <div className="card-base max-w-md w-full p-8 text-center border border-purple-500/20 shadow-2xl relative overflow-hidden">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-3xl">
-            🔒
+        <div className="card-base max-w-md w-full p-8 text-center border-2 border-foreground relative overflow-hidden">
+          <div className="w-16 h-16 mx-auto mb-4 bg-foreground text-primary flex items-center justify-center">
+            <Icon name="lock" size={32} />
           </div>
           <h1 className="text-xl font-bold mb-2">Akses Khusus Super Admin</h1>
           <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
@@ -61,20 +62,18 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Top Admin Bar */}
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-card/80 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b-2 border-foreground bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/dashboard/admin" className="flex items-center gap-2 group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center shadow-md">
-                <span className="text-lg">👑</span>
+              <div className="w-9 h-9 bg-foreground text-primary flex items-center justify-center">
+                <span className="text-lg"><Icon name="shield" size={20} /></span>
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-base font-bold tracking-tight">
-                    Booth<span className="gradient-text">ify</span>
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                    SUPER ADMIN
+                  <span className="wordmark text-base">Boothify</span>
+                  <span className="badge bg-info/15 text-info">
+                    Super admin
                   </span>
                 </div>
                 <p className="text-[10px] text-muted-foreground hidden sm:block">
@@ -85,22 +84,22 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20">
-              <span className="text-xs">🛡️</span>
-              <span className="text-xs text-purple-200 font-medium">Tingkat Hak Akses Tertinggi</span>
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-border">
+              <span className="text-xs"><Icon name="shield" size={16} /></span>
+              <span className="text-xs text-muted font-medium">Tingkat Hak Akses Tertinggi</span>
             </div>
 
             <Link
               href="/events"
               className="btn btn-secondary btn-sm text-xs py-1.5 px-3 hidden sm:inline-flex"
             >
-              Lihat Katalog Publik →
+              Lihat Katalog Publik
             </Link>
 
             <button
               type="button"
               onClick={logout}
-              className="btn btn-ghost btn-sm text-xs text-muted-foreground hover:text-red-400"
+              className="btn btn-ghost btn-sm text-xs text-muted-foreground hover:text-error"
               id="admin-logout-btn"
             >
               Keluar

@@ -1,0 +1,62 @@
+[
+ {
+  "mode": "redesign",
+  "depth": "full",
+  "scope": "site",
+  "shape": "Map / Diagram",
+  "theme": "coral",
+  "axes": "light/grotesk-sans/warm",
+  "hero": "Stage (Coral desk)",
+  "nav": "edge-aligned",
+  "footer": "colophon block",
+  "imagery": "screenshots 3 (capture script) and the sample floor plan built as stationery",
+  "photos": [],
+  "entry": "none",
+  "fingerprint": "desk-plan-card/ledger-sheet/groove-switcher/index-cards/board-cards/colophon",
+  "sections": [
+   "hero desk",
+   "ledger",
+   "role switcher",
+   "index cards",
+   "board close",
+   "footer"
+  ],
+  "signature": "a hall floor plan laid on a felt desk with its index card",
+  "waived": [
+   "39b",
+   "49b"
+  ],
+  "prompt": "booth booking marketplace for exhibitions and bazaars in Indonesia, Coral by request",
+  "date": "2026-11-13"
+ },
+ {
+  "mode": "redesign",
+  "depth": "full",
+  "scope": "site",
+  "shape": "Map / Diagram",
+  "theme": "wayfind",
+  "axes": "light/mono/warm",
+  "hero": "Ledge",
+  "nav": "masthead",
+  "footer": "colophon block",
+  "imagery": "screenshots 2 (capture script) and the sample floor plan built",
+  "photos": [],
+  "entry": "none",
+  "fingerprint": "ledge-plan/board-table/split-shot-rows/route-line/plates/colophon",
+  "sections": [
+   "hero floor plan",
+   "board",
+   "split shot and rows",
+   "route",
+   "plates",
+   "footer"
+  ],
+  "signature": "a hall floor plan whose booths you pick like cinema seats",
+  "waived": [
+   "39b",
+   "49b"
+  ],
+  "prompt": "booth booking marketplace for exhibitions and bazaars in Indonesia",
+  "date": "2026-11-13"
+ }
+]

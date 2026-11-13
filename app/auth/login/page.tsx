@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../components/AuthContext";
 import Navbar from "../../components/Navbar";
+import BrandMark from "../../components/BrandMark";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -60,42 +61,31 @@ export default function LoginPage() {
       <Navbar />
       <div className="min-h-screen flex pt-16" id="login-page">
       {/* Left panel - branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-card to-secondary/20" />
-        <div className="absolute top-1/4 -left-20 w-[400px] h-[400px] rounded-full bg-primary/10 blur-[100px] animate-float" />
-        <div className="absolute bottom-1/4 -right-20 w-[300px] h-[300px] rounded-full bg-secondary/10 blur-[100px] animate-float delay-300" />
-        <div className="relative z-10 max-w-md text-center px-8">
+      <div className="auth-panel hidden lg:flex lg:w-1/2 relative overflow-hidden items-center">
+        <div className="relative z-10 max-w-md px-12">
           <Link href="/" className="inline-flex items-center gap-2 mb-8">
-            <div className="w-12 h-12 rounded-2xl gradient-primary flex items-center justify-center">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                <polyline points="9 22 9 12 15 12 15 22" />
-              </svg>
-            </div>
-            <span className="text-2xl font-bold">
-              Booth<span className="gradient-text">ify</span>
-            </span>
+            <span className="wordmark text-3xl"><BrandMark size={32} /><span>Boothify</span></span>
           </Link>
-          <h2 className="text-3xl font-bold mb-4">Selamat Datang Kembali!</h2>
-          <p className="text-muted leading-relaxed">
+          <h2 className="text-4xl font-extrabold leading-tight mb-4">Selamat Datang Kembali!</h2>
+          <p className="auth-panel-text leading-relaxed">
             Kelola event, booking booth, dan pantau semua aktivitas bisnis kamu dari satu platform terpadu.
           </p>
           {/* Decorative booth grid */}
-          <div className="mt-12 grid grid-cols-4 gap-3 max-w-xs mx-auto">
+          <div className="mt-12 grid grid-cols-4 gap-2 max-w-xs" aria-hidden="true">
             {Array.from({ length: 16 }).map((_, i) => (
               <div
                 key={i}
-                className={`h-12 rounded-lg ${
-                  [2, 5, 6, 9, 10, 13].includes(i)
-                    ? "bg-primary/20 border border-primary/30"
+                className={`h-12 auth-booth ${
+                  i === 6
+                    ? "auth-booth--picked"
                     : [3, 7, 11].includes(i)
-                    ? "bg-secondary/15 border border-secondary/20"
-                    : "bg-foreground/5 border border-foreground/10"
+                    ? "auth-booth--taken"
+                    : ""
                 }`}
               />
             ))}
           </div>
-          <p className="text-xs text-muted-foreground mt-4">Denah booth interaktif</p>
+          <p className="auth-panel-text text-sm mt-4">Denah booth interaktif</p>
         </div>
       </div>
 
@@ -105,15 +95,7 @@ export default function LoginPage() {
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                  <polyline points="9 22 9 12 15 12 15 22" />
-                </svg>
-              </div>
-              <span className="text-xl font-bold">
-                Booth<span className="gradient-text">ify</span>
-              </span>
+              <span className="wordmark text-2xl"><BrandMark size={24} /><span>Boothify</span></span>
             </Link>
           </div>
 

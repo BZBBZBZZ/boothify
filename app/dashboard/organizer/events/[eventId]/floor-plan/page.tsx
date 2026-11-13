@@ -13,6 +13,7 @@ import {
 } from "@/app/lib/event-defaults";
 import { useAuth } from "@/app/components/AuthContext";
 import { saveFloorPlanBoothsToSupabase } from "@/app/lib/supabase-service";
+import Icon from "../../../../../components/Icon";
 
 type Booth = {
   id: string;
@@ -351,14 +352,14 @@ function FloorPlanContent() {
     return (
       <div className="animate-fade-in max-w-lg mx-auto py-12 px-4 text-center">
         <div className="card-base p-8 border border-amber-500/30 bg-amber-500/5">
-          <span className="text-4xl block mb-3">🔒</span>
+          <span className="text-4xl block mb-3"><Icon name="lock" size={32} /></span>
           <h2 className="text-xl font-bold mb-2">Akses Terbatas Penyelenggara</h2>
           <p className="text-sm text-muted-foreground mb-6">
             Hanya pihak penyelenggara resmi acara <strong>{eventMeta.title}</strong> ({eventMeta.organizer || eventMeta.organizerEmail}) yang berhak merancang denah tata letak acara ini.
           </p>
           <div className="flex items-center justify-center gap-3">
             <Link href={`/events/${eventId}`} className="btn btn-primary btn-sm text-xs">
-              Lihat Halaman Publik Acara ↗
+              Lihat Halaman Publik Acara
             </Link>
             <Link href="/dashboard/organizer" className="btn btn-secondary btn-sm text-xs">
               Dashboard Organizer
@@ -384,7 +385,7 @@ function FloorPlanContent() {
             </span>
           </div>
           <p className="text-sm font-semibold text-primary-light mb-1">
-            🎯 {eventMeta.title} <span className="text-muted-foreground font-normal text-xs">({eventMeta.location} • {eventMeta.date})</span>
+            {eventMeta.title} <span className="text-muted-foreground font-normal text-xs">({eventMeta.location} • {eventMeta.date})</span>
           </p>
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-2">
             <span>Ganti Event yang Diedit:</span>
@@ -413,8 +414,7 @@ function FloorPlanContent() {
             id="btn-preview-tenant-view"
             title={`Lihat halaman pemesanan booth untuk ${eventMeta.title}`}
           >
-            <span>👁️ Tampilan Tenant (#{eventId})</span>
-            <span className="text-[10px] text-muted-foreground">↗</span>
+            <span>Tampilan Tenant (#{eventId})</span>
           </Link>
           <Link
             href={`/events/${eventId}/guide`}
@@ -423,8 +423,7 @@ function FloorPlanContent() {
             id="btn-preview-guide-view"
             title={`Lihat panduan digital pengunjung untuk ${eventMeta.title}`}
           >
-            <span>📱 Panduan Pengunjung (#{eventId})</span>
-            <span className="text-[10px] text-muted-foreground">↗</span>
+            <span>Panduan Pengunjung (#{eventId})</span>
           </Link>
         </div>
       </div>
@@ -601,7 +600,7 @@ function FloorPlanContent() {
                       <span className="text-xs w-12 text-right">{selectedBooth.rotation || 0}°</span>
                     </div>
                   </div>
-                  <button type="button" onClick={() => updateBooth(selectedBooth.id, { rotation: ((selectedBooth.rotation || 0) + 90) % 360 })} className="btn btn-secondary btn-sm w-full">↻ Putar 90°</button>
+                  <button type="button" onClick={() => updateBooth(selectedBooth.id, { rotation: ((selectedBooth.rotation || 0) + 90) % 360 })} className="btn btn-secondary btn-sm w-full">Putar 90°</button>
                   <button onClick={() => removeBooth(selectedBooth.id)} className="btn btn-sm w-full bg-error/10 text-error hover:bg-error/20 border-none">
                     Hapus Booth
                   </button>
@@ -653,13 +652,13 @@ function FloorPlanContent() {
         <div className="lg:col-span-3">
           <div className="card-base p-4">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <p className="text-xs text-muted-foreground">🖱️ Drag booth untuk memindahkan • Klik untuk edit booth</p>
+              <p className="text-xs text-muted-foreground">Drag booth untuk memindahkan • Klik untuk edit booth</p>
               <div className="flex items-center gap-2">
                 <button onClick={saveFloorPlan} className="btn btn-secondary btn-sm" id="save-floor-plan">
-                  {saved ? "✓ Tersimpan!" : "💾 Simpan Draft"}
+                  {saved ? "Tersimpan!" : "Simpan Draft"}
                 </button>
                 <button onClick={handlePublishAndGetQR} className="btn btn-primary btn-sm" id="publish-event-btn">
-                  🚀 Terbitkan & Dapatkan QR Code →
+                  Terbitkan & Dapatkan QR Code
                 </button>
               </div>
             </div>

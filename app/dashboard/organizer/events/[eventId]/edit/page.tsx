@@ -58,7 +58,7 @@ export default function EditEventPage() {
           </label>
         ))}
         <div className="flex gap-2 pt-2">
-          <button type="submit" className="btn btn-primary">{saved ? "✓ Tersimpan" : "Simpan Perubahan"}</button>
+          <button type="submit" className="btn btn-primary">{saved ? "Tersimpan" : "Simpan Perubahan"}</button>
           <button type="button" className="btn btn-secondary" onClick={() => router.push(`/events/${eventId}`)}>Lihat Event</button>
         </div>
       </form>

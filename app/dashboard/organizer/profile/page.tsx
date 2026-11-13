@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/app/components/AuthContext";
+import Icon from "../../../components/Icon";
 
 export default function OrganizerProfilePage() {
   const { user, updateProfile } = useAuth();
@@ -80,7 +81,7 @@ export default function OrganizerProfilePage() {
       />
       {photoToast && (
         <div className="fixed top-20 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 shadow-xl flex items-center gap-3 animate-fade-in text-sm font-medium text-foreground">
-          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-xs font-bold">✓</div>
+          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-xs font-bold"><Icon name="check" size={16} /></div>
           Foto profil organisasi berhasil diperbarui!
         </div>
       )}
@@ -93,12 +94,12 @@ export default function OrganizerProfilePage() {
       {/* Avatar */}
       <div className="card-base p-6 mb-6">
         <div className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/30 to-secondary/30 border border-primary/20 flex items-center justify-center text-foreground text-2xl font-bold shadow-md">
+          <div className="w-20 h-20 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center text-foreground text-2xl font-bold shadow-md">
             {initials}
           </div>
           <div>
             <h2 className="font-semibold text-lg">{profile.orgName}</h2>
-            <p className="text-sm text-emerald-700 font-medium">Verified Event Organizer ✓</p>
+            <p className="text-sm text-emerald-700 font-medium">Verified Event Organizer</p>
             <button
               type="button"
               onClick={() => photoInputRef.current?.click()}
@@ -179,7 +180,7 @@ export default function OrganizerProfilePage() {
           </div>
         </div>
         <button type="submit" className="btn btn-primary" id="save-org-profile">
-          {saved ? "✓ Tersimpan!" : "Simpan Perubahan"}
+          {saved ? "Tersimpan!" : "Simpan Perubahan"}
         </button>
       </form>
 

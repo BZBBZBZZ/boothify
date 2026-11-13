@@ -177,37 +177,39 @@ function EventDetailContent() {
 
           {/* Hero */}
           <div className="card-base overflow-hidden mb-8">
-            <div className={`h-48 sm:h-64 bg-gradient-to-br ${event.gradient || "from-amber-500/20 to-orange-500/20"} flex items-center justify-center relative`}>
-              <span className="text-8xl">{event.image}</span>
+            <div className="event-cover h-48 sm:h-64 relative">
+              <span className="event-cover-mark" aria-hidden="true">
+                {event.title.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
+              </span>
               <div className="absolute top-4 right-4 flex items-center gap-2">
-                <span className="badge badge-primary">{event.category}</span>
+                <span className="badge event-cover-tag">{event.category}</span>
                 <Link
                   href={`/events/${eventId}/guide`}
-                  className="btn btn-secondary btn-sm text-xs backdrop-blur-md bg-black/40 border-foreground/20"
+                  className="btn btn-secondary btn-sm text-xs"
                   id="btn-goto-visitor-guide"
                 >
-                  📱 Buka Panduan Digital →
+                  Buka Panduan Digital
                 </Link>
               </div>
             </div>
             <div className="p-6 sm:p-8">
               {/* Official Admin Campaign Highlight Banner */}
               {isCampaignApproved && (
-                <div className="mb-5 p-4 rounded-xl bg-gradient-to-r from-purple-950/40 via-card to-emerald-950/30 border border-purple-500/40 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="mb-5 p-4 bg-primary/10 border-2 border-foreground flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl p-2 rounded-xl bg-purple-500/15 border border-purple-500/30">
-                      🌟
+                    <span className="p-2 bg-foreground text-primary flex-shrink-0" aria-hidden="true">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                     </span>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-purple-200">
+                        <span className="font-bold text-foreground">
                           Official Partner: {campInfo.campaign?.title}
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                        <span className="badge bg-success/15 text-success">
                           Bebas Pajak (Free Tax)
                         </span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                      <p className="text-xs text-muted mt-1">
                         Pameran ini telah dikurasi resmi oleh Admin Boothify. Penyewa booth (tenant) dibebaskan dari pajak transaksi (PPN 0%).
                       </p>
                     </div>
@@ -281,7 +283,7 @@ function EventDetailContent() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-5 py-3 text-sm font-medium border-b-2 transition-all ${
+                className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === tab.key
                     ? "border-primary text-primary-light"
                     : "border-transparent text-muted-foreground hover:text-foreground"
@@ -334,7 +336,7 @@ function EventDetailContent() {
                     </div>
                     <div>
                       <p className="font-medium text-sm">{event.organizer}</p>
-                      <p className="text-xs text-muted-foreground">Official Organizer ✓</p>
+                      <p className="text-xs text-muted-foreground">Official Organizer</p>
                     </div>
                   </div>
                   <button
@@ -363,7 +365,7 @@ function EventDetailContent() {
                     />
                   </div>
                   <button onClick={() => setActiveTab("booths")} className="btn btn-primary w-full" id="goto-booth-picker">
-                    Pilih &amp; Sewa Booth Sekarang →
+                    Pilih &amp; Sewa Booth Sekarang
                   </button>
                 </div>
               </div>
@@ -400,7 +402,7 @@ function EventDetailContent() {
                         <span>Tersedia</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <div className="w-4 h-4 rounded bg-emerald-500/20 border-2 border-emerald-400" />
+                        <div className="w-4 h-4 bg-primary/25 border-2 border-foreground" />
                         <span>Dipilih Anda</span>
                       </div>
                       <div className="flex items-center gap-1.5">
@@ -424,11 +426,11 @@ function EventDetailContent() {
                             key={b.id || b.label}
                             onClick={() => !isTaken && toggleBooth(b.label)}
                             // PERUBAHAN: Tambah `flex flex-col overflow-hidden` dan kurangi padding ke p-1.5/p-2
-                            className={`public-floor-plan-booth absolute p-1.5 sm:p-2 flex flex-col overflow-hidden rounded-xl border text-left transition-all ${
+                            className={`public-floor-plan-booth absolute p-1.5 sm:p-2 flex flex-col overflow-hidden border text-left transition-colors ${
                               isTaken
                                 ? "bg-foreground/[0.02] border-foreground/5 opacity-60 cursor-not-allowed"
                                 : isSelected
-                                ? "bg-primary/10 border-2 border-primary shadow-lg shadow-primary/10 cursor-pointer scale-[1.02]"
+                                ? "bg-primary/25 border-2 border-foreground cursor-pointer"
                                 : "bg-card hover:bg-foreground/[0.04] border-border hover:border-primary/50 cursor-pointer"
                             }`}
                             style={{
@@ -459,13 +461,12 @@ function EventDetailContent() {
                             {isTaken ? (
                               <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-foreground/5 w-full min-w-0">
                                 <span className="text-[8px] sm:text-[9px] text-muted-foreground block truncate w-full leading-tight">
-                                  ✓ Terisi: {tenant?.name || "Tenant"}
+                                  Terisi: {tenant?.name || "Tenant"}
                                 </span>
                               </div>
                             ) : isSelected ? (
-                              <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-primary/30 flex items-center justify-between text-[9px] sm:text-[10px] font-medium text-emerald-700 w-full min-w-0 leading-tight">
+                              <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-primary/30 flex items-center justify-between text-[9px] sm:text-[10px] font-bold text-foreground w-full min-w-0 leading-tight">
                                 <span>Dipilih</span>
-                                <span>✓</span>
                               </div>
                             ) : (
                               <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-foreground/5 text-[8px] sm:text-[9px] text-muted-foreground truncate w-full leading-tight">
@@ -486,7 +487,6 @@ function EventDetailContent() {
                     <h3 className="font-semibold mb-4 text-lg">Ringkasan Sewa Booth</h3>
                     {selectedBoothsData.length === 0 ? (
                       <div className="py-10 text-center border border-dashed border-border rounded-xl">
-                        <span className="text-3xl block mb-2">🏪</span>
                         <p className="text-sm font-medium mb-1">Belum Ada Booth Dipilih</p>
                         <p className="text-xs text-muted-foreground px-4">
                           Klik booth yang berstatus &quot;Tersedia&quot; pada denah di samping untuk memilih.
@@ -526,7 +526,7 @@ function EventDetailContent() {
                           className="btn btn-primary w-full btn-lg mt-2"
                           id="proceed-checkout"
                         >
-                          Lanjut ke Pembayaran ({selectedBoothsData.length} Booth) →
+                          Lanjut ke Pembayaran ({selectedBoothsData.length} Booth)
                         </button>
                       </div>
                     )}
@@ -550,13 +550,12 @@ function EventDetailContent() {
                   href={`/events/${eventId}/guide`}
                   className="btn btn-secondary btn-sm text-xs"
                 >
-                  📱 Lihat Tampilan Panduan Pengunjung →
+                  Lihat Tampilan Panduan Pengunjung
                 </Link>
               </div>
 
               {registeredTenantsList.length === 0 ? (
                 <div className="text-center py-12 card-base border border-dashed border-border rounded-xl">
-                  <span className="text-4xl block mb-2">🏪</span>
                   <p className="font-semibold text-sm mb-1">Belum Ada Tenant Terdaftar</p>
                   <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto">
                     Jadilah brand pertama yang menyewa booth di event bergengsi ini!
@@ -586,7 +585,7 @@ function EventDetailContent() {
                         href={`/events/${eventId}/guide`}
                         className="btn btn-ghost btn-sm text-xs w-full justify-center"
                       >
-                        Buka Katalog / Menu →
+                        Buka Katalog / Menu
                       </Link>
                     </div>
                   ))}
@@ -598,8 +597,8 @@ function EventDetailContent() {
 
         {/* Modal Hubungi Organizer */}
         {showContactModal && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-            <div className="card-base max-w-lg w-full p-6 relative border border-border/80 shadow-2xl">
+          <div className="modal-overlay">
+            <div className="card-base max-w-lg w-full p-6 relative border-2 border-foreground shadow-2xl">
               <button
                 type="button"
                 onClick={() => { setShowContactModal(false); setContactSent(false); }}
@@ -607,7 +606,7 @@ function EventDetailContent() {
                 id="close-contact-modal"
                 aria-label="Tutup modal"
               >
-                ✕
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
 
               <div className="flex items-center gap-3 mb-4">
@@ -651,7 +650,7 @@ function EventDetailContent() {
                 <p className="text-xs font-semibold text-foreground mb-3">Atau kirim pesan langsung di platform:</p>
                 {contactSent ? (
                   <div className="p-4 rounded-xl bg-primary/10 border border-primary/30 text-center animate-fade-in">
-                    <p className="text-primary-light font-semibold text-sm mb-1">✓ Pesan Terkirim!</p>
+                    <p className="text-primary-light font-semibold text-sm mb-1">Pesan terkirim.</p>
                     <p className="text-xs text-muted-foreground">Penyelenggara akan membalas pertanyaan Anda secepatnya di inbox organizer.</p>
                   </div>
                 ) : (

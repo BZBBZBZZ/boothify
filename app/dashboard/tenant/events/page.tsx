@@ -35,6 +35,7 @@ type TenantEvent = {
 };
 
 import { getEventsFromSupabase } from "@/app/lib/supabase-service";
+import Icon from "../../../components/Icon";
 
 type SmartFilter = "all" | "high_match" | "matching_category" | "complete_facilities";
 
@@ -279,12 +280,12 @@ export default function TenantEventsPage() {
             onClick={() => setSmartFilter("high_match")}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer border flex items-center gap-1.5 ${
               smartFilter === "high_match"
-                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm"
+                ? "bg-emerald-500/20 text-success border-emerald-500/40 shadow-sm"
                 : "bg-white/5 text-muted-foreground hover:text-foreground border-white/10"
             }`}
           >
-            <span>🎯 Kecocokan Sangat Tinggi (≥80%)</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/30 text-emerald-300">
+            <span>Kecocokan Sangat Tinggi (≥80%)</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/30 text-success">
               {eventsWithMatch.filter((e) => e.matchData.overallScore >= 80).length}
             </span>
           </button>
@@ -294,12 +295,12 @@ export default function TenantEventsPage() {
             onClick={() => setSmartFilter("matching_category")}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer border flex items-center gap-1.5 ${
               smartFilter === "matching_category"
-                ? "bg-teal-500/20 text-teal-300 border-teal-500/40 shadow-sm"
+                ? "bg-teal-500/20 text-success border-teal-500/40 shadow-sm"
                 : "bg-white/5 text-muted-foreground hover:text-foreground border-white/10"
             }`}
           >
-            <span>🏷️ Kategori Sesuai</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-teal-500/30 text-teal-300">
+            <span>Kategori Sesuai</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-teal-500/30 text-success">
               {eventsWithMatch.filter((e) => e.matchData.categoryScore >= 80).length}
             </span>
           </button>
@@ -309,11 +310,11 @@ export default function TenantEventsPage() {
             onClick={() => setSmartFilter("complete_facilities")}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer border flex items-center gap-1.5 ${
               smartFilter === "complete_facilities"
-                ? "bg-blue-500/20 text-blue-300 border-blue-500/40 shadow-sm"
+                ? "bg-blue-500/20 text-info border-blue-500/40 shadow-sm"
                 : "bg-white/5 text-muted-foreground hover:text-foreground border-white/10"
             }`}
           >
-            <span>🏢 Fasilitas Lengkap</span>
+            <span>Fasilitas Lengkap</span>
           </button>
         </div>
       </div>
@@ -361,7 +362,7 @@ export default function TenantEventsPage() {
           onChange={(e) => setSelectedLocation(e.target.value)}
         >
           <option value="all">Semua Lokasi</option>
-          <option value="internasional">🌏 Internasional (ASEAN)</option>
+          <option value="internasional">Internasional (ASEAN)</option>
           {locationOptions.map((location) => (
             <option key={location} value={location}>
               {location}
@@ -382,7 +383,7 @@ export default function TenantEventsPage() {
       {/* List Event Cards */}
       {filteredEvents.length === 0 ? (
         <div className="card-base p-12 text-center text-muted-foreground border border-dashed border-white/10 rounded-2xl">
-          <span className="text-4xl block mb-3">🔍</span>
+          <span className="text-4xl block mb-3"><Icon name="search" size={32} /></span>
           <p className="font-semibold text-foreground text-base mb-1">Tidak ada event yang sesuai</p>
           <p className="text-xs mb-4">Coba sesuaikan kata kunci pencarian atau ubah filter cerdas di atas.</p>
           <button
@@ -408,14 +409,14 @@ export default function TenantEventsPage() {
             return (
               <div
                 key={event.id}
-                className="card-base p-5 transition-all duration-300 border border-white/10 hover:border-white/20 animate-fade-in"
+                className="card-base p-5 animate-fade-in"
                 style={{ animationDelay: `${i * 60}ms` }}
               >
                 {/* Main Card Header & Summary */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-start gap-4 flex-1 min-w-0">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 via-card to-secondary/20 border border-white/10 flex items-center justify-center text-3xl flex-shrink-0 shadow-sm">
-                      {event.image}
+                    <div className="mono-chip mono-chip--lg" aria-hidden="true">
+                      {event.title.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -428,15 +429,15 @@ export default function TenantEventsPage() {
                         </Link>
                         <span className="badge badge-primary text-[10px]">{event.category}</span>
                         {event.scope === "Internasional" && (
-                          <span className="badge badge-secondary text-[10px]">🌏 Internasional</span>
+                          <span className="badge badge-secondary text-[10px]">Internasional</span>
                         )}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                        <span>📅 {event.date}</span>
-                        <span>📍 {event.location}</span>
-                        <span>💰 mulai {event.price}</span>
-                        <span>🏪 {event.booths} booth tersedia</span>
+                        <span>{event.date}</span>
+                        <span>{event.location}</span>
+                        <span>mulai {event.price}</span>
+                        <span>{event.booths} booth tersedia</span>
                       </div>
                     </div>
                   </div>
@@ -447,9 +448,9 @@ export default function TenantEventsPage() {
                       <div
                         className={`text-2xl font-black flex items-center gap-1 sm:justify-end ${
                           isHigh
-                            ? "text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+                            ? "text-success drop-shadow-[0_0_12px_rgba(16,185,129,0.3)]"
                             : matchData.overallScore >= 60
-                            ? "text-teal-400"
+                            ? "text-success"
                             : "text-muted-foreground"
                         }`}
                       >
@@ -457,13 +458,13 @@ export default function TenantEventsPage() {
                         <span className="text-[11px] font-bold text-muted-foreground">Match</span>
                       </div>
                       <span
-                        className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full ${
+                        className={`text-xs font-semibold px-2 py-0.5 ${
                           isHigh
-                            ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                            ? "bg-emerald-500/15 text-success border border-emerald-500/30"
                             : "bg-white/5 text-muted-foreground border border-white/10"
                         }`}
                       >
-                        {isHigh ? "✨ Sangat Cocok" : matchData.overallScore >= 60 ? "Cukup Cocok" : "Umum"}
+                        {isHigh ? "Sangat Cocok" : matchData.overallScore >= 60 ? "Cukup Cocok" : "Umum"}
                       </span>
                     </div>
 
@@ -487,7 +488,7 @@ export default function TenantEventsPage() {
                   <div className="mt-5 pt-5 border-t border-white/10 animate-fade-in space-y-4">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-semibold text-foreground flex items-center gap-2">
-                        <span>📊 Rincian Analisis Multi-Kriteria untuk brand</span>
+                        <span>Rincian Analisis Multi-Kriteria untuk brand</span>
                         <span className="text-primary-light font-bold">&ldquo;{tenantProfile.brandName}&rdquo;</span>
                       </p>
                       <span className="text-[11px] text-muted-foreground hidden sm:inline">
@@ -521,7 +522,7 @@ export default function TenantEventsPage() {
                           {/* Progress bar container: h-2 w-full bg-white/10 rounded-full overflow-hidden */}
                           <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
                             <div
-                              className="h-full rounded-full transition-all duration-500 ease-out"
+                              className="h-full rounded-full transition-colors duration-500 ease-out"
                               style={{
                                 width: `${pillar.score}%`,
                                 backgroundColor: pillar.color,
@@ -539,7 +540,7 @@ export default function TenantEventsPage() {
                     {/* Footer Tindakan Card */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/5">
                       <div className="text-xs text-muted-foreground flex items-center gap-2">
-                        <span>💡 Rekomendasi:</span>
+                        <span>Rekomendasi:</span>
                         <span className="text-foreground">
                           {isHigh
                             ? "Segera pesan booth di pameran ini untuk memaksimalkan ROI dan paparan audiens."
@@ -552,7 +553,7 @@ export default function TenantEventsPage() {
                           href={`/events/${event.id}`}
                           className="btn btn-primary btn-sm text-xs py-2 px-4 shadow-sm"
                         >
-                          Pilih &amp; Sewa Booth Sekarang →
+                          Pilih &amp; Sewa Booth Sekarang
                         </Link>
                       </div>
                     </div>

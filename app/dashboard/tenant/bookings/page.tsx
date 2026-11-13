@@ -37,6 +37,7 @@ import {
   getTenantBookingsFromSupabase,
   getVisitorOrdersFromSupabase,
 } from "@/app/lib/supabase-service";
+import Icon from "../../../components/Icon";
 
 export default function TenantBookingsAndOrdersPage() {
   const { user } = useAuth();
@@ -128,7 +129,7 @@ export default function TenantBookingsAndOrdersPage() {
         </div>
         <div className="flex items-center gap-2">
           <Link href="/dashboard/tenant/catalog" className="btn btn-secondary btn-sm">
-            📦 Kelola Menu/Katalog
+            Kelola Menu/Katalog
           </Link>
           <Link href="/dashboard/tenant/events" className="btn btn-primary btn-sm">
             + Cari Event Baru
@@ -146,7 +147,7 @@ export default function TenantBookingsAndOrdersPage() {
           id="tab-orders"
         >
           <span className="flex items-center gap-2">
-            📦 Pesanan Masuk Pengunjung
+            Pesanan Masuk Pengunjung
             {orders.length > 0 && (
               <span className="badge badge-primary text-[10px]">{orders.length}</span>
             )}
@@ -160,7 +161,7 @@ export default function TenantBookingsAndOrdersPage() {
           id="tab-booths"
         >
           <span className="flex items-center gap-2">
-            🏪 Booth Saya ({bookings.length})
+            Booth Saya ({bookings.length})
           </span>
         </button>
       </div>
@@ -180,31 +181,31 @@ export default function TenantBookingsAndOrdersPage() {
               onClick={() => setStatusFilter("pending")}
               className={`btn btn-sm ${statusFilter === "pending" ? "btn-primary" : "btn-secondary"}`}
             >
-              🟡 Menunggu ({pendingCount})
+              Menunggu ({pendingCount})
             </button>
             <button
               onClick={() => setStatusFilter("making")}
               className={`btn btn-sm ${statusFilter === "making" ? "btn-primary" : "btn-secondary"}`}
             >
-              🔵 Sedang Dibuat ({makingCount})
+              Sedang Dibuat ({makingCount})
             </button>
             <button
               onClick={() => setStatusFilter("ready")}
               className={`btn btn-sm ${statusFilter === "ready" ? "btn-primary" : "btn-secondary"}`}
             >
-              🟢 Siap Diambil ({readyCount})
+              Siap Diambil ({readyCount})
             </button>
             <button
               onClick={() => setStatusFilter("done")}
               className={`btn btn-sm ${statusFilter === "done" ? "btn-primary" : "btn-secondary"}`}
             >
-              ✅ Selesai ({doneCount})
+              Selesai ({doneCount})
             </button>
           </div>
 
           {filteredOrders.length === 0 ? (
             <div className="card-base p-12 text-center text-muted-foreground">
-              <span className="text-4xl block mb-2">🍽️</span>
+              <span className="text-4xl block mb-2"><Icon name="utensils" size={32} /></span>
               <p className="font-semibold text-foreground mb-1">Belum ada pesanan pada status ini</p>
               <p className="text-xs">
                 Pesanan yang dibuat oleh pengunjung melalui scan QR di booth kamu akan otomatis muncul di sini.
@@ -237,27 +238,27 @@ export default function TenantBookingsAndOrdersPage() {
                             {order.id}
                           </span>
                           <span className="badge badge-secondary text-[10px] font-semibold">
-                            🏪 Booth {order.booth || order.items[0]?.boothId || "A1"}
+                            Booth {order.booth || order.items[0]?.boothId || "A1"}
                           </span>
                         </div>
                         {currentStatus === "pending" && (
                           <span className="badge text-[10px] bg-amber-500/15 text-amber-700 border border-amber-500/30">
-                            🟡 Baru Masuk
+                            Baru Masuk
                           </span>
                         )}
                         {currentStatus === "making" && (
                           <span className="badge text-[10px] bg-sky-500/15 text-sky-700 border border-sky-500/30 animate-pulse">
-                            🔵 Sedang Dibuat
+                            Sedang Dibuat
                           </span>
                         )}
                         {currentStatus === "ready" && (
                           <span className="badge text-[10px] bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
-                            🟢 Siap Diambil
+                            Siap Diambil
                           </span>
                         )}
                         {currentStatus === "done" && (
                           <span className="badge text-[10px] bg-foreground/10 text-muted-foreground border border-foreground/10">
-                            ✅ Selesai
+                            Selesai
                           </span>
                         )}
                       </div>
@@ -266,13 +267,13 @@ export default function TenantBookingsAndOrdersPage() {
                       <div className="mb-3 pb-3 border-b border-foreground/5 text-xs">
                         <p className="font-semibold text-foreground text-sm">{order.customer}</p>
                         <div className="flex items-center gap-2 text-muted-foreground text-[11px] mt-0.5">
-                          {order.phone && <span>📱 {order.phone}</span>}
+                          {order.phone && <span>{order.phone}</span>}
                           <span>• {order.method}</span>
                           <span>• {order.time}</span>
                         </div>
                         {order.event && (
                           <p className="text-[10px] text-primary-light font-medium mt-1">
-                            📍 {order.event.length > 2 ? order.event : "Green Fashion Expo 2026"}
+                            {order.event.length > 2 ? order.event : "Green Fashion Expo 2026"}
                           </p>
                         )}
                       </div>
@@ -316,7 +317,7 @@ export default function TenantBookingsAndOrdersPage() {
                             className="btn btn-primary btn-sm w-full text-xs"
                             id={`btn-make-${order.id}`}
                           >
-                            🍳 Mulai Buat (In Making)
+                            Mulai Buat (In Making)
                           </button>
                         )}
                         {currentStatus === "making" && (
@@ -325,7 +326,7 @@ export default function TenantBookingsAndOrdersPage() {
                             className="btn btn-sm w-full text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
                             id={`btn-ready-${order.id}`}
                           >
-                            🔔 Tandai Siap Diambil
+                            Tandai Siap Diambil
                           </button>
                         )}
                         {currentStatus === "ready" && (
@@ -334,7 +335,7 @@ export default function TenantBookingsAndOrdersPage() {
                             className="btn btn-secondary btn-sm w-full text-xs"
                             id={`btn-done-${order.id}`}
                           >
-                            ✓ Serahkan &amp; Selesai
+                            Serahkan &amp; Selesai
                           </button>
                         )}
                         {currentStatus === "done" && (
@@ -360,13 +361,13 @@ export default function TenantBookingsAndOrdersPage() {
         <div className="space-y-6">
           {bookings.length === 0 ? (
             <div className="card-base p-8 text-center border-dashed border-foreground/10">
-              <span className="text-4xl block mb-2">🏪</span>
+              <span className="text-4xl block mb-2"><Icon name="store" size={32} /></span>
               <h3 className="font-bold text-sm mb-1 text-foreground">Belum Ada Booth yang Disewa</h3>
               <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto">
                 Akun brand ini belum memiliki sewa booth aktif di event mana pun. Cari event dan daftarkan booth impianmu sekarang!
               </p>
               <Link href="/dashboard/tenant/events" className="btn btn-primary btn-sm">
-                Jelajahi Event Pameran →
+                Jelajahi Event Pameran
               </Link>
             </div>
           ) : (
@@ -379,13 +380,13 @@ export default function TenantBookingsAndOrdersPage() {
                         {booking.booth}
                       </div>
                       <span className={`badge text-[10px] ${booking.payment === "paid" ? "badge-primary" : "badge-accent"}`}>
-                        {booking.payment === "paid" ? "✓ Lunas" : "⏳ Pending"}
+                        {booking.payment === "paid" ? "Lunas" : "Pending"}
                       </span>
                     </div>
 
                     <h3 className="font-bold text-base text-foreground mb-1">{booking.event}</h3>
                     <p className="text-xs text-muted-foreground mb-4">
-                      📅 {booking.date} • Booth {booking.booth}
+                      {booking.date} • Booth {booking.booth}
                     </p>
                     <p className="text-xs text-muted-foreground leading-relaxed mb-4">
                       Status sewa aktif. Booth ini telah terpetakan di Denah Pengunjung digital event.
@@ -398,13 +399,13 @@ export default function TenantBookingsAndOrdersPage() {
                         href={`/events/${booking.eventId || "1"}/guide`}
                         className="btn btn-secondary btn-sm text-xs flex items-center justify-center gap-1"
                       >
-                        🗺️ Buka Denah
+                        Buka Denah
                       </Link>
                       <Link
                         href="/dashboard/tenant/catalog"
                         className="btn btn-secondary btn-sm text-xs flex items-center justify-center gap-1"
                       >
-                        📦 Atur Menu
+                        Atur Menu
                       </Link>
                     </div>
                     <button
@@ -412,7 +413,7 @@ export default function TenantBookingsAndOrdersPage() {
                       className="btn btn-primary btn-sm w-full text-xs flex items-center justify-center gap-1"
                       id={`open-pass-${booking.booth}`}
                     >
-                      🎫 Lihat E-Pass Booth
+                      Lihat E-Pass Booth
                     </button>
                   </div>
                 </div>
@@ -430,10 +431,10 @@ export default function TenantBookingsAndOrdersPage() {
               onClick={() => setSelectedPass(null)}
               className="absolute top-4 right-4 text-muted-foreground hover:text-foreground text-lg"
             >
-              ✕
+
             </button>
 
-            <span className="badge badge-primary text-[10px] mb-2">OFFICIAL TENANT PASS</span>
+            <span className="badge badge-primary text-[10px] mb-2">Official tenant pass</span>
             <h3 className="font-bold text-lg text-foreground mb-1">{selectedPass.event}</h3>
             <p className="text-xs text-muted-foreground mb-4">{selectedPass.date}</p>
 
@@ -441,11 +442,11 @@ export default function TenantBookingsAndOrdersPage() {
               <div className="w-20 h-20 rounded-2xl gradient-primary mx-auto flex items-center justify-center text-3xl font-black text-secondary shadow-xl mb-3">
                 {selectedPass.booth}
               </div>
-              <p className="text-xs font-semibold text-foreground uppercase tracking-wider">
+              <p className="text-xs font-semibold text-foreground">
                 Booth Number: {selectedPass.booth}
               </p>
               <p className="text-[11px] text-emerald-700 font-medium mt-1">
-                ✓ Terverifikasi &amp; Lunas
+                Terverifikasi &amp; Lunas
               </p>
             </div>
 

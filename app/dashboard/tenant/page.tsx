@@ -36,6 +36,7 @@ import {
   getVisitorOrdersFromSupabase,
   getEventsFromSupabase,
 } from "@/app/lib/supabase-service";
+import Icon from "../../components/Icon";
 
 export default function TenantDashboard() {
   const { user } = useAuth();
@@ -135,7 +136,7 @@ export default function TenantDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="stat-card">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-2xl">📅</span>
+            <span className="text-2xl"><Icon name="calendar" size={24} /></span>
             <span className="text-[11px] text-secondary-light font-medium">Aktif sekarang</span>
           </div>
           <div className="text-2xl font-bold mb-1">{uniqueEventsCount}</div>
@@ -144,7 +145,7 @@ export default function TenantDashboard() {
 
         <div className="stat-card">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-2xl">🏪</span>
+            <span className="text-2xl"><Icon name="store" size={24} /></span>
             <span className="text-[11px] text-secondary-light font-medium">Di {uniqueEventsCount} event</span>
           </div>
           <div className="text-2xl font-bold mb-1">{bookings.length}</div>
@@ -153,7 +154,7 @@ export default function TenantDashboard() {
 
         <div className="stat-card">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-2xl">💳</span>
+            <span className="text-2xl"><Icon name="card" size={24} /></span>
             <span className="text-[11px] text-secondary-light font-medium">Bulan ini</span>
           </div>
           <div className="text-2xl font-bold mb-1">
@@ -164,7 +165,7 @@ export default function TenantDashboard() {
 
         <div className="stat-card">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-2xl">📦</span>
+            <span className="text-2xl"><Icon name="package" size={24} /></span>
             <span className="text-[11px] text-secondary-light font-medium">Live dari pengunjung</span>
           </div>
           <div className="text-2xl font-bold mb-1">{visitorOrders.length}</div>
@@ -190,11 +191,11 @@ export default function TenantDashboard() {
             </div>
             {bookings.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground border border-dashed border-foreground/10 rounded-xl p-6">
-                <span className="text-3xl block mb-2">🏪</span>
+                <span className="text-3xl block mb-2"><Icon name="store" size={32} /></span>
                 <p className="font-semibold text-foreground mb-1">Belum Ada Booth yang Disewa</p>
                 <p className="text-xs mb-4">Akun brand ini belum memiliki sewa booth aktif. Jelajahi event yang cocok untuk brand kamu.</p>
                 <Link href="/dashboard/tenant/events" className="btn btn-primary btn-sm">
-                  Cari &amp; Sewa Booth Sekarang →
+                  Cari &amp; Sewa Booth Sekarang
                 </Link>
               </div>
             ) : (
@@ -202,7 +203,7 @@ export default function TenantDashboard() {
                 {bookings.map((booking, i) => (
                   <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-foreground/[0.02] hover:bg-foreground/[0.04] transition border border-foreground/[0.03]">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center font-bold text-sm">
+                      <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center font-bold text-sm">
                         {booking.booth}
                       </div>
                       <div className="min-w-0">
@@ -212,14 +213,14 @@ export default function TenantDashboard() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className={`badge text-[10px] ${booking.payment === "paid" ? "badge-primary" : "badge-accent"}`}>
-                        {booking.payment === "paid" ? "✓ Lunas" : "⏳ Pending"}
+                        {booking.payment === "paid" ? "Lunas" : "Pending"}
                       </span>
                       <Link
                         href={`/events/${booking.eventId || "1"}/guide`}
                         className="btn btn-ghost btn-sm text-xs text-primary-light"
                         title="Lihat tampilan booth di Denah Pengunjung"
                       >
-                        Buka Denah ↗
+                        Buka Denah
                       </Link>
                     </div>
                   </div>
@@ -238,7 +239,7 @@ export default function TenantDashboard() {
               <div className="flex items-center gap-2">
                 <span className="badge badge-primary text-[10px]">{visitorOrders.length} Pesanan</span>
                 <Link href="/dashboard/tenant/bookings" className="btn btn-ghost btn-sm text-[11px] text-primary-light">
-                  Buka KDS Penuh →
+                  Buka KDS Penuh
                 </Link>
               </div>
             </div>
@@ -248,7 +249,7 @@ export default function TenantDashboard() {
 
             {visitorOrders.length === 0 ? (
               <div className="p-6 rounded-xl bg-foreground/[0.02] border border-dashed border-foreground/10 text-center">
-                <span className="text-3xl block mb-2">📋</span>
+                <span className="text-3xl block mb-2"><Icon name="clipboard" size={32} /></span>
                 <p className="font-semibold text-xs text-foreground mb-1">Belum Ada Pesanan Masuk</p>
                 <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
                   Saat pengunjung memindai QR Code di booth kamu atau memesan produk via Panduan Digital, pesanan baru akan langsung masuk ke sini secara otomatis.
@@ -276,21 +277,21 @@ export default function TenantDashboard() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold font-mono text-primary-light">{order.id}</span>
                           <span className="badge badge-secondary text-[10px] font-semibold">
-                            🏪 Booth {boothLabel}
+                            Booth {boothLabel}
                           </span>
                           <span className="badge badge-secondary text-[9px]">{order.method}</span>
                           <span className="text-[10px] text-muted-foreground">{order.time}</span>
                           {status === "pending" && (
-                            <span className="badge text-[9px] bg-amber-500/15 text-amber-700">🟡 Baru Masuk</span>
+                            <span className="badge text-[9px] bg-amber-500/15 text-amber-700">Baru Masuk</span>
                           )}
                           {status === "making" && (
-                            <span className="badge text-[9px] bg-sky-500/15 text-sky-700 animate-pulse">🔵 Sedang Dibuat</span>
+                            <span className="badge text-[9px] bg-sky-500/15 text-sky-700 animate-pulse">Sedang Dibuat</span>
                           )}
                           {status === "ready" && (
-                            <span className="badge text-[9px] bg-emerald-500/15 text-emerald-700">🟢 Siap Diambil</span>
+                            <span className="badge text-[9px] bg-emerald-500/15 text-emerald-700">Siap Diambil</span>
                           )}
                           {status === "done" && (
-                            <span className="badge text-[9px] bg-foreground/10 text-muted-foreground">✅ Selesai</span>
+                            <span className="badge text-[9px] bg-foreground/10 text-muted-foreground">Selesai</span>
                           )}
                         </div>
                         <p className="font-medium text-foreground mt-1">
@@ -313,7 +314,7 @@ export default function TenantDashboard() {
                               className="btn btn-primary btn-sm text-[11px] py-1 px-2.5"
                               id={`dash-make-${order.id}`}
                             >
-                              🍳 Buat
+                              Buat
                             </button>
                           )}
                           {status === "making" && (
@@ -322,7 +323,7 @@ export default function TenantDashboard() {
                               className="btn btn-sm text-[11px] py-1 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
                               id={`dash-ready-${order.id}`}
                             >
-                              🔔 Siap
+                              Siap
                             </button>
                           )}
                           {status === "ready" && (
@@ -331,7 +332,7 @@ export default function TenantDashboard() {
                               className="btn btn-secondary btn-sm text-[11px] py-1 px-2.5"
                               id={`dash-done-${order.id}`}
                             >
-                              ✓ Selesai
+                              Selesai
                             </button>
                           )}
                           {status === "done" && (
@@ -352,7 +353,7 @@ export default function TenantDashboard() {
           <div className="card-base p-6">
             <h2 className="font-semibold mb-1 flex items-center gap-2">
               Rekomendasi AI
-              <span className="badge badge-secondary text-[10px]">✨ SMART</span>
+              <span className="badge badge-secondary text-[10px]">Smart</span>
             </h2>
             <p className="text-xs text-muted-foreground mb-5">Event yang cocok dengan profil produk kamu</p>
             <div className="space-y-3">
@@ -363,7 +364,7 @@ export default function TenantDashboard() {
                     <span className="text-xs font-bold text-primary-light">{event.match}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mb-1">{event.date} • {event.location}</p>
-                  <p className="text-[11px] text-secondary-light">💡 {event.reason}</p>
+                  <p className="text-[11px] text-secondary-light">{event.reason}</p>
                 </Link>
               ))}
             </div>
