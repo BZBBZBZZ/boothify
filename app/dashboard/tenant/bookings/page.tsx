@@ -4,40 +4,22 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "../../../components/AuthContext";
 
-export type OrderStatus = "pending" | "making" | "ready" | "done";
-
-export type VisitorOrder = {
-  id: string;
-  eventId?: string;
-  event?: string;
-  booth?: string;
-  items: { boothId?: string; name: string; qty: number; price: number }[];
-  total: number;
-  customer: string;
-  phone?: string;
-  method: string;
-  time: string;
-  status?: OrderStatus;
-  tenantEmail?: string;
-  tenantName?: string;
-};
-
-export type BookingItem = {
-  event: string;
-  booth: string;
-  date: string;
-  status: string;
-  payment: string;
-  eventId?: string;
-  price?: number;
-  tenantEmail?: string;
-};
-
 import {
-  getTenantBookingsFromSupabase,
-  getVisitorOrdersFromSupabase,
-} from "@/app/lib/supabase-service";
+  listTenantBookings,
+  listTenantOrders,
+  updateOrderStatus as saveOrderStatus,
+  errorMessage,
+  type Booking,
+  type VisitorOrder as DbVisitorOrder,
+  type OrderStatus,
+} from "@/app/lib/db";
 import Icon from "../../../components/Icon";
+
+type VisitorOrder = DbVisitorOrder & { time: string };
+type BookingItem = Booking;
+
+const orderTime = (iso: string) =>
+  iso ? new Date(iso).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
 
 export default function TenantBookingsAndOrdersPage() {
   const { user } = useAuth();
@@ -46,68 +28,46 @@ export default function TenantBookingsAndOrdersPage() {
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
   const [selectedPass, setSelectedPass] = useState<BookingItem | null>(null);
+  const [loadError, setLoadError] = useState("");
 
-  // Load from localStorage scoped to user
   useEffect(() => {
-    const email = user?.email || "";
-    if (!email) return;
+    const tenantId = user?.id || "";
+    if (!tenantId || user?.role !== "tenant") return;
+    let cancelled = false;
 
-    // 1. Load tenant bookings from Supabase
-    getTenantBookingsFromSupabase(email).then((supabaseBookings) => {
-      if (supabaseBookings && supabaseBookings.length > 0) {
-        const mapped: BookingItem[] = supabaseBookings.map((b) => ({
-          event: b.event,
-          booth: b.booth,
-          date: b.date || "2026",
-          status: b.status || "confirmed",
-          payment: b.payment || "paid",
-          eventId: b.eventId,
-          tenantEmail: b.tenantEmail,
-          price: Number(b.amount?.replace(/\D/g, "") || 2500000),
-        }));
-        setBookings(mapped);
-      } else {
-        try {
-          const stored = localStorage.getItem("boothify_tenant_bookings");
-          if (stored) {
-            const all = JSON.parse(stored);
-            setBookings(all.filter((b: BookingItem) => b.tenantEmail === email));
-          }
-        } catch { /* ignore */ }
-      }
-    });
+    listTenantBookings(tenantId)
+      .then((list) => {
+        if (!cancelled) setBookings(list);
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(errorMessage(err, "Booking gagal dimuat."));
+      });
 
-    // 2. Load visitor orders from Supabase
-    getVisitorOrdersFromSupabase(email).then((supabaseOrders) => {
-      if (supabaseOrders && supabaseOrders.length > 0) {
-        setOrders(supabaseOrders.map((o) => ({
-          ...o,
-          status: (o.status as OrderStatus) || "pending",
-          time: "Baru saja",
-        })));
-      } else {
-        try {
-          const stored = localStorage.getItem("boothify_visitor_orders");
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            setOrders(parsed);
-          }
-        } catch { /* ignore */ }
-      }
-    });
+    const loadOrders = () =>
+      listTenantOrders(tenantId)
+        .then((list) => {
+          if (!cancelled) setOrders(list.map((o) => ({ ...o, time: orderTime(o.createdAt) })));
+        })
+        .catch((err) => {
+          if (!cancelled) setLoadError(errorMessage(err, "Pesanan gagal dimuat."));
+        });
+    loadOrders();
+    // The kitchen display refreshes itself so new orders appear on their own
+    const interval = window.setInterval(loadOrders, 8000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
   }, [user]);
 
-  const updateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
+  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    const previous = orders;
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
     try {
-      const raw = localStorage.getItem("boothify_visitor_orders");
-      if (raw) {
-        const list = JSON.parse(raw);
-        const updatedList = list.map((o: VisitorOrder) => (o.id === orderId ? { ...o, status: newStatus } : o));
-        localStorage.setItem("boothify_visitor_orders", JSON.stringify(updatedList));
-      }
-    } catch {
-      // ignore
+      await saveOrderStatus(orderId, newStatus);
+    } catch (err) {
+      setOrders(previous);
+      setLoadError(errorMessage(err, "Status pesanan gagal diubah."));
     }
   };
 
@@ -128,15 +88,11 @@ export default function TenantBookingsAndOrdersPage() {
             Pantau antrean pesanan digital pengunjung dan kelola booth resmi brand kamu.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/dashboard/tenant/catalog" className="btn btn-secondary btn-sm">
-            Kelola Menu/Katalog
-          </Link>
-          <Link href="/dashboard/tenant/events" className="btn btn-primary btn-sm">
-            + Cari Event Baru
-          </Link>
-        </div>
       </div>
+
+      {loadError && (
+        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-sm text-error" role="alert">{loadError}</div>
+      )}
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-border mb-6">
@@ -239,7 +195,7 @@ export default function TenantBookingsAndOrdersPage() {
                             {order.id}
                           </span>
                           <span className="badge badge-secondary text-[10px] font-semibold">
-                            Booth {order.booth || order.items[0]?.boothId || "A1"}
+                            Booth {order.booth || order.items[0]?.boothId || "-"}
                           </span>
                         </div>
                         {currentStatus === "pending" && (
@@ -274,7 +230,7 @@ export default function TenantBookingsAndOrdersPage() {
                         </div>
                         {order.event && (
                           <p className="text-[10px] text-primary-light font-medium mt-1">
-                            {order.event.length > 2 ? order.event : "Green Fashion Expo 2026"}
+                            {order.event}
                           </p>
                         )}
                       </div>
@@ -295,7 +251,7 @@ export default function TenantBookingsAndOrdersPage() {
                         ) : (
                           <div className="flex items-center justify-between text-muted-foreground">
                             <span>1x Menu / Produk Tenant</span>
-                            <span className="text-[11px]">Rp {(order.total || 185000).toLocaleString("id-ID")}</span>
+                            <span className="text-[11px]">Rp {(order.total || 0).toLocaleString("id-ID")}</span>
                           </div>
                         )}
                       </div>
@@ -306,7 +262,7 @@ export default function TenantBookingsAndOrdersPage() {
                       <div className="flex items-center justify-between pt-3 border-t border-foreground/5 mb-4 text-xs">
                         <span className="text-muted-foreground">Total Pembayaran:</span>
                         <span className="font-bold text-foreground text-sm">
-                          Rp {(order.total || 185000).toLocaleString("id-ID")}
+                          Rp {(order.total || 0).toLocaleString("id-ID")}
                         </span>
                       </div>
 
@@ -373,8 +329,8 @@ export default function TenantBookingsAndOrdersPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {bookings.map((booking, i) => (
-                <div key={i} className="card-base p-6 border border-foreground/5 hover:border-primary/30 transition flex flex-col justify-between">
+              {bookings.map((booking) => (
+                <div key={booking.id} className="card-base p-6 border border-foreground/5 hover:border-primary/30 transition flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center font-bold text-secondary text-base">
@@ -397,7 +353,7 @@ export default function TenantBookingsAndOrdersPage() {
                   <div className="space-y-2 pt-3 border-t border-foreground/5">
                     <div className="grid grid-cols-2 gap-2">
                       <Link
-                        href={`/events/${booking.eventId || "1"}/guide`}
+                        href={`/events/${booking.eventId}/guide`}
                         className="btn btn-secondary btn-sm text-xs flex items-center justify-center gap-1"
                       >
                         Buka Denah
@@ -449,6 +405,9 @@ export default function TenantBookingsAndOrdersPage() {
               </p>
               <p className="text-[11px] text-emerald-700 font-medium mt-1">
                 Terverifikasi &amp; Lunas
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1 font-mono">
+                Kode booking: {selectedPass.id.slice(0, 8).toUpperCase()}
               </p>
             </div>
 

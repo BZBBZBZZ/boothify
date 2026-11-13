@@ -17,7 +17,7 @@ const ROLES: {
     label: "Organizer",
     features: [
       { title: "Interactive Floor Plan", description: "Denah drag & drop, zona booth, ketersediaan real-time." },
-      { title: "AI Campaign Generator", description: "Narasi campaign dari analisis tren global dan lokal." },
+      { title: "Ide Campaign", description: "Susun tema campaign dan simpan langsung ke event." },
     ],
     shot: {
       src: "/images/screens/organizer-dashboard-v2.png",
@@ -26,13 +26,13 @@ const ROLES: {
       height: 900,
       kind: "wide",
     },
-    caption: "Dashboard organizer, dengan contoh akun",
+    caption: "Tampilan dashboard organizer",
   },
   {
     key: "tenant",
     label: "Tenant",
     features: [
-      { title: "AI Smart Matching", description: "Mencocokkan produk brand dengan event paling relevan." },
+      { title: "Smart Matching", description: "Mencocokkan produk brand dengan event paling relevan." },
       { title: "Pembayaran Langsung", description: "QRIS, e-wallet, transfer bank dan kartu kredit." },
       { title: "Katalog Digital & Menu", description: "Menu F&B untuk self-ordering; brosur, galeri dan video." },
     ],
@@ -43,7 +43,7 @@ const ROLES: {
       height: 864,
       kind: "wide",
     },
-    caption: "Pilih Booth di halaman event Green Fashion Expo 2026",
+    caption: "Halaman pilih booth di sebuah event",
   },
   {
     key: "pengunjung",

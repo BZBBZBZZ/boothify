@@ -2,18 +2,19 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import type { AdminCampaign, CampaignApplication } from "@/app/lib/admin-campaigns";
 import {
-  AdminCampaign,
-  CampaignApplication,
-  getAdminCampaigns,
-  getCampaignApplications,
-  createAdminCampaign,
-  updateAdminCampaign,
-  reviewCampaignApplication,
-} from "@/app/lib/admin-campaigns";
+  listCampaigns,
+  listApplications,
+  createCampaign,
+  updateCampaignStatus,
+  reviewApplication,
+  errorMessage,
+} from "@/app/lib/db";
 import Icon from "../../components/Icon";
+import FreshOnNavigate from "../../components/FreshOnNavigate";
 
-export default function AdminDashboardPage() {
+function AdminDashboardPageContent() {
   const [campaigns, setCampaigns] = useState<AdminCampaign[]>([]);
   const [applications, setApplications] = useState<CampaignApplication[]>([]);
   const [activeTab, setActiveTab] = useState<"curation" | "campaigns" | "create">("curation");
@@ -29,17 +30,33 @@ export default function AdminDashboardPage() {
   const [newDescription, setNewDescription] = useState("");
   const [newStartDate, setNewStartDate] = useState("");
   const [newEndDate, setNewEndDate] = useState("");
-  const [newIcon, setNewIcon] = useState("✨");
   const [newCategories, setNewCategories] = useState<string[]>(["Fashion", "Kuliner"]);
   const [newCriteria, setNewCriteria] = useState<string>("");
 
-  const refreshData = () => {
-    setCampaigns(getAdminCampaigns());
-    setApplications(getCampaignApplications());
+  const refreshData = async () => {
+    try {
+      const [camps, apps] = await Promise.all([listCampaigns(), listApplications()]);
+      setCampaigns(camps);
+      setApplications(apps);
+    } catch (err) {
+      setToastMessage(errorMessage(err, "Data campaign gagal dimuat."));
+    }
   };
 
   useEffect(() => {
-    refreshData();
+    let cancelled = false;
+    Promise.all([listCampaigns(), listApplications()])
+      .then(([camps, apps]) => {
+        if (cancelled) return;
+        setCampaigns(camps);
+        setApplications(apps);
+      })
+      .catch((err) => {
+        if (!cancelled) setToastMessage(errorMessage(err, "Data campaign gagal dimuat."));
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const showNotification = (msg: string) => {
@@ -60,26 +77,31 @@ export default function AdminDashboardPage() {
     setProcessingId(id);
     const note = reviewNotes[id] || (status === "approved" ? "Konsep terverifikasi selaras dengan misi campaign. Disetujui masuk campaign dengan benefit Free Tax dan Highlight." : "Konsep pameran belum memenuhi kriteria keselarasan tema campaign.");
 
-    setTimeout(() => {
-      reviewCampaignApplication(id, status, note);
-      refreshData();
-      setProcessingId(null);
-      showNotification(
-        status === "approved"
-          ? "Event berhasil disetujui! Status Highlight dan Bebas Pajak (Free Tax 0%) kini aktif untuk tenant."
-          : "ℹ️ Pengajuan event telah ditolak dengan catatan evaluasi."
-      );
-    }, 400);
+    reviewApplication(id, status, note)
+      .then(async () => {
+        await refreshData();
+        showNotification(
+          status === "approved"
+            ? "Event disetujui. Highlight dan bebas pajak kini aktif untuk tenant."
+            : "Pengajuan event ditolak dengan catatan evaluasi."
+        );
+      })
+      .catch((err) => showNotification(errorMessage(err, "Peninjauan gagal disimpan.")))
+      .finally(() => setProcessingId(null));
   };
 
-  const handleToggleCampaignStatus = (id: string, currentStatus: "active" | "draft" | "closed") => {
+  const handleToggleCampaignStatus = async (id: string, currentStatus: "active" | "draft" | "closed") => {
     const nextStatus = currentStatus === "active" ? "closed" : "active";
-    updateAdminCampaign(id, { status: nextStatus });
-    refreshData();
-    showNotification(`Status campaign diperbarui menjadi ${nextStatus.toUpperCase()}`);
+    try {
+      await updateCampaignStatus(id, nextStatus);
+      await refreshData();
+      showNotification(`Status campaign diperbarui menjadi ${nextStatus.toUpperCase()}`);
+    } catch (err) {
+      showNotification(errorMessage(err, "Status campaign gagal diubah."));
+    }
   };
 
-  const handleCreateCampaign = (e: React.FormEvent) => {
+  const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newDescription.trim()) return;
 
@@ -88,7 +110,8 @@ export default function AdminDashboardPage() {
       .map((c) => c.trim())
       .filter((c) => c.length > 0);
 
-    createAdminCampaign({
+    try {
+    await createCampaign({
       title: newTitle.trim(),
       tagline: newTagline.trim() || "Program Kurasi Khusus Boothify",
       description: newDescription.trim(),
@@ -103,7 +126,7 @@ export default function AdminDashboardPage() {
       endDate: newEndDate || "Hingga Kuota Terpenuhi",
       status: "active",
       bannerGradient: "from-purple-500/20 via-primary/20 to-indigo-500/20",
-      icon: newIcon || "🎯",
+      icon: "",
       benefits: {
         freeTax: true,
         highlightBadge: "Official Admin Campaign",
@@ -112,6 +135,10 @@ export default function AdminDashboardPage() {
       },
       maxParticipants: 10,
     });
+    } catch (err) {
+      showNotification(errorMessage(err, "Campaign gagal dibuat."));
+      return;
+    }
 
     // Reset form
     setNewTitle("");
@@ -121,7 +148,7 @@ export default function AdminDashboardPage() {
     setNewStartDate("");
     setNewEndDate("");
     setNewCriteria("");
-    refreshData();
+    await refreshData();
     setActiveTab("campaigns");
     showNotification("Campaign Master baru berhasil dibuat dan siap diikuti oleh para organizer!");
   };
@@ -586,8 +613,8 @@ export default function AdminDashboardPage() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-2xl p-2 rounded-xl bg-purple-500/10 border border-purple-500/20">
-                          {camp.icon}
+                        <span className="p-2 rounded-lg bg-foreground text-background flex-shrink-0" aria-hidden="true">
+                          <Icon name="star" size={20} />
                         </span>
                         <div>
                           <span
@@ -811,19 +838,6 @@ export default function AdminDashboardPage() {
                 />
               </div>
 
-              <div>
-                <label htmlFor="camp-icon" className="block font-semibold mb-1 text-foreground">
-                  Ikon Emoji
-                </label>
-                <input
-                  id="camp-icon"
-                  type="text"
-                  value={newIcon}
-                  onChange={(e) => setNewIcon(e.target.value)}
-                  placeholder="✨"
-                  className="input-base w-full text-xs text-center"
-                />
-              </div>
             </div>
 
             {/* Standard Benefits Notice */}
@@ -862,5 +876,13 @@ export default function AdminDashboardPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AdminDashboardPage() {
+  return (
+    <FreshOnNavigate>
+      <AdminDashboardPageContent />
+    </FreshOnNavigate>
   );
 }

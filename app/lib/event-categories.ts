@@ -36,3 +36,23 @@ export function getEventCategoryValue(value: string): string {
 export function isFoodCategory(value: string): boolean {
   return getEventCategoryValue(value) === "fnb";
 }
+
+/**
+ * Turn an event's categories into a clean list of labels.
+ * Uses the `categories` array when present; otherwise reads the joined `category`
+ * string by matching known labels (several labels contain commas, so a plain split
+ * on ", " would cut them apart).
+ */
+export function parseEventCategories(categories?: string[] | null, category?: string | null): string[] {
+  const fromArray = (categories || [])
+    .map((c) => String(c).trim())
+    .filter((c) => c && c.toLowerCase() !== "all")
+    .map(getEventCategoryLabel);
+  if (fromArray.length > 0) return Array.from(new Set(fromArray));
+
+  const text = String(category || "").trim();
+  if (!text) return [];
+  const matched = EVENT_CATEGORY_OPTIONS.filter((option) => text.includes(option.label)).map((option) => option.label);
+  if (matched.length > 0) return matched;
+  return [getEventCategoryLabel(text)];
+}

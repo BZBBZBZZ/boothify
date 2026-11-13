@@ -4,13 +4,13 @@ import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/app/components/AuthContext";
 import { EVENT_CATEGORY_OPTIONS, getEventCategoryLabel } from "@/app/lib/event-categories";
-import { DEFAULT_EVENTS_META } from "@/app/lib/event-defaults";
 import {
   calculateEventTenantMatch,
-  getLoggedInTenantProfile,
+  tenantProfileFromUser,
   type MatchBreakdown,
-  type TenantProfile,
 } from "@/app/lib/tenant-match";
+import { listPublishedEvents, errorMessage } from "@/app/lib/db";
+import { isUpcomingEvent } from "@/app/lib/tenant-events";
 
 const EVENT_CATEGORIES = EVENT_CATEGORY_OPTIONS.map((category) => category.label);
 
@@ -32,130 +32,72 @@ type TenantEvent = {
   image: string;
   scope: string;
   description?: string;
+  highlights?: string[];
 };
 
-import { getEventsFromSupabase } from "@/app/lib/supabase-service";
 import Icon from "../../../components/Icon";
+import CategoryPopover from "../../../components/CategoryPopover";
 
 type SmartFilter = "all" | "high_match" | "matching_category" | "complete_facilities";
 
 export default function TenantEventsPage() {
   const { user } = useAuth();
   const [eventsList, setEventsList] = useState<TenantEvent[]>([]);
-  const [tenantProfile, setTenantProfile] = useState<TenantProfile>(() => getLoggedInTenantProfile(user?.email));
+  const tenantProfile = useMemo(() => tenantProfileFromUser(user), [user]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [sortBy, setSortBy] = useState("match");
   const [smartFilter, setSmartFilter] = useState<SmartFilter>("all");
-  const [expandedEventIds, setExpandedEventIds] = useState<Record<string, boolean>>({ "1": true });
+  const [expandedEventIds, setExpandedEventIds] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
-  // Update profil tenant saat user auth berubah
+  // Published events that have not ended yet
   useEffect(() => {
-    setTenantProfile(getLoggedInTenantProfile(user?.email));
-  }, [user]);
-
-  // Muat event dari Supabase (atau fallback localStorage)
-  useEffect(() => {
-    async function loadEvents() {
-      try {
-        const sbEvents = await getEventsFromSupabase();
-        if (sbEvents && sbEvents.length > 0) {
-          let mapped: TenantEvent[] = sbEvents.map((e) => ({
-            id: String(e.id),
-            title: e.title,
-            date: e.date,
-            location: [e.location, e.city, e.province, e.country].filter(Boolean).join(", "),
-            country: e.country,
-            province: e.province,
-            city: e.city,
-            category: e.category || "Fashion",
-            categories:
-              e.categories ||
-              e.categoryKeys?.map(getEventCategoryLabel) ||
-              (e.category ? e.category.split(",").map((item: string) => item.trim()) : ["Umum"]),
-            categoryKeys: e.categoryKeys,
-            price: e.priceRange?.split("–")[0]?.replace("000.000", "Jt")?.trim() || "Rp 2Jt",
-            booths: (e.boothsTotal || 30) - (e.boothsFilled || 0),
-            boothsTotal: e.boothsTotal || 30,
-            boothsFilled: e.boothsFilled || 0,
-            image: e.image || "🎪",
-            scope: e.country && e.country !== "Indonesia" ? "Internasional" : "Lokal",
-            description: e.description,
-          }));
-
-          const stored = localStorage.getItem("boothify_events");
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              const existingIds = new Set(mapped.map((e) => e.id));
-              const missingEvents: TenantEvent[] = parsed
-                .filter((e) => !existingIds.has(String(e.id)))
-                .map((e) => ({
-                  id: String(e.id),
-                  title: e.title,
-                  date: e.date,
-                  location: [e.location, e.city, e.province, e.country].filter(Boolean).join(", "),
-                  country: e.country,
-                  province: e.province,
-                  city: e.city,
-                  category: e.category || "Fashion",
-                  categories:
-                    e.categories ||
-                    e.categoryKeys?.map(getEventCategoryLabel) ||
-                    (e.category ? e.category.split(",").map((item: string) => item.trim()) : ["Kuliner (Food & Beverage)"]),
-                  categoryKeys: e.categoryKeys,
-                  price: e.priceRange?.split("–")[0]?.replace("000.000", "Jt")?.trim() || "Rp 2Jt",
-                  booths: (e.boothsTotal || 30) - (e.boothsFilled || 0),
-                  boothsTotal: e.boothsTotal || 30,
-                  boothsFilled: e.boothsFilled || 0,
-                  image: e.image || "🎪",
-                  scope: e.country && e.country !== "Indonesia" ? "Internasional" : "Lokal",
-                  description: e.description,
-                }));
-              mapped = [...missingEvents, ...mapped];
-            }
-          }
-
-          setEventsList(mapped);
-          return;
-        }
-
-        const stored = localStorage.getItem("boothify_events");
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const customEvents: TenantEvent[] = parsed.map((e) => ({
-              id: String(e.id),
+    let cancelled = false;
+    listPublishedEvents()
+      .then((events) => {
+        if (cancelled) return;
+        setEventsList(
+          events
+            .filter((e) => isUpcomingEvent(e.date))
+            .map((e) => ({
+              id: e.id,
               title: e.title,
               date: e.date,
               location: [e.location, e.city, e.province, e.country].filter(Boolean).join(", "),
               country: e.country,
               province: e.province,
               city: e.city,
-              category: e.category || "Fashion",
+              category: e.category || "Umum",
               categories:
-                e.categories ||
-                e.categoryKeys?.map(getEventCategoryLabel) ||
-                (e.category ? e.category.split(",").map((item: string) => item.trim()) : ["Kuliner (Food & Beverage)"]),
+                e.categories && e.categories.length > 0
+                  ? e.categories
+                  : e.category
+                  ? e.category.split(",").map((item) => item.trim())
+                  : ["Umum"],
               categoryKeys: e.categoryKeys,
-              price: e.priceRange?.split("–")[0]?.replace("000.000", "Jt")?.trim() || "Rp 2Jt",
-              booths: (e.boothsTotal || 30) - (e.boothsFilled || 0),
-              boothsTotal: e.boothsTotal || 30,
-              boothsFilled: e.boothsFilled || 0,
-              image: e.image || "🎪",
+              price: e.priceRange?.split("–")[0]?.trim() || "",
+              booths: Math.max(0, e.boothsTotal - e.boothsFilled),
+              boothsTotal: e.boothsTotal,
+              boothsFilled: e.boothsFilled,
+              image: e.image,
               scope: e.country && e.country !== "Indonesia" ? "Internasional" : "Lokal",
               description: e.description,
-            }));
-            setEventsList(customEvents);
-          }
-        }
-      } catch {
-        // Abaikan error parsing
-      }
-    }
-
-    loadEvents();
+              highlights: e.highlights,
+            }))
+        );
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(errorMessage(err, "Daftar event gagal dimuat."));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const locationOptions = useMemo(() => {
@@ -206,8 +148,7 @@ export default function TenantEventsPage() {
         } else if (smartFilter === "matching_category") {
           matchesSmartFilter = e.matchData.categoryScore >= 80;
         } else if (smartFilter === "complete_facilities") {
-          const meta = DEFAULT_EVENTS_META[e.id];
-          matchesSmartFilter = Boolean((meta?.zones && meta.zones.length > 0) || (meta?.highlights && meta.highlights.length >= 3));
+          matchesSmartFilter = e.booths >= 5;
         }
 
         return matchesSearch && matchesCategory && matchesLocation && matchesSmartFilter;
@@ -239,7 +180,7 @@ export default function TenantEventsPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold">Cari Event &amp; Smart Matching</h1>
-            <span className="badge badge-secondary text-[10px]">AI MATCHING</span>
+            <span className="badge badge-secondary text-[10px]">SMART MATCH</span>
           </div>
           <p className="text-sm text-muted-foreground">
             Sistem mencocokkan kriteria produk, tema keberlanjutan, ketersediaan booth, dan potensi traffic secara dinamis.
@@ -314,7 +255,7 @@ export default function TenantEventsPage() {
                 : "bg-white/5 text-muted-foreground hover:text-foreground border-white/10"
             }`}
           >
-            <span>Fasilitas Lengkap</span>
+            <span>Banyak Booth Kosong</span>
           </button>
         </div>
       </div>
@@ -375,13 +316,23 @@ export default function TenantEventsPage() {
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value)}
         >
-          <option value="match">Urutkan: AI Match Tertinggi</option>
+          <option value="match">Urutkan: Kecocokan Tertinggi</option>
           <option value="price">Urutkan: Harga Terendah</option>
         </select>
       </div>
 
       {/* List Event Cards */}
-      {filteredEvents.length === 0 ? (
+      {loadError ? (
+        <div className="p-4 rounded-xl bg-error/10 border border-error/20 text-sm text-error" role="alert">{loadError}</div>
+      ) : loading ? (
+        <p className="py-12 text-center text-sm text-muted-foreground">Memuat event...</p>
+      ) : eventsList.length === 0 ? (
+        <div className="card-base p-12 text-center text-muted-foreground border border-dashed border-white/10 rounded-2xl">
+          <span className="text-4xl block mb-3"><Icon name="calendar" size={32} /></span>
+          <p className="font-semibold text-foreground text-base mb-1">Belum ada event yang membuka booth</p>
+          <p className="text-xs">Event yang diterbitkan organizer akan muncul di sini.</p>
+        </div>
+      ) : filteredEvents.length === 0 ? (
         <div className="card-base p-12 text-center text-muted-foreground border border-dashed border-white/10 rounded-2xl">
           <span className="text-4xl block mb-3"><Icon name="search" size={32} /></span>
           <p className="font-semibold text-foreground text-base mb-1">Tidak ada event yang sesuai</p>
@@ -427,7 +378,7 @@ export default function TenantEventsPage() {
                         >
                           {event.title}
                         </Link>
-                        <span className="badge badge-primary text-[10px]">{event.category}</span>
+                        <CategoryPopover categories={event.categories} category={event.category} label="Kategori" />
                         {event.scope === "Internasional" && (
                           <span className="badge badge-secondary text-[10px]">Internasional</span>
                         )}

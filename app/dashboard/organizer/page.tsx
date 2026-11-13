@@ -9,170 +9,102 @@ type EventItem = {
   id: string;
   title: string;
   date: string;
-  status: string;
+  status: "active" | "draft";
   boothsFilled: number;
   boothsTotal: number;
-  organizerEmail?: string;
 };
 
 type BookingItem = {
+  id: string;
   tenant: string;
-  tenantEmail?: string;
-  eventId?: string;
+  eventId: string;
   event: string;
   booth: string;
+  price: number;
   amount: string;
   time: string;
   status: string;
 };
 
-type InboxMessage = {
-  id: string;
-  eventId?: string;
-  eventTitle: string;
-  organizerEmail?: string;
-  senderName: string;
-  senderEmail: string;
-  senderPhone: string;
-  message: string;
-  time: string;
-  date?: string;
-  status: "unread" | "read" | "replied";
-};
-
 import {
-  getEventsFromSupabase,
-  getTenantBookingsFromSupabase,
-  getOrganizerMessagesFromSupabase,
-  saveEventToSupabase,
-} from "@/app/lib/supabase-service";
+  listOrganizerEvents,
+  listBookingsForEvents,
+  listOrganizerMessages,
+  errorMessage,
+  type InboxMessage,
+} from "@/app/lib/db";
 import Icon from "../../components/Icon";
 
 export default function OrganizerDashboard() {
   const { user } = useAuth();
-  const email = user?.email || "";
-  
+  const organizerId = user?.id || "";
+
   const [events, setEvents] = useState<EventItem[]>([]);
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [inbox, setInbox] = useState<InboxMessage[]>([]);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    if (!email) return;
+    if (!organizerId) return;
     let cancelled = false;
 
-    async function load() {
-      // 1. Events: Supabase holds published events, localStorage also holds drafts
-      const supabaseEvents = await getEventsFromSupabase();
-      let combinedEvents: EventItem[] = (supabaseEvents || []).map((e) => ({
-        id: String(e.id),
-        title: e.title,
-        date: e.date,
-        status: "active",
-        boothsFilled: e.boothsFilled,
-        boothsTotal: e.boothsTotal,
-        organizerEmail: e.organizerEmail || "",
-      }));
-
-      try {
-        const localEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-        if (Array.isArray(localEvents)) {
-          const existingIds = new Set(combinedEvents.map((e) => e.id));
-          const missing = localEvents.filter((le: { id: string }) => !existingIds.has(String(le.id)));
-          // Published events missing from Supabase are synced; drafts stay private until published
-          missing
-            .filter((item: { status?: string }) => item.status !== "draft")
-            .forEach((item) => {
-              saveEventToSupabase(item).catch(() => {});
-            });
-          const mappedMissing: EventItem[] = missing.map((e) => ({
-            id: String(e.id),
+    listOrganizerEvents(organizerId)
+      .then(async (own) => {
+        if (cancelled) return;
+        setEvents(
+          own.map((e) => ({
+            id: e.id,
             title: e.title,
             date: e.date,
-            status: e.status || "active",
-            boothsFilled: e.boothsFilled || 0,
-            boothsTotal: e.boothsTotal || 30,
-            organizerEmail: e.organizerEmail || "",
-          }));
-          combinedEvents = [...mappedMissing, ...combinedEvents];
-        }
-      } catch { /* ignore */ }
-
-      const ownEvents = combinedEvents.filter((e) => e.organizerEmail?.toLowerCase() === email.toLowerCase());
-      const ownIds = new Set(ownEvents.map((e) => e.id));
-      if (cancelled) return;
-      setEvents(ownEvents);
-
-      // 2. Bookings: only those made for this organizer's own events
-      const supabaseBookings = await getTenantBookingsFromSupabase();
-      let ownBookings: BookingItem[] = [];
-      if (supabaseBookings && supabaseBookings.length > 0) {
-        ownBookings = supabaseBookings
-          .filter((b) => ownIds.has(String(b.eventId)))
-          .map((b) => ({
+            status: e.status === "draft" ? "draft" : "active",
+            boothsFilled: e.boothsFilled,
+            boothsTotal: e.boothsTotal,
+          }))
+        );
+        // Bookings made for this organizer's own events
+        const list = await listBookingsForEvents(own.map((e) => e.id));
+        if (cancelled) return;
+        setBookings(
+          list.map((b) => ({
+            id: b.id,
             tenant: b.tenantName || "Tenant",
-            eventId: String(b.eventId),
+            eventId: b.eventId,
             event: b.event,
             booth: b.booth,
-            amount: b.amount,
-            time: "Baru saja",
-            status: b.payment as "paid" | "unpaid",
-          }));
-      } else {
-        try {
-          const local = JSON.parse(localStorage.getItem("boothify_recent_bookings") || "[]");
-          if (Array.isArray(local)) {
-            ownBookings = local.filter((b: BookingItem) => ownIds.has(String(b.eventId)));
-          }
-        } catch { /* ignore */ }
-      }
-      if (!cancelled) setBookings(ownBookings);
-    }
+            price: b.price,
+            amount: `Rp ${b.price.toLocaleString("id-ID")}`,
+            time: new Date(b.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
+            status: b.payment,
+          }))
+        );
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(errorMessage(err, "Data dashboard gagal dimuat."));
+      });
 
-    load();
-
-    // 3. Inbox: messages addressed to this organizer only
-    getOrganizerMessagesFromSupabase(email).then((supabaseMessages) => {
-      if (cancelled) return;
-      if (supabaseMessages && supabaseMessages.length > 0) {
-        const mapped: InboxMessage[] = supabaseMessages.map((m) => ({
-          id: m.id,
-          eventId: m.eventId,
-          eventTitle: m.eventTitle,
-          senderName: m.senderName,
-          senderEmail: m.senderEmail,
-          senderPhone: m.senderPhone,
-          message: m.message,
-          time: "Baru saja",
-          status: m.status as "unread" | "read" | "replied",
-        }));
-        setInbox(mapped);
-      } else {
-        try {
-          const storedInbox = JSON.parse(localStorage.getItem("boothify_organizer_inbox") || "[]");
-          if (Array.isArray(storedInbox)) {
-            setInbox(storedInbox.filter((m: InboxMessage) => !m.organizerEmail || m.organizerEmail.toLowerCase() === email.toLowerCase()));
-          }
-        } catch { /* ignore */ }
-      }
-    });
+    listOrganizerMessages(organizerId)
+      .then((msgs) => {
+        if (!cancelled) setInbox(msgs);
+      })
+      .catch(() => {});
 
     return () => {
       cancelled = true;
     };
-  }, [email]);
+  }, [organizerId]);
 
   const unreadCount = inbox.filter((m) => m.status === "unread").length;
 
   // Dynamic metrics calculation
   const totalBoothsFilled = events.reduce((sum, e) => sum + (e.boothsFilled || 0), 0);
-  const totalRevenueNumber = bookings.reduce((sum, b) => {
-    const cleanNum = Number(b.amount.replace(/[^0-9]/g, ""));
-    return sum + (isNaN(cleanNum) ? 0 : cleanNum);
-  }, 0);
+  const totalRevenueNumber = bookings.reduce((sum, b) => sum + b.price, 0);
   const formattedRevenue = `Rp ${(totalRevenueNumber / 1000000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} Jt`;
 
   return (
     <div className="animate-fade-in" id="organizer-overview">
+      {loadError && (
+        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-sm text-error" role="alert">{loadError}</div>
+      )}
       {/* Header */}
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -337,8 +269,8 @@ export default function OrganizerDashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {bookings.slice(0, 5).map((booking, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-foreground/[0.02] border border-foreground/[0.03]">
+                {bookings.slice(0, 5).map((booking) => (
+                  <div key={booking.id} className="flex items-center gap-3 p-3 rounded-xl bg-foreground/[0.02] border border-foreground/[0.03]">
                     <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center text-secondary text-xs font-bold">
                       {booking.booth}
                     </div>

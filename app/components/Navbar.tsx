@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
 import BrandMark from "./BrandMark";
+import { PublicRoleShell } from "./RoleNav";
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -28,6 +29,11 @@ export default function Navbar() {
 
   const roleLabel = user?.role === "admin" ? "Admin" : user?.role;
 
+  // Signed-in tenants and organizers navigate from the sidebar, not the top bar
+  if (user && (user.role === "tenant" || user.role === "organizer")) {
+    return <PublicRoleShell role={user.role} />;
+  }
+
   return (
     <nav className="site-nav" id="main-navbar" aria-label="Navigasi utama">
       <div className="container site-nav-bar">
@@ -43,9 +49,8 @@ export default function Navbar() {
           <span>Boothify</span>
         </Link>
 
-        <div className="site-nav-right">
-          {/* Links */}
-          <div className="site-nav-links">
+        {/* Links, centre */}
+        <div className="site-nav-links">
             <Link href="/events" className="site-nav-link" id="nav-events">
               Jelajahi Event
             </Link>
@@ -56,8 +61,8 @@ export default function Navbar() {
               Cara Kerja
             </Link>
           </div>
-          {/* Account */}
-          <div className="site-nav-account">
+        {/* Account, right */}
+        <div className="site-nav-account">
             {user && user.role !== "guest" ? (
               <>
                 <Link href={dashboardLink} className="site-nav-link" id="nav-dashboard">
@@ -86,7 +91,6 @@ export default function Navbar() {
                 </Link>
               </>
             )}
-          </div>
         </div>
 
         {/* Mobile Menu Button */}

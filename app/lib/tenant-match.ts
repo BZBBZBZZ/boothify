@@ -1,5 +1,4 @@
 import { getEventCategoryLabel, getEventCategoryValue } from "./event-categories";
-import { DEFAULT_EVENTS_META } from "./event-defaults";
 
 export interface TenantProfile {
   brandName: string;
@@ -37,74 +36,26 @@ export interface MatchBreakdown {
   highlights: string[];
 }
 
-/**
- * Mengambil profil tenant yang sedang login dari localStorage atau fallback default
- */
-export function getLoggedInTenantProfile(email?: string): TenantProfile {
-  const fallbackEmail = email || "";
-  const isKopi = fallbackEmail.toLowerCase().includes("kopi");
-
-  if (typeof window !== "undefined") {
-    try {
-      // 1. Cek profil per-email
-      const storedPerEmail = localStorage.getItem(`boothify_profile_${fallbackEmail}`);
-      if (storedPerEmail) {
-        return JSON.parse(storedPerEmail);
-      }
-
-      // 2. Cek profil umum tenant
-      const storedTenant = localStorage.getItem("boothify_tenant_profile");
-      if (storedTenant) {
-        const parsed = JSON.parse(storedTenant);
-        if (parsed.email === fallbackEmail || !email) {
-          return parsed;
-        }
-      }
-
-      // 3. Cek user yang sedang login di auth
-      const storedCurrent = localStorage.getItem("boothify_current_user");
-      if (storedCurrent) {
-        const user = JSON.parse(storedCurrent);
-        if (user && user.role === "tenant") {
-          return {
-            brandName: user.businessName || user.name || (isKopi ? "Kopi Keliling Nusantara" : "EcoWear Studio"),
-            category: user.businessCategory || user.category || (isKopi ? "fnb" : "fashion"),
-            email: user.email || fallbackEmail,
-            phone: user.phone || "+62 813 9876 5432",
-            description: user.description || (isKopi
-              ? "Artisan coffee roastery dan minuman kopi kekinian dengan biji kopi lokal nusantara."
-              : "Brand fashion berkelanjutan dari bahan organik dan daur ulang ramah lingkungan."),
-            website: user.website || (isKopi ? "https://kopikeliling.id" : "https://ecowear.id"),
-            instagram: user.instagram || (isKopi ? "@kopikeliling.id" : "@ecowearstudio"),
-          };
-        }
-      }
-    } catch {
-      // Abaikan parsing error, gunakan fallback
-    }
-  }
-
-  // Default fallback profil demo
-  if (isKopi) {
-    return {
-      brandName: "Kopi Keliling Nusantara",
-      category: "fnb",
-      email: "kopi@boothify.id",
-      phone: "+62 878 1122 3344",
-      description: "Artisan coffee roastery dan minuman kopi kekinian dengan biji kopi lokal nusantara.",
-      website: "https://kopikeliling.id",
-      instagram: "@kopikeliling.id",
-    };
-  }
-
+/** The signed-in tenant's profile, as used for matching. */
+export function tenantProfileFromUser(user?: {
+  businessName?: string;
+  name?: string;
+  businessCategory?: string;
+  category?: string;
+  email?: string;
+  phone?: string;
+  description?: string;
+  website?: string;
+  instagram?: string;
+} | null): TenantProfile {
   return {
-    brandName: "EcoWear Studio",
-    category: "fashion",
-    email: "demo-tenant@boothify.id",
-    phone: "+62 813 9876 5432",
-    description: "Brand fashion berkelanjutan yang menggunakan 100% bahan daur ulang ramah lingkungan dengan prinsip fair trade.",
-    website: "https://ecowear.id",
-    instagram: "@ecowearstudio",
+    brandName: user?.businessName || user?.name || "",
+    category: user?.businessCategory || user?.category || "",
+    email: user?.email || "",
+    phone: user?.phone,
+    description: user?.description,
+    website: user?.website,
+    instagram: user?.instagram,
   };
 }
 
@@ -130,25 +81,26 @@ export function calculateEventTenantMatch(
     booths?: number;
     boothsTotal?: number;
     boothsFilled?: number;
+    highlights?: string[];
+    zones?: Array<{ name: string }>;
   },
   tenantProfile?: TenantProfile | null
 ): MatchBreakdown {
-  const profile = tenantProfile || getLoggedInTenantProfile();
-  const eventMeta = DEFAULT_EVENTS_META[event.id];
+  const profile = tenantProfile || tenantProfileFromUser(null);
 
   const tenantCatVal = getEventCategoryValue(profile.category || "fashion").toLowerCase();
   const tenantCatLabel = getEventCategoryLabel(profile.category || "fashion");
   const tenantDesc = (profile.description || "").toLowerCase();
   const tenantBrand = (profile.brandName || "").toLowerCase();
 
-  const eventTitle = (event.title || eventMeta?.title || "").toLowerCase();
-  const eventDesc = (event.description || eventMeta?.description || "").toLowerCase();
-  const eventCat = (event.category || eventMeta?.category || "").toLowerCase();
-  const eventLocation = (event.location || eventMeta?.location || "").toLowerCase();
-  const eventCategories = (event.categories || eventMeta?.categories || []).map((c) => c.toLowerCase());
-  const eventCategoryKeys = (event.categoryKeys || eventMeta?.categoryKeys || []).map((k) => k.toLowerCase());
-  const eventZones = eventMeta?.zones || [];
-  const eventHighlights = (eventMeta?.highlights || []).map((h) => h.toLowerCase());
+  const eventTitle = (event.title || "").toLowerCase();
+  const eventDesc = (event.description || "").toLowerCase();
+  const eventCat = (event.category || "").toLowerCase();
+  const eventLocation = (event.location || "").toLowerCase();
+  const eventCategories = (event.categories || []).map((c) => c.toLowerCase());
+  const eventCategoryKeys = (event.categoryKeys || []).map((k) => k.toLowerCase());
+  const eventZones = event.zones || [];
+  const eventHighlights = (event.highlights || []).map((h) => h.toLowerCase());
 
   // =========================================================================
   // PILAR 1: Kategori & Industri (Bobot 35%)
@@ -239,8 +191,8 @@ export function calculateEventTenantMatch(
   // =========================================================================
   // PILAR 3: Ketersediaan Booth di Venue (Bobot 20%)
   // =========================================================================
-  const boothsTotal = event.boothsTotal || eventMeta?.boothsTotal || 10;
-  const boothsFilled = event.boothsFilled !== undefined ? event.boothsFilled : (eventMeta?.boothsFilled || 4);
+  const boothsTotal = event.boothsTotal || 0;
+  const boothsFilled = event.boothsFilled || 0;
   const availableBooths = event.booths !== undefined ? event.booths : Math.max(0, boothsTotal - boothsFilled);
 
   let boothScore = 50;

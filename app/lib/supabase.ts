@@ -6,7 +6,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 if (!supabaseUrl || !supabaseAnonKey) {
   if (typeof window !== 'undefined') {
     console.info(
-      '💡 Supabase belum dikonfigurasi. Tambahkan NEXT_PUBLIC_SUPABASE_URL & NEXT_PUBLIC_SUPABASE_ANON_KEY di .env.local untuk menghubungkan database Supabase.'
+      'Supabase belum dikonfigurasi. Tambahkan NEXT_PUBLIC_SUPABASE_URL & NEXT_PUBLIC_SUPABASE_ANON_KEY di .env.local untuk menghubungkan database Supabase.'
     );
   }
 }

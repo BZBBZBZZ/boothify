@@ -4,130 +4,106 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../components/AuthContext";
 
-type BookingItem = {
-  event: string;
-  booth: string;
-  date: string;
-  status: string;
-  payment: string;
-  eventId?: string;
-  price?: number;
-  tenantEmail?: string;
-};
-
-type VisitorOrderItem = {
-  id: string;
-  eventId?: string;
-  event?: string;
-  booth?: string;
-  items: { boothId?: string; name: string; qty: number; price: number }[];
-  total: number;
-  customer: string;
-  phone?: string;
-  method: string;
-  time: string;
-  status?: "pending" | "making" | "ready" | "done";
-  tenantEmail?: string;
-  tenantName?: string;
-};
-
 import {
-  getTenantBookingsFromSupabase,
-  getVisitorOrdersFromSupabase,
-  getEventsFromSupabase,
-} from "@/app/lib/supabase-service";
+  listTenantBookings,
+  listTenantOrders,
+  listPublishedEvents,
+  updateOrderStatus as saveOrderStatus,
+  errorMessage,
+  type Booking,
+  type VisitorOrder,
+  type OrderStatus,
+} from "@/app/lib/db";
+import { calculateEventTenantMatch, tenantProfileFromUser } from "@/app/lib/tenant-match";
+import { isUpcomingEvent } from "@/app/lib/tenant-events";
 import Icon from "../../components/Icon";
+import CategoryPopover from "../../components/CategoryPopover";
+
+type OrderView = VisitorOrder & { time: string };
+
+const orderTime = (iso: string) =>
+  iso ? new Date(iso).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
 
 export default function TenantDashboard() {
   const { user } = useAuth();
-  const [bookings, setBookings] = useState<BookingItem[]>([]);
-  const [visitorOrders, setVisitorOrders] = useState<VisitorOrderItem[]>([]);
-  const [recommendedEvents, setRecommendedEvents] = useState<Array<{ id: string; title: string; date: string; location: string; match: string; reason: string }>>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [visitorOrders, setVisitorOrders] = useState<OrderView[]>([]);
+  const [recommendedEvents, setRecommendedEvents] = useState<Array<{ id: string; title: string; date: string; location: string; match: string; categories?: string[]; category?: string }>>([]);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    const email = user?.email || "";
-    if (!email) return;
+    const tenantId = user?.id || "";
+    if (!tenantId || user?.role !== "tenant") return;
+    let cancelled = false;
 
-    // 1. Load tenant bookings from Supabase
-    getTenantBookingsFromSupabase(email).then((supabaseBookings) => {
-      if (supabaseBookings && supabaseBookings.length > 0) {
-        const mapped: BookingItem[] = supabaseBookings.map((b) => ({
-          event: b.event,
-          booth: b.booth,
-          date: b.date || "2026",
-          status: b.status || "confirmed",
-          payment: b.payment || "paid",
-          eventId: b.eventId,
-          tenantEmail: b.tenantEmail,
-          price: Number(b.amount?.replace(/\D/g, "") || 2500000),
-        }));
-        setBookings(mapped);
-      } else {
-        try {
-          const stored = localStorage.getItem("boothify_tenant_bookings");
-          if (stored) {
-            const all = JSON.parse(stored);
-            setBookings(all.filter((b: BookingItem) => b.tenantEmail === email));
-          }
-        } catch { /* ignore */ }
-      }
-    });
+    const loadOrders = () =>
+      listTenantOrders(tenantId)
+        .then((orders) => {
+          if (!cancelled) setVisitorOrders(orders.map((o) => ({ ...o, time: orderTime(o.createdAt) })));
+        })
+        .catch(() => {});
 
-    // 2. Load recommendations dynamically from Supabase events
-    getEventsFromSupabase().then((events) => {
-      if (events && events.length > 0) {
-        setRecommendedEvents(
-          events.slice(0, 3).map((e) => ({
-            id: e.id,
-            title: e.title,
-            date: e.date,
-            location: e.location,
-            match: "95%",
-            reason: `Relevan dengan kategori ${e.category}`,
-          }))
-        );
-      }
-    });
+    listTenantBookings(tenantId)
+      .then((list) => {
+        if (cancelled) return;
+        setBookings(list);
+        // Recommend upcoming events this tenant is not in yet, best match first
+        const joined = new Set(list.map((b) => b.eventId));
+        listPublishedEvents()
+          .then((events) => {
+            if (cancelled) return;
+            const profile = tenantProfileFromUser(user);
+            setRecommendedEvents(
+              events
+                .filter((e) => !joined.has(e.id) && isUpcomingEvent(e.date) && e.boothsTotal > e.boothsFilled)
+                .map((e) => ({ e, score: calculateEventTenantMatch(e, profile).overallScore }))
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 3)
+                .map(({ e, score }) => ({
+                  id: e.id,
+                  title: e.title,
+                  date: e.date,
+                  location: e.location,
+                  match: `${score}%`,
+                  categories: e.categories,
+                  category: e.category,
+                }))
+            );
+          })
+          .catch(() => {});
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(errorMessage(err, "Data dashboard gagal dimuat."));
+      });
 
-    // 3. Load visitor orders from Supabase
-    getVisitorOrdersFromSupabase(email).then((supabaseOrders) => {
-      if (supabaseOrders && supabaseOrders.length > 0) {
-        setVisitorOrders(
-          supabaseOrders.map((o) => ({
-            ...o,
-            time: o.createdAt ? new Date(o.createdAt).toLocaleDateString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "Baru saja",
-          })) as VisitorOrderItem[]
-        );
-      } else {
-        try {
-          const stored = localStorage.getItem("boothify_visitor_orders");
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            setVisitorOrders(parsed);
-          }
-        } catch { /* ignore */ }
-      }
-    });
+    loadOrders();
+    // New visitor orders show up without reloading the page
+    const interval = window.setInterval(loadOrders, 10000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
   }, [user]);
 
-  const uniqueEventsCount = new Set(bookings.map((b) => b.event)).size;
+  const uniqueEventsCount = new Set(bookings.map((b) => b.eventId)).size;
+  const totalSpent = bookings.reduce((sum, b) => sum + b.total, 0);
 
-  const updateOrderStatus = (orderId: string, newStatus: "pending" | "making" | "ready" | "done") => {
+  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    const previous = visitorOrders;
     setVisitorOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
     try {
-      const raw = localStorage.getItem("boothify_visitor_orders");
-      if (raw) {
-        const list = JSON.parse(raw);
-        const updatedList = list.map((o: VisitorOrderItem) => (o.id === orderId ? { ...o, status: newStatus } : o));
-        localStorage.setItem("boothify_visitor_orders", JSON.stringify(updatedList));
-      }
-    } catch {
-      // ignore
+      await saveOrderStatus(orderId, newStatus);
+    } catch (err) {
+      setVisitorOrders(previous);
+      setLoadError(errorMessage(err, "Status pesanan gagal diubah."));
     }
   };
 
   return (
     <div className="animate-fade-in" id="tenant-overview">
+      {loadError && (
+        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-sm text-error" role="alert">{loadError}</div>
+      )}
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold mb-1">Dashboard Tenant</h1>
         <p className="text-muted-foreground text-sm">Kelola booth, produk, dan pantau pesanan kamu secara real-time.</p>
@@ -156,10 +132,10 @@ export default function TenantDashboard() {
         <div className="stat-card">
           <div className="flex items-center justify-between mb-3">
             <span className="text-2xl"><Icon name="card" size={24} /></span>
-            <span className="text-[11px] text-secondary-light font-medium">Bulan ini</span>
+            <span className="text-[11px] text-secondary-light font-medium">Semua booking</span>
           </div>
           <div className="text-2xl font-bold mb-1">
-            Rp {(bookings.length * 2.5).toFixed(1)} Jt
+            Rp {totalSpent.toLocaleString("id-ID")}
           </div>
           <div className="text-xs text-muted-foreground">Total Investasi Booth</div>
         </div>
@@ -201,8 +177,8 @@ export default function TenantDashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {bookings.map((booking, i) => (
-                  <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-foreground/[0.02] hover:bg-foreground/[0.04] transition border border-foreground/[0.03]">
+                {bookings.map((booking) => (
+                  <div key={booking.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-foreground/[0.02] hover:bg-foreground/[0.04] transition border border-foreground/[0.03]">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center font-bold text-sm">
                         {booking.booth}
@@ -217,7 +193,7 @@ export default function TenantDashboard() {
                         {booking.payment === "paid" ? "Lunas" : "Pending"}
                       </span>
                       <Link
-                        href={`/events/${booking.eventId || "1"}/guide`}
+                        href={`/events/${booking.eventId}/guide`}
                         className="btn btn-ghost btn-sm text-xs text-primary-light"
                         title="Lihat tampilan booth di Denah Pengunjung"
                       >
@@ -260,7 +236,7 @@ export default function TenantDashboard() {
               <div className="space-y-3">
                 {visitorOrders.slice(0, 5).map((order) => {
                   const status = order.status || "pending";
-                  const boothLabel = order.booth || order.items[0]?.boothId || "A1";
+                  const boothLabel = order.booth || order.items[0]?.boothId || "-";
                   return (
                     <div
                       key={order.id}
@@ -306,7 +282,7 @@ export default function TenantDashboard() {
                       </div>
                       <div className="text-right flex sm:flex-col items-center sm:items-end justify-between gap-2">
                         <span className="font-bold text-foreground text-sm">
-                          Rp {(order.total || 185000).toLocaleString("id-ID")}
+                          Rp {(order.total || 0).toLocaleString("id-ID")}
                         </span>
                         <div className="flex items-center gap-1.5">
                           {status === "pending" && (
@@ -349,12 +325,11 @@ export default function TenantDashboard() {
           </div>
         </div>
 
-        {/* Right Column: AI Recommended Events */}
+        {/* Right Column: Recommended Events */}
         <div>
           <div className="card-base p-6">
             <h2 className="font-semibold mb-1 flex items-center gap-2">
-              Rekomendasi AI
-              <span className="badge badge-secondary text-[10px]">Smart</span>
+              Rekomendasi Event
             </h2>
             <p className="text-xs text-muted-foreground mb-5">Event yang cocok dengan profil produk kamu</p>
             <div className="space-y-3">
@@ -365,12 +340,15 @@ export default function TenantDashboard() {
                     <span className="text-xs font-bold text-primary-light">{event.match}</span>
                   </div>
                   <p className="text-xs text-muted-foreground mb-1">{event.date} • {event.location}</p>
-                  <p className="text-[11px] text-secondary-light">{event.reason}</p>
+                  <div className="mt-2"><CategoryPopover categories={event.categories} category={event.category} label="Kategori" /></div>
                 </Link>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-3 italic">
-              * Rekomendasi berdasarkan AI matching — template UI untuk integrasi Gemini API
+            {recommendedEvents.length === 0 && (
+              <p className="text-xs text-muted-foreground">Belum ada event lain yang sedang membuka booth.</p>
+            )}
+            <p className="text-[10px] text-muted-foreground mt-3">
+              Dihitung dari kecocokan kategori, tema, dan ketersediaan booth.
             </p>
           </div>
         </div>

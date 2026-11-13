@@ -4,25 +4,20 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import QRCode from "qrcode";
-import {
-  getEventMeta,
-  getAllOrganizerEvents,
-  setActiveOrganizerEventId,
-} from "@/app/lib/event-defaults";
+import { setActiveOrganizerEventId } from "@/app/lib/event-defaults";
+import { getEvent, listOrganizerEvents } from "@/app/lib/db";
 import { useAuth } from "@/app/components/AuthContext";
 
 function QRCodeContent() {
   const router = useRouter();
   const params = useParams();
-  const eventId = (params?.eventId as string) || "1";
+  const eventId = (params?.eventId as string) || "";
   const { user } = useAuth();
   const [copied, setCopied] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
-  const [showLogo, setShowLogo] = useState(true);
-  const [showEventInfo, setShowEventInfo] = useState(true);
-  const [printSize, setPrintSize] = useState("A4");
-  const [eventTitle, setEventTitle] = useState("Green Fashion Expo 2026");
-  const [eventDate, setEventDate] = useState("15–17 November 2026");
+  const [eventTitle, setEventTitle] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [eventStatus, setEventStatus] = useState<string>("");
   const [allEvents, setAllEvents] = useState<Array<{ id: string; title: string }>>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -30,14 +25,27 @@ function QRCodeContent() {
   const [eventUrl, setEventUrl] = useState("");
 
   useEffect(() => {
-    try {
-      setActiveOrganizerEventId(eventId);
-      const meta = getEventMeta(eventId);
-      setEventTitle(meta.title);
-      if (meta.date) setEventDate(meta.date);
-      setAllEvents(getAllOrganizerEvents(user?.email));
-    } catch { /* ignore */ }
-  }, [eventId, user?.email]);
+    let cancelled = false;
+    setActiveOrganizerEventId(eventId);
+    if (user?.id) {
+      listOrganizerEvents(user.id)
+        .then((list) => {
+          if (!cancelled) setAllEvents(list.map((e) => ({ id: e.id, title: e.title })));
+        })
+        .catch(() => {});
+    }
+    getEvent(eventId)
+      .then((meta) => {
+        if (cancelled || !meta) return;
+        setEventTitle(meta.title);
+        setEventDate(meta.date);
+        setEventStatus(meta.status || "");
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId, user?.id]);
 
   useEffect(() => {
     // Set URL based on actual origin (works with port forwarding)
@@ -105,7 +113,6 @@ function QRCodeContent() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold">QR Code Event</h1>
-            <span className="badge badge-primary text-xs">Event #{eventId}</span>
           </div>
           <p className="text-sm text-primary-light font-medium">
             {eventTitle} <span className="text-muted-foreground text-xs font-normal">({eventDate})</span>
@@ -122,7 +129,7 @@ function QRCodeContent() {
             >
               {allEvents.map((ev) => (
                 <option key={ev.id} value={ev.id}>
-                  {ev.title} (ID #{ev.id})
+                  {ev.title}
                 </option>
               ))}
             </select>
@@ -138,6 +145,13 @@ function QRCodeContent() {
           </Link>
         </div>
       </div>
+
+      {eventStatus === "draft" && (
+        <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-sm" role="status">
+          Event ini masih draft, jadi QR Code belum bisa dibuka pengunjung.{" "}
+          <Link href={`/dashboard/organizer/events/${eventId}/floor-plan`} className="font-semibold text-primary-light hover:underline">Terbitkan dari halaman denah</Link>.
+        </div>
+      )}
 
       {/* Hidden canvas for high-res download */}
       <canvas ref={canvasRef} className="hidden" />
@@ -211,28 +225,6 @@ function QRCodeContent() {
             </button>
           </div>
 
-          {/* Direct Role Test Buttons */}
-          <div className="border-t border-border pt-5 space-y-2 text-left">
-            <p className="text-xs font-semibold text-muted-foreground mb-2">
-              Uji Coba Alur Langsung (Demo Flow):
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <Link
-                href={`/events/${eventId}/guide`}
-                className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2 border-emerald-500/30 text-emerald-700 hover:bg-emerald-500/10"
-                id="test-visitor-flow"
-              >
-                Uji sbg Pengunjung (Scan)
-              </Link>
-              <Link
-                href={`/events/${eventId}`}
-                className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2 border-primary/30 text-primary-light hover:bg-primary/10"
-                id="test-tenant-flow"
-              >
-                Uji sbg Tenant (Sewa Booth)
-              </Link>
-            </div>
-          </div>
         </div>
 
         {/* Instructions */}
@@ -259,47 +251,6 @@ function QRCodeContent() {
                 </li>
               ))}
             </ol>
-          </div>
-
-          <div className="card-base p-6">
-            <h2 className="font-semibold mb-4 flex items-center gap-2">
-              Pengaturan QR Code
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Ukuran Cetak</label>
-                <select className="input-base" id="qr-print-size" value={printSize} onChange={(e) => setPrintSize(e.target.value)}>
-                  <option>A4 (210 × 297 mm)</option>
-                  <option>A3 (297 × 420 mm)</option>
-                  <option>A5 (148 × 210 mm)</option>
-                  <option>Custom</option>
-                </select>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Tampilkan Logo di Tengah</p>
-                  <p className="text-xs text-muted-foreground">Logo Boothify di center QR Code</p>
-                </div>
-                <button
-                  onClick={() => setShowLogo(!showLogo)}
-                  className={`w-10 h-6 rounded-full flex items-center px-0.5 transition-colors ${showLogo ? "bg-primary/50" : "bg-foreground/10"}`}
-                >
-                  <div className={`w-5 h-5 rounded-full bg-white transition-transform ${showLogo ? "translate-x-4" : "translate-x-0"}`} />
-                </button>
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Sertakan Info Event</p>
-                  <p className="text-xs text-muted-foreground">Tampilkan nama & tanggal di bawah QR</p>
-                </div>
-                <button
-                  onClick={() => setShowEventInfo(!showEventInfo)}
-                  className={`w-10 h-6 rounded-full flex items-center px-0.5 transition-colors ${showEventInfo ? "bg-primary/50" : "bg-foreground/10"}`}
-                >
-                  <div className={`w-5 h-5 rounded-full bg-white transition-transform ${showEventInfo ? "translate-x-4" : "translate-x-0"}`} />
-                </button>
-              </div>
-            </div>
           </div>
 
           <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">

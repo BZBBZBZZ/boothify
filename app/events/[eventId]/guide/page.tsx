@@ -4,19 +4,12 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../components/AuthContext";
 import Navbar from "../../../components/Navbar";
-import {
-  ensureEventFloorPlanInitialized,
-  DEFAULT_EVENTS_META,
-  FloorPlanBooth,
-  EventTenantInfo,
-  EventDetail,
-} from "../../../lib/event-defaults";
-import {
-  getEventByIdFromSupabase,
-  getBoothsFromSupabase,
-  getTenantsFromSupabase,
-} from "@/app/lib/supabase-service";
+import type { FloorPlanBooth, EventTenantInfo, EventDetail } from "../../../lib/event-defaults";
+import { getEvent, getBooths, getEventTenants, placeOrder, getOrder, errorMessage } from "@/app/lib/db";
 import Icon from "../../../components/Icon";
+import { openStoredFile } from "../../../lib/file-upload";
+import CategoryPopover from "../../../components/CategoryPopover";
+import FreshOnNavigate from "../../../components/FreshOnNavigate";
 
 interface CartItem {
   boothId: string;
@@ -24,16 +17,6 @@ interface CartItem {
   price: number;
   qty: number;
 }
-
-const getZoneBadgeColor = (zone: string) => {
-  const z = zone.toLowerCase();
-  if (z.includes("fnb") || z.includes("food") || z.includes("makanan")) return "bg-amber-500/15 border-amber-500/40 text-amber-700";
-  if (z.includes("fash") || z.includes("busana")) return "bg-emerald-500/15 border-emerald-500/40 text-emerald-700";
-  if (z.includes("craft") || z.includes("kriya")) return "bg-rose-500/15 border-rose-500/40 text-rose-700";
-  if (z.includes("edu") || z.includes("tech")) return "bg-purple-500/15 border-purple-500/40 text-purple-700";
-  if (z.includes("auto")) return "bg-blue-500/15 border-blue-500/40 text-blue-700";
-  return "bg-cyan-500/15 border-cyan-500/40 text-cyan-700";
-};
 
 const getZoneDisplay = (zone: string) => {
   const z = zone.toLowerCase();
@@ -45,16 +28,34 @@ const getZoneDisplay = (zone: string) => {
   return zone;
 };
 
+const EMPTY_EVENT: EventDetail = {
+  id: "",
+  title: "",
+  date: "",
+  location: "",
+  category: "",
+  description: "",
+  organizer: "",
+  boothsFilled: 0,
+  boothsTotal: 0,
+  priceRange: "",
+  image: "",
+};
+
+const orderKey = (eventId: string) => `boothify_order_${eventId}`;
+
 function EventGuideContent() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const eventId = (params?.eventId as string) || "1";
+  const eventId = (params?.eventId as string) || "";
   const { user, loginAsGuest } = useAuth();
 
-  const [eventInfo, setEventInfo] = useState<EventDetail>(
-    DEFAULT_EVENTS_META[eventId] || DEFAULT_EVENTS_META["1"]
-  );
+  const [eventInfo, setEventInfo] = useState<EventDetail>(EMPTY_EVENT);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "missing">("loading");
+  const [loadError, setLoadError] = useState("");
+  const [placing, setPlacing] = useState(false);
+  const [orderError, setOrderError] = useState("");
   const [booths, setBooths] = useState<FloorPlanBooth[]>([]);
   const [tenantsMap, setTenantsMap] = useState<Record<string, EventTenantInfo>>({});
   const [selectedBooth, setSelectedBooth] = useState<EventTenantInfo | null>(null);
@@ -92,51 +93,24 @@ function EventGuideContent() {
 
   useEffect(() => {
     let isMounted = true;
-
-    async function loadData() {
-      try {
-        const [sbEvent, sbBooths, sbTenants] = await Promise.all([
-          getEventByIdFromSupabase(eventId),
-          getBoothsFromSupabase(eventId),
-          getTenantsFromSupabase(eventId),
-        ]);
-
-        if (sbEvent && isMounted) {
-          setEventInfo(sbEvent);
-        }
-        if (sbBooths && sbBooths.length > 0 && isMounted) {
-          setBooths(sbBooths);
-        }
-        if (sbTenants && Object.keys(sbTenants).length > 0 && isMounted) {
-          setTenantsMap(sbTenants);
+    setLoadState("loading");
+    Promise.all([getEvent(eventId), getBooths(eventId), getEventTenants(eventId)])
+      .then(([ev, boothList, tenants]) => {
+        if (!isMounted) return;
+        if (!ev || ev.status !== "published") {
+          setLoadState("missing");
           return;
         }
-
-        // Fallback to localStorage / defaults if needed
-        const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-        const found = storedEvents.find((e: { id: string }) => e.id === eventId);
-        const fallbackMeta = DEFAULT_EVENTS_META[eventId] || DEFAULT_EVENTS_META["1"];
-
-        if (found && isMounted) {
-          setEventInfo({
-            ...fallbackMeta,
-            ...found,
-          });
-        } else if (isMounted) {
-          setEventInfo(fallbackMeta);
-        }
-
-        const initialized = ensureEventFloorPlanInitialized(eventId);
-        if (isMounted) {
-          setBooths(initialized.booths);
-          setTenantsMap(initialized.tenants);
-        }
-      } catch (err) {
-        console.error("Error loading guide data:", err);
-      }
-    }
-
-    loadData();
+        setEventInfo(ev);
+        setBooths(boothList);
+        setTenantsMap(tenants);
+        setLoadState("ready");
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        setLoadError(errorMessage(err, "Panduan event gagal dimuat."));
+        setLoadState("missing");
+      });
     return () => {
       isMounted = false;
     };
@@ -154,7 +128,7 @@ function EventGuideContent() {
 
   const handleGuestQuickLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    loginAsGuest(guestName || "Pengunjung (Tamu)", guestPhone);
+    loginAsGuest(guestName || "Pengunjung", guestPhone);
     setShowAuthGate(false);
     setShowCheckout(true);
   };
@@ -198,97 +172,65 @@ function EventGuideContent() {
 
   const totalCart = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
 
-  // Handle Order Placement directly upon checkout confirmation
-  const handleConfirmPayment = () => {
-    if (cart.length === 0) return;
-
-    const generatedCode = "BF-ORDER-" + Math.floor(1000 + Math.random() * 9000);
-    setOrderCode(generatedCode);
-
-    // 1. Snapshot cart items & total BEFORE clearing cart
-    const purchasedItems = cart.map((i) => ({ ...i }));
-    const purchasedTotal = purchasedItems.reduce((sum, i) => sum + i.price * i.qty, 0);
-
-    // 2. Identify target booth & tenant
-    const firstBoothId = purchasedItems[0].boothId;
-    const targetTenant = tenantsMap[firstBoothId];
-    let targetTenantEmail = targetTenant?.tenantEmail || "";
-
-    if (!targetTenantEmail) {
-      try {
-        const tBookings = JSON.parse(localStorage.getItem("boothify_tenant_bookings") || "[]");
-        const foundB = tBookings.find(
-          (b: { eventId?: string; booth?: string; tenantEmail?: string }) =>
-            String(b.eventId) === String(eventId) && b.booth === firstBoothId
-        );
-        if (foundB?.tenantEmail) targetTenantEmail = foundB.tenantEmail;
-      } catch {
-        // ignore
-      }
-    }
-
-    const currentEventTitle =
-      eventInfo?.title && eventInfo.title.length > 2
-        ? eventInfo.title
-        : DEFAULT_EVENTS_META[eventId]?.title || "Green Fashion Expo 2026";
-
-    const newOrder = {
-      id: generatedCode,
-      eventId: String(eventId),
-      event: currentEventTitle,
-      booth: firstBoothId,
-      items: purchasedItems,
-      total: purchasedTotal,
-      customer: user?.name || guestName || "Pengunjung",
-      phone: user?.phone || guestPhone || "",
-      method: selectedPaymentMethod,
-      time: "Baru saja",
-      status: "pending" as const,
-      tenantEmail: targetTenantEmail,
-      tenantName: targetTenant?.name || `Booth ${firstBoothId}`,
-    };
-
+  // Send the order to the booth; the database prices it from the tenant's menu
+  const handleConfirmPayment = async () => {
+    if (cart.length === 0 || placing) return;
+    setOrderError("");
+    setPlacing(true);
     try {
-      const orders = JSON.parse(localStorage.getItem("boothify_visitor_orders") || "[]");
-      const cleanedOrders = Array.isArray(orders) ? orders : [];
-      cleanedOrders.unshift(newOrder);
-      localStorage.setItem("boothify_visitor_orders", JSON.stringify(cleanedOrders));
-      localStorage.setItem("boothify_my_order_code", generatedCode);
-      setActiveOrder(newOrder);
-    } catch {
-      // ignore
+      const code = await placeOrder({
+        eventId,
+        booth: cart[0].boothId,
+        items: cart.map((i) => ({ name: i.name, qty: i.qty })),
+        customerName: user?.name || guestName || "Pengunjung",
+        customerPhone: user?.phone || guestPhone || "",
+        paymentMethod: selectedPaymentMethod,
+      });
+      try {
+        localStorage.setItem(orderKey(eventId), code);
+      } catch { /* ignore */ }
+      setActiveOrder({
+        id: code,
+        status: "pending",
+        items: cart.map((i) => ({ name: i.name, qty: i.qty })),
+        total: totalCart,
+      });
+      setOrderCode(code);
+      setCart([]);
+      setShowCheckout(false);
+    } catch (err) {
+      setOrderError(errorMessage(err, "Pesanan gagal dibuat."));
+    } finally {
+      setPlacing(false);
     }
-
-    // 3. Clear cart and close modal
-    setCart([]);
-    setShowCheckout(false);
   };
 
-  // Live polling for order status
+  // Follow the status of this visitor's latest order at this event
   useEffect(() => {
-    const targetCode = orderCode || (typeof window !== "undefined" ? localStorage.getItem("boothify_my_order_code") : "");
-    if (!targetCode) return;
-
-    const checkOrder = () => {
+    let code = orderCode;
+    if (!code) {
       try {
-        const stored = localStorage.getItem("boothify_visitor_orders");
-        if (stored) {
-          const list = JSON.parse(stored);
-          if (Array.isArray(list) && list.length > 0) {
-            const found = list.find((o: { id: string }) => o.id === targetCode);
-            if (found) {
-              setActiveOrder(found);
-            }
-          }
-        }
-      } catch {
-        // ignore
-      }
+        code = localStorage.getItem(orderKey(eventId)) || "";
+      } catch { /* ignore */ }
+    }
+    if (!code) return;
+
+    let stopped = false;
+    const checkOrder = () => {
+      getOrder(code)
+        .then((found) => {
+          if (stopped || !found) return;
+          setActiveOrder({ id: found.id, status: found.status, items: found.items, total: found.total });
+        })
+        .catch(() => {});
     };
     checkOrder();
-    const interval = setInterval(checkOrder, 2500);
-    return () => clearInterval(interval);
-  }, [orderCode]);
+    const interval = setInterval(checkOrder, 5000);
+    return () => {
+      stopped = true;
+      clearInterval(interval);
+    };
+  }, [orderCode, eventId]);
 
   // Filtered tenants for directory
   const allTenantsList = Object.values(tenantsMap);
@@ -302,6 +244,27 @@ function EventGuideContent() {
       (categoryFilter === "F&B" && t.type === "fnb");
     return matchesSearch && matchesCat;
   });
+
+  if (loadState !== "ready") {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <Navbar />
+        <main className="max-w-xl mx-auto px-4 pt-28 pb-16 text-center">
+          {loadState === "loading" ? (
+            <p className="text-sm text-muted-foreground">Memuat panduan event...</p>
+          ) : (
+            <div className="card-base p-8">
+              <h1 className="text-2xl font-bold mb-2">{loadError ? "Panduan gagal dimuat" : "Event tidak ditemukan"}</h1>
+              <p className="text-sm text-muted-foreground mb-6">
+                {loadError || "Event ini belum diterbitkan atau tautannya salah."}
+              </p>
+              <button type="button" onClick={() => router.push("/events")} className="btn btn-primary">Lihat Semua Event</button>
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">
@@ -421,7 +384,7 @@ function EventGuideContent() {
               <h2 className="font-bold text-sm text-foreground truncate">{eventInfo.title}</h2>
               <p className="text-xs text-muted-foreground">{eventInfo.date} • {eventInfo.location}</p>
             </div>
-            <span className="badge badge-primary text-xs">{eventInfo.category}</span>
+            <CategoryPopover categories={eventInfo.categories} category={eventInfo.category} label="Kategori" />
           </div>
         </div>
 
@@ -468,7 +431,6 @@ function EventGuideContent() {
             {booths.map((b) => {
               const tenant = tenantsMap[b.label];
               const isOccupied = !!tenant;
-              const zoneColor = getZoneBadgeColor(b.zone);
               const matchesFilter =
                 categoryFilter === "Semua" ||
                 getZoneDisplay(b.zone).toLowerCase().includes(categoryFilter.toLowerCase()) ||
@@ -504,13 +466,11 @@ function EventGuideContent() {
                   }}
                   id={`guide-booth-${b.label}`}
                 >
-                  <div className="public-floor-plan-booth-header flex items-center justify-between gap-1 mb-0.5 w-full min-w-0">
-                    <span className="public-floor-plan-booth-label font-bold text-xs sm:text-sm text-foreground truncate">
+                  <div className="public-floor-plan-booth-header w-full min-w-0 mb-0.5">
+                    <span className="public-floor-plan-booth-label block font-bold text-xs sm:text-sm text-foreground truncate">
                       {b.label}
                     </span>
-                    <span className={`public-floor-plan-booth-zone badge text-[8px] sm:text-[9px] border truncate flex-shrink-0 max-w-[50%] ${zoneColor}`}>
-                      {getZoneDisplay(b.zone)}
-                    </span>
+                    <span className="public-floor-plan-booth-zone-text">{getZoneDisplay(b.zone)}</span>
                   </div>
                   
                   {/* PERUBAHAN: Teks dipendekkan & ditambah truncate w-full */}
@@ -653,7 +613,11 @@ function EventGuideContent() {
                 <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
                   {selectedBooth.menu.map((item) => (
                     <div key={item.name} className="flex items-center gap-3 p-3 rounded-xl bg-foreground/[0.03] border border-foreground/5 hover:border-foreground/10 transition-colors">
-                      <span className="mono-chip" aria-hidden="true">{item.name.charAt(0).toUpperCase()}</span>
+                      {item.image ? (
+                        <img src={item.image} alt="" className="guide-menu-image" />
+                      ) : (
+                        <span className="mono-chip" aria-hidden="true">{item.name.charAt(0).toUpperCase()}</span>
+                      )}
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-medium text-foreground truncate">{item.name}</h4>
                         {item.description && <p className="text-[11px] text-muted-foreground truncate">{item.description}</p>}
@@ -687,6 +651,7 @@ function EventGuideContent() {
                   onClick={() => {
                     if (selectedBooth.branding) {
                       setActiveMiniWebsite({
+                        logo: selectedBooth.branding.logo,
                         headline: selectedBooth.branding.headline,
                         tagline: selectedBooth.branding.tagline,
                         aboutText: selectedBooth.branding.aboutText,
@@ -708,14 +673,23 @@ function EventGuideContent() {
               </div>
             )}
 
-            {selectedBooth.media && selectedBooth.media.length > 0 && (
+            {((selectedBooth.mediaFiles && selectedBooth.mediaFiles.length > 0) || (selectedBooth.media && selectedBooth.media.length > 0)) && (
               <div className="mb-2">
                 <h3 className="font-semibold text-xs mb-2">Brosur &amp; Media Digital</h3>
                 <div className="space-y-2">
-                  {selectedBooth.media.map((med) => (
-                    <div key={med} className="flex items-center justify-between p-2.5 rounded-xl bg-foreground/[0.02] border border-foreground/5 text-xs">
-                      <span className="truncate">{med}</span>
-                      <span className="text-primary-light font-medium cursor-pointer">Lihat</span>
+                  {(selectedBooth.mediaFiles && selectedBooth.mediaFiles.length > 0
+                    ? selectedBooth.mediaFiles
+                    : (selectedBooth.media || []).map((name) => ({ name, type: "", url: undefined as string | undefined }))
+                  ).map((med) => (
+                    <div key={med.name} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-foreground/[0.02] border border-foreground/5 text-xs">
+                      <span className="min-w-0 break-words">{med.name}</span>
+                      {med.url ? (
+                        <button type="button" onClick={() => openStoredFile(med.url!)} className="btn btn-secondary btn-sm text-xs flex-shrink-0">
+                          Buka
+                        </button>
+                      ) : (
+                        <span className="text-muted-foreground flex-shrink-0">{med.type || "Media"}</span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -732,7 +706,7 @@ function EventGuideContent() {
             <span className="text-4xl block mb-2"><Icon name="store" size={32} /></span>
             <h3 className="font-bold text-base mb-1">Booth {emptyBoothSelected.label} Masih Kosong</h3>
             <p className="text-xs text-muted-foreground mb-4">
-              Zona {getZoneDisplay(emptyBoothSelected.zone)} • Biaya Sewa Rp {(emptyBoothSelected.price || 2500000).toLocaleString("id-ID")}
+              Zona {getZoneDisplay(emptyBoothSelected.zone)} • Biaya Sewa Rp {(emptyBoothSelected.price || 0).toLocaleString("id-ID")}
             </p>
             <p className="text-xs text-muted-foreground mb-5">
               Apakah Anda pelaku usaha / brand yang berminat menyewa booth ini?
@@ -780,7 +754,11 @@ function EventGuideContent() {
                   color: activeMiniWebsite.primaryColor,
                 }}
               >
-                {activeMiniWebsite.headline.slice(0, 2).toUpperCase()}
+                {activeMiniWebsite.logo ? (
+                  <img src={activeMiniWebsite.logo} alt={`Logo ${activeMiniWebsite.headline}`} className="w-full h-full object-cover rounded-2xl" />
+                ) : (
+                  activeMiniWebsite.headline.slice(0, 2).toUpperCase()
+                )}
               </div>
             </div>
 
@@ -816,7 +794,11 @@ function EventGuideContent() {
                         className="flex items-center justify-between p-2.5 rounded-xl bg-foreground/[0.03] border border-foreground/5 text-xs"
                       >
                         <div className="flex items-center gap-2.5">
-                          <span className="mono-chip mono-chip--sm" aria-hidden="true">{prod.name.charAt(0).toUpperCase()}</span>
+                          {prod.image ? (
+                            <img src={prod.image} alt="" className="guide-menu-image guide-menu-image--sm" />
+                          ) : (
+                            <span className="mono-chip mono-chip--sm" aria-hidden="true">{prod.name.charAt(0).toUpperCase()}</span>
+                          )}
                           <div>
                             <div className="font-semibold text-foreground">{prod.name}</div>
                             <div className="text-[11px] font-bold" style={{ color: activeMiniWebsite.primaryColor }}>
@@ -981,12 +963,14 @@ function EventGuideContent() {
               </div>
             </div>
 
+            {orderError && <p className="text-xs text-error mb-2" role="alert">{orderError}</p>}
             <button
               onClick={handleConfirmPayment}
               className="btn btn-primary w-full btn-sm mb-2"
               id="confirm-pay-btn"
+              disabled={placing}
             >
-              Simulasikan Bayar Sukses
+              {placing ? "Mengirim pesanan..." : "Konfirmasi Pesanan"}
             </button>
             <button onClick={() => setShowCheckout(false)} className="btn btn-ghost btn-sm w-full text-xs">
               Batal
@@ -998,10 +982,18 @@ function EventGuideContent() {
   );
 }
 
-export default function EventGuidePage() {
+function EventGuidePageContent() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Memuat panduan event...</div>}>
       <EventGuideContent />
     </Suspense>
+  );
+}
+
+export default function EventGuidePage() {
+  return (
+    <FreshOnNavigate>
+      <EventGuidePageContent />
+    </FreshOnNavigate>
   );
 }

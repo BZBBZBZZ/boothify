@@ -7,6 +7,7 @@ import { useAuth } from "../../components/AuthContext";
 import Navbar from "../../components/Navbar";
 import { EVENT_CATEGORY_OPTIONS } from "../../lib/event-categories";
 import BrandMark from "../../components/BrandMark";
+import FreshOnNavigate from "../../components/FreshOnNavigate";
 import { homeForRole, safeNextPath } from "../../lib/auth-redirect";
 
 type Role = "tenant" | "organizer" | null;
@@ -19,6 +20,19 @@ function RegisterFormContent() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [role, setRole] = useState<Role>(null);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  // Set when Supabase asks the new user to confirm their email before signing in
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const EMPTY_FORM = {
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    businessName: "",
+    businessCategory: "",
+    description: "",
+    phone: "",
+  };
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -52,7 +66,24 @@ function RegisterFormContent() {
 
   if (signedIn) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Going back empties the step being left, so nothing typed earlier comes back unsaved
+  const backToRole = () => {
+    setFormData(EMPTY_FORM);
+    setError("");
+    setStep(1);
+  };
+  const backToAccount = () => {
+    setFormData((d) => ({ ...d, businessName: "", businessCategory: "", description: "" }));
+    setError("");
+    setStep(2);
+  };
+  // A different role starts a fresh form
+  const chooseRole = (next: "organizer" | "tenant") => {
+    if (next !== role) setFormData(EMPTY_FORM);
+    setRole(next);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -71,22 +102,15 @@ function RegisterFormContent() {
         setError("Kata sandi minimal 8 karakter!");
         return;
       }
-      // Catch a taken email now, not after the whole profile is filled in
-      try {
-        const users = JSON.parse(localStorage.getItem("boothify_users") || "[]");
-        const taken = Array.isArray(users) && users.some((u: { email?: string }) => u.email?.toLowerCase() === formData.email.trim().toLowerCase());
-        if (taken) {
-          setError("Email sudah terdaftar. Silakan masuk atau gunakan email lain.");
-          return;
-        }
-      } catch { /* ignore */ }
       setStep(3);
       return;
     }
 
-    // Step 3: Register
+    // Step 3: create the account in Supabase
+    if (submitting) return;
+    setSubmitting(true);
     submittedRef.current = true;
-    const result = register(
+    const result = await register(
       {
         name: formData.name,
         email: formData.email,
@@ -99,12 +123,19 @@ function RegisterFormContent() {
       formData.password
     );
 
-    if (result.success) {
-      router.replace(next || homeForRole(role ?? undefined));
-    } else {
-      submittedRef.current = false;
-      setError(result.message);
+    if (result.success && !result.needsConfirmation) {
+      router.replace(next || homeForRole(result.role));
+      return;
     }
+    submittedRef.current = false;
+    setSubmitting(false);
+    if (result.success && result.needsConfirmation) {
+      setConfirmEmail(formData.email.trim().toLowerCase());
+      setFormData(EMPTY_FORM);
+      setStep(1);
+      return;
+    }
+    setError(result.message);
   };
 
   return (
@@ -165,6 +196,16 @@ function RegisterFormContent() {
             ))}
           </div>
 
+          {confirmEmail && (
+            <div className="mb-6 p-4 rounded-xl bg-primary/10 border border-primary/30 text-sm animate-fade-in" id="register-confirm-notice">
+              <p className="font-semibold mb-1">Akun berhasil dibuat.</p>
+              <p className="text-muted-foreground">
+                Kami mengirim tautan konfirmasi ke <strong className="text-foreground">{confirmEmail}</strong>. Buka email itu, klik tautannya, lalu{" "}
+                <Link href={next ? `/auth/login?next=${encodeURIComponent(next)}` : "/auth/login"} className="text-primary-light font-semibold hover:underline">masuk</Link>.
+              </p>
+            </div>
+          )}
+
           {/* Error */}
           {error && (
             <div className="mb-4 p-3 rounded-xl bg-error/10 border border-error/20 text-sm text-error animate-fade-in">
@@ -179,7 +220,7 @@ function RegisterFormContent() {
                 <h1 className="text-2xl font-bold mb-2">Pilih Peranmu</h1>
                 <p className="text-muted-foreground text-sm mb-8">Kamu mau bergabung sebagai apa di Boothify?</p>
                 <div className="space-y-4">
-                  <button type="button" onClick={() => setRole("organizer")}
+                  <button type="button" onClick={() => chooseRole("organizer")}
                     className={`w-full p-6 rounded-2xl border-2 text-left transition-colors ${
                       role === "organizer" ? "border-primary bg-primary/5 shadow-lg shadow-primary/10" : "border-border hover:border-border-light bg-card"
                     }`} id="role-organizer">
@@ -197,7 +238,7 @@ function RegisterFormContent() {
                     </div>
                   </button>
 
-                  <button type="button" onClick={() => setRole("tenant")}
+                  <button type="button" onClick={() => chooseRole("tenant")}
                     className={`w-full p-6 rounded-2xl border-2 text-left transition-colors ${
                       role === "tenant" ? "border-secondary bg-secondary/5 shadow-lg shadow-secondary/10" : "border-border hover:border-border-light bg-card"
                     }`} id="role-tenant">
@@ -224,7 +265,7 @@ function RegisterFormContent() {
             {/* STEP 2: Account */}
             {step === 2 && (
               <div className="animate-fade-in">
-                <button type="button" onClick={() => setStep(1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 transition">
+                <button type="button" onClick={backToRole} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 transition">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg> Kembali
                 </button>
                 <h1 className="text-2xl font-bold mb-2">Buat Akun</h1>
@@ -260,7 +301,7 @@ function RegisterFormContent() {
             {/* STEP 3: Business Profile */}
             {step === 3 && (
               <div className="animate-fade-in">
-                <button type="button" onClick={() => setStep(2)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 transition">
+                <button type="button" onClick={backToAccount} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 transition">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg> Kembali
                 </button>
                 <h1 className="text-2xl font-bold mb-2">{role === "organizer" ? "Profil Organisasi" : "Profil Bisnis"}</h1>
@@ -286,8 +327,8 @@ function RegisterFormContent() {
                     <textarea id="reg-desc" className="input-base min-h-[100px] resize-y" placeholder={role === "organizer" ? "Ceritakan tentang organisasi kamu..." : "Ceritakan tentang produk dan brand kamu..."} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={4} />
                   </div>
                 </div>
-                <button type="submit" className="btn btn-primary w-full btn-lg mt-8" id="register-submit">
-                  Buat Akun & Mulai
+                <button type="submit" className="btn btn-primary w-full btn-lg mt-8" id="register-submit" disabled={submitting}>
+                  {submitting ? "Membuat akun..." : "Buat Akun & Mulai"}
                 </button>
               </div>
             )}
@@ -307,7 +348,9 @@ function RegisterFormContent() {
 export default function RegisterPage() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Memuat pendaftaran...</div>}>
-      <RegisterFormContent />
+      <FreshOnNavigate>
+        <RegisterFormContent />
+      </FreshOnNavigate>
     </Suspense>
   );
 }

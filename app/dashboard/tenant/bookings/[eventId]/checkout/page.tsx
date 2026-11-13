@@ -1,15 +1,13 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/app/components/AuthContext";
-import { DEFAULT_EVENTS_META } from "@/app/lib/event-defaults";
-import { getEventCategoryLabel, isFoodCategory } from "@/app/lib/event-categories";
-import { isEventInApprovedCampaign } from "@/app/lib/admin-campaigns";
-import { supabase } from "@/app/lib/supabase";
-import { getEventByIdFromSupabase, getBoothsByEventFromSupabase } from "@/app/lib/supabase-service";
+import type { AdminCampaign } from "@/app/lib/admin-campaigns";
+import { getEvent, getBooths, getEventCampaign, bookBooths, errorMessage } from "@/app/lib/db";
 import Icon from "../../../../../components/Icon";
+import FreshOnNavigate from "../../../../../components/FreshOnNavigate";
 
 interface CheckoutItem {
   booth: string;
@@ -17,203 +15,101 @@ interface CheckoutItem {
   price: number;
 }
 
+const getZoneDisplay = (zone: string) => {
+  const z = zone.toLowerCase();
+  if (z.includes("fnb")) return "Kuliner (F&B)";
+  if (z.includes("fash")) return "Fashion & Lifestyle";
+  if (z.includes("craft")) return "Seni & Kriya";
+  if (z.includes("edu")) return "Edukasi & Karir";
+  if (z.includes("auto")) return "Otomotif";
+  return zone;
+};
+
 function CheckoutContent() {
   const params = useParams();
-  const eventId = (params?.eventId as string) || "1";
+  const searchParams = useSearchParams();
+  const eventId = (params?.eventId as string) || "";
+  const boothParam = searchParams.get("booths") || "";
   const { user } = useAuth();
   const [items, setItems] = useState<CheckoutItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [paidTotal, setPaidTotal] = useState(0);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [eventTitle, setEventTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
+  const [eventLocation, setEventLocation] = useState("");
+  const [campaign, setCampaign] = useState<AdminCampaign | null>(null);
   const [payError, setPayError] = useState("");
 
+  // The booths come from the link; their prices and availability come from the database
   useEffect(() => {
-    async function loadData() {
-      try {
-        const stored = localStorage.getItem("boothify_checkout_items");
-        const storedEventId = localStorage.getItem("boothify_checkout_eventId");
-        // Only pick up booths chosen for this event, never a leftover cart from another event
-        if (stored && String(storedEventId) === String(eventId)) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setItems(parsed);
-          }
+    let cancelled = false;
+    const wanted = boothParam.split(",").map((b) => decodeURIComponent(b).trim()).filter(Boolean);
+    Promise.all([getEvent(eventId), getBooths(eventId), getEventCampaign(eventId).catch(() => null)])
+      .then(([ev, booths, camp]) => {
+        if (cancelled) return;
+        if (ev) {
+          setEventTitle(ev.title);
+          setEventDate(ev.date);
+          setEventLocation(ev.location);
         }
-
-        // Load event details from Supabase
-        const sbEvent = await getEventByIdFromSupabase(eventId);
-        if (sbEvent) {
-          setEventTitle(sbEvent.title);
-          if (sbEvent.date) setEventDate(sbEvent.date);
-          return;
+        setCampaign(camp);
+        const picked = booths.filter((b) => wanted.includes(b.label));
+        const taken = picked.filter((b) => b.isBooked).map((b) => b.label);
+        if (taken.length > 0) {
+          setPayError(`Booth ${taken.join(", ")} sudah disewa tenant lain dan dihapus dari pesanan ini.`);
         }
-
-        // Fallback to local
-        const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-        const found = storedEvents.find((e: { id: string; title: string; date: string }) => String(e.id) === String(eventId));
-        if (found) {
-          setEventTitle(found.title);
-          if (found.date) setEventDate(found.date);
-        } else {
-          const fallback = DEFAULT_EVENTS_META[eventId] || DEFAULT_EVENTS_META["1"];
-          setEventTitle(fallback.title);
-          setEventDate(fallback.date);
-        }
-      } catch {
-        // ignore
-      }
-    }
-
-    loadData();
-  }, [eventId]);
+        setItems(picked.filter((b) => !b.isBooked).map((b) => ({ booth: b.label, zone: getZoneDisplay(b.zone), price: b.price })));
+      })
+      .catch((err) => {
+        if (!cancelled) setPayError(errorMessage(err, "Data pesanan gagal dimuat."));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId, boothParam]);
 
   if (user && user.role !== "tenant") {
     return <div className="card-base p-8 text-center"><h1 className="text-xl font-bold mb-2">Akses khusus tenant</h1><p className="text-sm text-muted-foreground">Silakan masuk menggunakan akun tenant untuk menyewa booth.</p><Link href="/events" className="btn btn-primary btn-sm mt-5">Kembali ke Event</Link></div>;
   }
 
-  if (!user || items.length === 0) {
-    return <div className="card-base p-8 text-center"><h1 className="text-xl font-bold mb-2">Belum ada booth dipilih</h1><p className="text-sm text-muted-foreground mb-5">Pilih booth dari halaman event sebelum melanjutkan pembayaran.</p><Link href={`/events/${eventId}`} className="btn btn-primary btn-sm">Pilih Booth</Link></div>;
+  if (loading) {
+    return <p className="py-16 text-center text-sm text-muted-foreground">Memuat pesanan...</p>;
+  }
+
+  if (!success && (!user || items.length === 0)) {
+    return <div className="card-base p-8 text-center"><h1 className="text-xl font-bold mb-2">Belum ada booth dipilih</h1><p className="text-sm text-muted-foreground mb-5">{payError || "Pilih booth dari halaman event sebelum melanjutkan pembayaran."}</p><Link href={`/events/${eventId}?tab=booths`} className="btn btn-primary btn-sm">Pilih Booth</Link></div>;
   }
 
   const subtotal = items.reduce((s, i) => s + i.price, 0);
-  const campaignInfo = isEventInApprovedCampaign(eventId);
-  const isFreeTax = campaignInfo.isApproved;
-  const standardTax = Math.round(subtotal * 0.11); // PPN 11%
+  const isFreeTax = Boolean(campaign);
+  const standardTax = items.reduce((s, i) => s + Math.round(i.price * 0.11), 0); // PPN 11% per booth
   const appliedTax = isFreeTax ? 0 : standardTax;
-  const serviceFee = isFreeTax ? 0 : 50000;
+  const standardFee = 50000 * items.length;
+  const serviceFee = isFreeTax ? 0 : standardFee;
   const total = subtotal + appliedTax + serviceFee;
 
   const handlePay = async () => {
-    if (!paymentMethod || !agreed) return;
+    if (!paymentMethod || !agreed || processing) return;
     setPayError("");
     setProcessing(true);
-
-    // Someone else may have taken a booth while this page was open: check again before paying
     try {
-      const localTaken: string[] = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booked_booths`) || "[]");
-      const remote = await getBoothsByEventFromSupabase(eventId);
-      const remoteTaken = remote.filter((b) => b.isBooked).map((b) => b.label);
-      const taken = new Set([...localTaken, ...remoteTaken]);
-      const clashes = items.filter((i) => taken.has(i.booth)).map((i) => i.booth);
-      if (clashes.length > 0) {
-        setProcessing(false);
-        setPayError(`Booth ${clashes.join(", ")} baru saja disewa tenant lain. Kembali ke denah untuk memilih booth lain.`);
-        return;
-      }
-    } catch { /* if the check cannot run, the booking below still records the booths */ }
-
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    {
-      try {
-        // Get tenant brand name & email
-        const tenantProfile = JSON.parse(localStorage.getItem(`boothify_profile_${user?.email}`) || localStorage.getItem("boothify_tenant_profile") || "{}");
-        const currentUser = JSON.parse(localStorage.getItem("boothify_current_user") || "{}");
-        const tenantEmail = user?.email || currentUser.email || "";
-        const tenantBrand = user?.businessName || tenantProfile.brandName || currentUser.businessName || user?.name || "EcoWear Studio";
-
-        // Persist booked booths per-event and global
-        const storedBooked = JSON.parse(localStorage.getItem("boothify_booked_booths") || "[]");
-        const newBooked = Array.from(new Set([...storedBooked, ...items.map((i) => i.booth)]));
-        localStorage.setItem("boothify_booked_booths", JSON.stringify(newBooked));
-
-        const storedEventBooked = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booked_booths`) || "[]");
-        const newEventBooked = Array.from(new Set([...storedEventBooked, ...items.map((i) => i.booth)]));
-        localStorage.setItem(`boothify_event_${eventId}_booked_booths`, JSON.stringify(newEventBooked));
-
-        // Map booth to tenant brand for digital guide
-        const storedBoothTenants = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booth_tenants`) || "{}");
-        items.forEach((item) => {
-          const tenantCategory = user?.businessCategory || user?.category || tenantProfile.category || item.zone || "fashion";
-          storedBoothTenants[item.booth] = {
-            id: item.booth,
-            name: tenantBrand,
-            tenantEmail: tenantEmail,
-            category: getEventCategoryLabel(tenantCategory),
-            zone: item.zone || item.booth.charAt(0),
-            type: (isFoodCategory(tenantCategory) || item.zone === "F&B" || tenantEmail === "kopi@boothify.id") ? "fnb" : "non-fnb",
-            desc: tenantProfile.description || `${tenantBrand} terdaftar resmi di event ini.`,
-          };
-        });
-        localStorage.setItem(`boothify_event_${eventId}_booth_tenants`, JSON.stringify(storedBoothTenants));
-
-        // Persist to tenant bookings (scoped by tenantEmail)
-        const storedBookings = JSON.parse(localStorage.getItem("boothify_tenant_bookings") || "[]");
-        items.forEach((item) => {
-          storedBookings.unshift({
-            eventId,
-            event: eventTitle,
-            booth: item.booth,
-            date: eventDate,
-            status: "confirmed",
-            payment: "paid",
-            amount: `Rp ${item.price.toLocaleString("id-ID")}`,
-            time: "Baru saja",
-            tenantEmail: tenantEmail,
-            tenantName: tenantBrand,
-          });
-        });
-        localStorage.setItem("boothify_tenant_bookings", JSON.stringify(storedBookings));
-
-        // Persist to recent bookings (for organizer)
-        const recentBookings = JSON.parse(localStorage.getItem("boothify_recent_bookings") || "[]");
-        items.forEach((item) => {
-          recentBookings.unshift({
-            tenant: tenantBrand,
-            tenantEmail: tenantEmail,
-            eventId: eventId,
-            event: eventTitle,
-            booth: item.booth,
-            amount: `Rp ${item.price.toLocaleString("id-ID")}`,
-            time: "Baru saja",
-            status: "paid",
-          });
-        });
-        localStorage.setItem("boothify_recent_bookings", JSON.stringify(recentBookings));
-        localStorage.removeItem("boothify_checkout_items");
-        localStorage.removeItem("boothify_checkout_eventId");
-
-        // Update organizer events stats: increase boothsFilled
-        const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-        const updatedEvents = storedEvents.map((ev: { id: string; boothsFilled: number }) => {
-          if (String(ev.id) === String(eventId)) {
-            return { ...ev, boothsFilled: (ev.boothsFilled || 0) + items.length };
-          }
-          return ev;
-        });
-        localStorage.setItem("boothify_events", JSON.stringify(updatedEvents));
-
-        // Sync ke Supabase, waiting for each write so the success screen means it was saved
-        await Promise.all(items.map(async (item) => {
-          try {
-            const bookingId = `bk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-            await supabase.from("tenant_bookings").insert({
-              id: bookingId,
-              event_id: String(eventId),
-              event_title: eventTitle,
-              booth: item.booth,
-              tenant_email: tenantEmail,
-              tenant_name: tenantBrand,
-              date: eventDate,
-              amount: `Rp ${item.price.toLocaleString("id-ID")}`,
-              payment: "paid",
-              status: "confirmed",
-            });
-            await supabase.from("booths").update({ is_booked: true }).eq("event_id", String(eventId)).eq("label", item.booth);
-          } catch (e) {
-            console.error("Failed to sync booking to Supabase:", e);
-          }
-        }));
-      } catch (err) {
-        console.error("Failed to save booking:", err);
-      }
-
-      setProcessing(false);
+      // The database re-checks every booth, so two tenants can never rent the same one
+      const booked = await bookBooths(eventId, items.map((i) => i.booth), paymentMethod);
+      setPaidTotal(booked.reduce((sum, b) => sum + b.total, 0));
       setSuccess(true);
+    } catch (err) {
+      setPayError(errorMessage(err, "Pembayaran gagal diproses."));
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -234,7 +130,7 @@ function CheckoutContent() {
           <hr className="border-border" />
           <div className="flex items-center justify-between font-bold">
             <span>Total Dibayar</span>
-            <span className="gradient-text">Rp {total.toLocaleString("id-ID")}</span>
+            <span className="gradient-text">Rp {(paidTotal || total).toLocaleString("id-ID")}</span>
           </div>
         </div>
         <p className="text-xs text-muted-foreground mb-6">
@@ -273,7 +169,7 @@ function CheckoutContent() {
                 <span className="text-2xl"><Icon name="leaf" size={24} /></span>
                 <div>
                   <p className="font-medium text-sm">{eventTitle}</p>
-                  <p className="text-xs text-muted-foreground">{eventDate} • Venue Resmi Acara</p>
+                  <p className="text-xs text-muted-foreground">{[eventDate, eventLocation].filter(Boolean).join(" • ")}</p>
                 </div>
               </div>
               {items.map((item) => (
@@ -296,13 +192,13 @@ function CheckoutContent() {
             <h2 className="font-semibold mb-4">Metode Pembayaran</h2>
             <div className="space-y-2">
               {[
-                { id: "qris", label: "QRIS (Scan)", icon: "📱" },
-                { id: "gopay", label: "GoPay", icon: "💚" },
-                { id: "ovo", label: "OVO", icon: "💜" },
-                { id: "shopeepay", label: "ShopeePay", icon: "🧡" },
-                { id: "bca", label: "Transfer Bank BCA", icon: "🏦" },
-                { id: "mandiri", label: "Transfer Bank Mandiri", icon: "🏦" },
-                { id: "cc", label: "Kartu Kredit / Debit", icon: "💳" },
+                { id: "qris", label: "QRIS (Scan)" },
+                { id: "gopay", label: "GoPay" },
+                { id: "ovo", label: "OVO" },
+                { id: "shopeepay", label: "ShopeePay" },
+                { id: "bca", label: "Transfer Bank BCA" },
+                { id: "mandiri", label: "Transfer Bank Mandiri" },
+                { id: "cc", label: "Kartu Kredit / Debit" },
               ].map((method) => (
                 <label
                   key={method.id}
@@ -351,7 +247,7 @@ function CheckoutContent() {
                 </span>
               </div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Event ini tergabung dalam <strong>{campaignInfo.campaign?.title}</strong>. Pajak PPN 11% dan biaya layanan bebas biaya.
+                Event ini tergabung dalam <strong>{campaign?.title}</strong>. Pajak PPN 11% dan biaya layanan bebas biaya.
               </p>
             </div>
           )}
@@ -380,7 +276,7 @@ function CheckoutContent() {
               <span className="text-muted-foreground">Biaya Layanan</span>
               {isFreeTax ? (
                 <div className="text-right">
-                  <span className="line-through text-xs text-muted-foreground mr-1.5">Rp 50.000</span>
+                  <span className="line-through text-xs text-muted-foreground mr-1.5">Rp {standardFee.toLocaleString("id-ID")}</span>
                   <span className="font-bold text-success">Rp 0 (Disubsidi)</span>
                 </div>
               ) : (
@@ -530,10 +426,18 @@ function CheckoutContent() {
   );
 }
 
-export default function CheckoutPage() {
+function CheckoutPageContent() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Memuat checkout...</div>}>
       <CheckoutContent />
     </Suspense>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <FreshOnNavigate>
+      <CheckoutPageContent />
+    </FreshOnNavigate>
   );
 }

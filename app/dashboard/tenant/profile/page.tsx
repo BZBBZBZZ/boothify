@@ -4,67 +4,68 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/app/components/AuthContext";
 import { EVENT_CATEGORY_OPTIONS, getEventCategoryLabel } from "@/app/lib/event-categories";
 import Icon from "../../../components/Icon";
+import { uploadImage } from "@/app/lib/file-upload";
+import { errorMessage } from "@/app/lib/db";
+import FreshOnNavigate from "../../../components/FreshOnNavigate";
 
-export default function TenantProfilePage() {
+function TenantProfilePageContent() {
   const { user, updateProfile } = useAuth();
-  const email = user?.email || "";
-  const isKopi = email === "kopi@boothify.id";
 
   const [profile, setProfile] = useState({
-    brandName: user?.businessName || (isKopi ? "Kopi Keliling Nusantara" : "EcoWear Studio"),
-    category: user?.businessCategory || user?.category || (isKopi ? "fnb" : "fashion"),
-    email: user?.email || "",
-    phone: user?.phone || (isKopi ? "+62 812 3456 7890" : "+62 812 9876 5432"),
-    description: user?.description || (isKopi
-      ? "Spesialisasi seduhan kopi keliling dan espresso bar di event pameran dan festival."
-      : "Brand fashion berkelanjutan yang menggunakan 100% bahan daur ulang. Produk kami dibuat oleh pengrajin lokal dengan prinsip fair trade."),
-    website: user?.website || (isKopi ? "https://kopikeliling.id" : "https://ecowear.id"),
-    instagram: user?.instagram || (isKopi ? "@kopikeliling.id" : "@ecowearstudio"),
+    brandName: "",
+    category: "",
+    email: "",
+    phone: "",
+    description: "",
+    website: "",
+    instagram: "",
+    logo: "" as string | undefined,
   });
 
   const [saved, setSaved] = useState(false);
-  const [logoToast, setLogoToast] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [logoToast, setLogoToast] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
+  // Fill the form once per account, so saving a logo does not wipe unsaved edits
+  const filledFor = useRef("");
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(`boothify_profile_${email}`);
-      if (stored) {
-        setProfile(JSON.parse(stored));
-      } else if (user) {
-        setProfile({
-          brandName: user.businessName || (isKopi ? "Kopi Keliling Nusantara" : "EcoWear Studio"),
-          category: user.businessCategory || user.category || (isKopi ? "fnb" : "fashion"),
-          email: user.email,
-          phone: user.phone || (isKopi ? "+62 812 3456 7890" : "+62 812 9876 5432"),
-          description: user.description || (isKopi
-            ? "Spesialisasi seduhan kopi keliling dan espresso bar di event pameran dan festival."
-            : "Brand fashion berkelanjutan yang menggunakan 100% bahan daur ulang."),
-          website: user.website || (isKopi ? "https://kopikeliling.id" : "https://ecowear.id"),
-          instagram: user.instagram || (isKopi ? "@kopikeliling.id" : "@ecowearstudio"),
-        });
-      }
-    } catch {
-      // ignore
-    }
-  }, [user, email, isKopi]);
+    if (!user || filledFor.current === user.id) return;
+    filledFor.current = user.id;
+    setProfile({
+      brandName: user.businessName || user.name || "",
+      category: user.businessCategory || "",
+      email: user.email,
+      phone: user.phone || "",
+      description: user.description || "",
+      website: user.website || "",
+      instagram: user.instagram || "",
+      logo: user.logoUrl || "",
+    });
+  }, [user]);
 
-  const handleSave = () => {
-    try {
-      localStorage.setItem(`boothify_profile_${email}`, JSON.stringify(profile));
-      updateProfile({
-        businessName: profile.brandName,
-        category: profile.category,
-        phone: profile.phone,
-        description: profile.description,
-        website: profile.website,
-        instagram: profile.instagram,
-      });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
-    } catch {
-      // ignore
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    setSaveError("");
+    const result = await updateProfile({
+      businessName: profile.brandName.trim(),
+      businessCategory: profile.category,
+      // F&B brands get an orderable menu in the visitor guide
+      catalogType: profile.category === "fnb" ? "fnb" : "non-fnb",
+      phone: profile.phone.trim(),
+      description: profile.description.trim(),
+      website: profile.website.trim(),
+      instagram: profile.instagram.trim(),
+    });
+    setSaving(false);
+    if (!result.success) {
+      setSaveError(result.message);
+      return;
     }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
   };
 
   const initials = (profile.brandName || "TN")
@@ -81,17 +82,27 @@ export default function TenantProfilePage() {
         ref={logoInputRef}
         className="hidden"
         accept="image/*"
-        onChange={(e) => {
-          if (e.target.files?.[0]) {
-            setLogoToast(true);
-            setTimeout(() => setLogoToast(false), 3000);
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (!file || !user) return;
+          try {
+            // Saved straight away so it shows here and in the mini website
+            const logo = await uploadImage(user.id, file, "logo", 400);
+            const result = await updateProfile({ logoUrl: logo });
+            if (!result.success) throw new Error(result.message);
+            setProfile((p) => ({ ...p, logo }));
+            setLogoToast({ text: "Logo brand berhasil diperbarui.", tone: "ok" });
+          } catch (err) {
+            setLogoToast({ text: errorMessage(err, "Logo gagal diunggah."), tone: "error" });
           }
+          window.setTimeout(() => setLogoToast(null), 3500);
         }}
       />
       {logoToast && (
-        <div className="fixed top-20 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 shadow-xl flex items-center gap-3 animate-fade-in text-sm font-medium text-foreground">
-          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-xs font-bold"><Icon name="check" size={16} /></div>
-          Logo brand berhasil diperbarui!
+        <div className={`page-toast ${logoToast.tone === "error" ? "page-toast--error" : ""}`} role="status">
+          <Icon name={logoToast.tone === "error" ? "bell" : "check"} size={16} />
+          <span>{logoToast.text}</span>
         </div>
       )}
 
@@ -103,8 +114,12 @@ export default function TenantProfilePage() {
       {/* Avatar */}
       <div className="card-base p-6 mb-6">
         <div className="flex items-center gap-4">
-          <div className="w-20 h-20 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center text-foreground text-2xl font-bold shadow-md">
-            {initials}
+          <div className="w-20 h-20 rounded-2xl bg-primary/15 border border-primary/20 flex items-center justify-center text-foreground text-2xl font-bold shadow-md overflow-hidden flex-shrink-0">
+            {profile.logo ? (
+              <img src={profile.logo} alt="Logo brand" className="w-full h-full object-cover" />
+            ) : (
+              initials
+            )}
           </div>
           <div>
             <h2 className="font-semibold text-lg">{profile.brandName}</h2>
@@ -155,13 +170,15 @@ export default function TenantProfilePage() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Email Bisnis</label>
+            <label className="block text-sm font-medium mb-2">Email Akun</label>
             <input
               type="email"
               className="input-base"
               value={profile.email}
-              onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+              readOnly
+              aria-describedby="tenant-email-note"
             />
+            <p id="tenant-email-note" className="text-xs text-muted-foreground mt-1">Email dipakai untuk masuk dan tidak bisa diubah di sini.</p>
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Nomor Telepon / WhatsApp</label>
@@ -202,10 +219,19 @@ export default function TenantProfilePage() {
             />
           </div>
         </div>
-        <button type="submit" className="btn btn-primary" id="save-tenant-profile">
-          {saved ? "Tersimpan!" : "Simpan Perubahan"}
+        {saveError && <p className="text-sm text-error" role="alert">{saveError}</p>}
+        <button type="submit" className="btn btn-primary" id="save-tenant-profile" disabled={saving}>
+          {saving ? "Menyimpan..." : saved ? "Tersimpan!" : "Simpan Perubahan"}
         </button>
       </form>
     </div>
+  );
+}
+
+export default function TenantProfilePage() {
+  return (
+    <FreshOnNavigate>
+      <TenantProfilePageContent />
+    </FreshOnNavigate>
   );
 }

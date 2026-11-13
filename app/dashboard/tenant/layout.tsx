@@ -6,42 +6,31 @@ import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "../../components/AuthContext";
 import BrandMark from "../../components/BrandMark";
 import { homeForRole, loginUrlFor } from "../../lib/auth-redirect";
+import {
+  NAV_ICONS,
+  NavLinks,
+  SidebarBrand,
+  SidebarFooter,
+  SidebarSection,
+  siteNav,
+  tenantNav,
+} from "../../components/RoleNav";
 
-const NAV_ITEMS = [
-  { href: "/dashboard/tenant", label: "Dashboard", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg> },
-  { href: "/dashboard/tenant/events", label: "Cari Event", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg> },
-  { href: "/dashboard/tenant/catalog", label: "Katalog Produk", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 01-8 0" /></svg> },
-  { href: "/dashboard/tenant/bookings", label: "Pesanan & Booth", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> },
-  { href: "/dashboard/tenant/profile", label: "Profil", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg> },
-];
-
-function TenantNavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function TenantSidebarBody({ onNavigate, onLogout }: { onNavigate?: () => void; onLogout: () => void }) {
   const pathname = usePathname();
   return (
     <>
-      {NAV_ITEMS.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className={`sidebar-link ${pathname === item.href ? "active" : ""}`}
-          onClick={onNavigate}
-        >
-          {item.icon} {item.label}
-        </Link>
-      ))}
+      <SidebarBrand roleLabel="Tenant / brand" onNavigate={onNavigate} />
+      <nav className="sidebar-nav" aria-label="Navigasi tenant">
+        <div className="space-y-1">
+          <NavLinks items={tenantNav(pathname)} onNavigate={onNavigate} />
+        </div>
+        <SidebarSection title="Jelajahi">
+          <NavLinks items={siteNav("tenant", pathname)} onNavigate={onNavigate} />
+        </SidebarSection>
+      </nav>
+      <SidebarFooter onLogout={onLogout} />
     </>
-  );
-}
-
-function NavFallback() {
-  return (
-    <div className="space-y-1">
-      {NAV_ITEMS.map((item) => (
-        <Link key={item.href} href={item.href} className="sidebar-link">
-          {item.icon} {item.label}
-        </Link>
-      ))}
-    </div>
   );
 }
 
@@ -82,55 +71,32 @@ function TenantLayoutContent({ children }: { children: React.ReactNode }) {
       <div className="dashboard-mobile-header glass sticky top-0 z-40 px-4 py-3 items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <span className="text-primary"><BrandMark size={20} /></span>
-          <span className="wordmark text-base">Boothify <span className="text-secondary-light">Tenant</span></span>
+          <span className="wordmark text-base">Boothify</span>
         </Link>
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="btn btn-ghost btn-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="btn btn-ghost btn-icon"
+          aria-label={sidebarOpen ? "Tutup menu" : "Buka menu"}
+          aria-expanded={sidebarOpen}
+        >
+          {NAV_ICONS.menu}
         </button>
       </div>
 
       {/* Mobile nav drawer */}
       {sidebarOpen && (
         <div className="dashboard-mobile-drawer fixed inset-0 z-50 bg-black/50" onClick={() => setSidebarOpen(false)}>
-          <div className="w-64 h-full sidebar-dark p-4 animate-slide-in-right" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-2 mb-8 mt-2">
-              <span className="text-primary"><BrandMark size={20} /></span>
-              <span className="wordmark text-base">Boothify <span className="text-secondary-light">Tenant</span></span>
-            </div>
-            <Suspense fallback={<NavFallback />}>
-              <TenantNavLinks onNavigate={() => setSidebarOpen(false)} />
-            </Suspense>
+          <div className="sidebar-dark sidebar-drawer animate-slide-in-right" onClick={(e) => e.stopPropagation()}>
+            <TenantSidebarBody onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
           </div>
         </div>
       )}
 
-      {/* Desktop sidebar */}
-      <div className="dashboard-desktop-sidebar sidebar">
-        <Link href="/" className="flex items-center gap-2 mb-8 px-2">
-          <span className="text-primary"><BrandMark size={24} /></span>
-          <div className="grid gap-1">
-            <span className="wordmark text-lg block">Boothify</span>
-            <span className="text-xs text-secondary-light font-medium">Tenant / brand</span>
-          </div>
-        </Link>
-        <nav className="flex-1 space-y-1">
-          <Suspense fallback={<NavFallback />}>
-            <TenantNavLinks />
-          </Suspense>
-        </nav>
-        <div className="pt-4 border-t border-border mt-4">
-          {user && (
-            <div className="px-3 py-2 mb-2 rounded-xl bg-foreground/[0.03] border border-foreground/[0.05]">
-              <p className="text-xs font-semibold truncate text-foreground">{user.name}</p>
-              <p className="text-[11px] text-muted-foreground truncate">{user.businessName || user.email}</p>
-            </div>
-          )}
-          <button onClick={handleLogout} className="sidebar-link text-xs w-full text-primary hover:bg-foreground/10 transition">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-            Keluar
-          </button>
-        </div>
-      </div>
+      {/* Desktop sidebar: stays in view so "Keluar" is always at its foot */}
+      <aside className="dashboard-desktop-sidebar sidebar sidebar-sticky">
+        <TenantSidebarBody onLogout={handleLogout} />
+      </aside>
 
       <div className="flex-1 min-w-0 min-h-screen">
         <div className="w-full max-w-6xl p-4 sm:p-8">{children}</div>
@@ -144,10 +110,7 @@ export default function TenantLayout({ children }: { children: React.ReactNode }
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <svg className="animate-spin mx-auto mb-3 text-primary" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56" /></svg>
-            <p className="text-sm text-muted-foreground">Memuat...</p>
-          </div>
+          <p className="text-sm text-muted-foreground">Memuat...</p>
         </div>
       }
     >

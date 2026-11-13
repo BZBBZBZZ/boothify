@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Boothify
 
-## Getting Started
+Platform sewa booth event: organizer membuat event dan denah, tenant menyewa booth dan mengatur menu, pengunjung memesan lewat panduan digital. Semua data disimpan di Supabase.
 
-First, run the development server:
+## Menyiapkan database (sekali saja)
+
+1. Buka [Supabase Dashboard](https://supabase.com/dashboard), pilih project Boothify.
+2. **SQL Editor > New query**, tempel seluruh isi `supabase/schema.sql`, klik **Run**.
+   Script ini membuat semua tabel, aturan keamanan (RLS), fungsi transaksi, dan bucket file `uploads`.
+   Tabel lama Boothify ikut dihapus, jadi data demo lama hilang. Akun di Authentication tidak terhapus.
+3. **Authentication > Sign In / Providers > Email**:
+   - Untuk pengembangan, matikan **Confirm email** supaya akun baru bisa langsung masuk.
+   - Jika tetap dinyalakan, isi **Authentication > URL Configuration > Site URL** dengan alamat aplikasi
+     (misalnya `http://localhost:3000`) supaya tautan konfirmasi kembali ke aplikasi.
+4. Membuat akun admin: daftar akun biasa di `/auth/register`, lalu jalankan di SQL Editor:
+
+   ```sql
+   update public.profiles set role = 'admin' where email = 'email-kamu@contoh.com';
+   ```
+
+## Menjalankan aplikasi
+
+Isi `.env` (atau `.env.local`) dari **Project Settings > API**:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+NEXT_PUBLIC_SUPABASE_URL="https://<project>.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="<anon / publishable key>"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Lalu:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Buka [http://localhost:3000](http://localhost:3000).
 
-## Learn More
+## Struktur data
 
-To learn more about Next.js, take a look at the following resources:
+| Tabel | Isi |
+| --- | --- |
+| `profiles` | Satu baris per akun (organizer, tenant, admin), dibuat otomatis saat daftar |
+| `events` | Event; `status` = `draft` (hanya terlihat pemilik) atau `published` |
+| `booths` | Booth di denah; disimpan lewat fungsi `save_floor_plan` |
+| `bookings` | Sewa booth; dibuat lewat fungsi `book_booths` yang mencegah booth disewa dua kali |
+| `tenant_menus` | Menu tenant per event |
+| `campaigns`, `campaign_applications` | Campaign admin dan pengajuan kurasi organizer |
+| `visitor_orders` | Pesanan pengunjung; dibuat lewat `place_visitor_order`, harga diambil dari menu di database |
+| `organizer_messages` | Pesan pengunjung/tenant ke organizer |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Semua akses data aplikasi ada di `app/lib/db.ts`.

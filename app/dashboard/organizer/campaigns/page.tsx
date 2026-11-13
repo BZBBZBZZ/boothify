@@ -6,19 +6,17 @@ import { useAuth } from "@/app/components/AuthContext";
 import {
   AdminCampaign,
   CampaignApplication,
-  getAdminCampaigns,
-  getCampaignApplications,
-  submitCampaignApplication,
   calculateAlignmentScore,
 } from "@/app/lib/admin-campaigns";
-import { getEventsFromSupabase } from "@/app/lib/supabase-service";
+import { listCampaigns, listApplications, listOrganizerEvents, submitApplication, errorMessage } from "@/app/lib/db";
 import Icon from "../../../components/Icon";
+import FreshOnNavigate from "../../../components/FreshOnNavigate";
 
-export default function OrganizerCampaignsPage() {
+function OrganizerCampaignsPageContent() {
   const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<AdminCampaign[]>([]);
   const [applications, setApplications] = useState<CampaignApplication[]>([]);
-  const [myEvents, setMyEvents] = useState<Array<{ id: string; title: string; category?: string; location?: string; date?: string; organizerEmail?: string }>>([]);
+  const [myEvents, setMyEvents] = useState<Array<{ id: string; title: string; category?: string; location?: string; date?: string; description?: string }>>([]);
 
   // Modal application state
   const [selectedCampaign, setSelectedCampaign] = useState<AdminCampaign | null>(null);
@@ -27,54 +25,25 @@ export default function OrganizerCampaignsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const [loadError, setLoadError] = useState("");
+
+  const organizerId = user?.id || "";
   const refreshData = useCallback(async () => {
-    setCampaigns(getAdminCampaigns());
-    setApplications(getCampaignApplications());
-
+    if (!organizerId) return;
     try {
-      const sbEvents = await getEventsFromSupabase();
-      if (sbEvents && sbEvents.length > 0) {
-        const mapped = sbEvents.map((e) => ({
-          id: e.id,
-          title: e.title,
-          category: e.category,
-          location: e.location,
-          date: e.date,
-          organizerEmail: e.organizerEmail || "",
-        }));
-        const filtered = mapped.filter(
-          (e) => !e.organizerEmail || e.organizerEmail === user?.email
-        );
-        setMyEvents(filtered);
-        if (filtered.length > 0) {
-          setSelectedEventId((prev) => prev || filtered[0].id);
-        }
-        return;
-      }
-
-      const storedEventsRaw = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-      const storedList = Array.isArray(storedEventsRaw)
-        ? storedEventsRaw.map((e: { id: string; title: string; category?: string; location?: string; date?: string; organizerEmail?: string }) => ({
-            id: e.id,
-            title: e.title,
-            category: e.category || "Umum",
-            location: e.location || "Venue Resmi",
-            date: e.date || "Terjadwal",
-            organizerEmail: e.organizerEmail || user?.email || "",
-          }))
-        : [];
-
-      const filtered = storedList.filter(
-        (e) => !e.organizerEmail || e.organizerEmail === user?.email
-      );
-      setMyEvents(filtered);
-      if (filtered.length > 0) {
-        setSelectedEventId((prev) => prev || filtered[0].id);
-      }
-    } catch {
-      // ignore
+      const [camps, apps, own] = await Promise.all([listCampaigns(), listApplications(), listOrganizerEvents(organizerId)]);
+      setCampaigns(camps);
+      setApplications(apps);
+      // Only published events can join a campaign
+      const published = own
+        .filter((e) => e.status === "published")
+        .map((e) => ({ id: e.id, title: e.title, category: e.category, location: e.location, date: e.date, description: e.description }));
+      setMyEvents(published);
+      setSelectedEventId((prev) => (prev && published.some((e) => e.id === prev) ? prev : published[0]?.id || ""));
+    } catch (err) {
+      setLoadError(errorMessage(err, "Data campaign gagal dimuat."));
     }
-  }, [user?.email]);
+  }, [organizerId]);
 
   useEffect(() => {
     refreshData();
@@ -85,9 +54,10 @@ export default function OrganizerCampaignsPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Applications submitted by this organizer
+  // Applications submitted for this organizer's events
+  const myEventIds = new Set(myEvents.map((e) => e.id));
   const myApplications = applications.filter(
-    (a) => a.organizerEmail === user?.email
+    (a) => a.organizerEmail === user?.email || myEventIds.has(a.eventId)
   );
 
   const selectedEvent = myEvents.find((e) => String(e.id) === String(selectedEventId));
@@ -137,7 +107,7 @@ export default function OrganizerCampaignsPage() {
     );
   };
 
-  const handleSubmitApplication = (e: React.FormEvent) => {
+  const handleSubmitApplication = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCampaign) return;
 
@@ -166,29 +136,41 @@ export default function OrganizerCampaignsPage() {
     }
 
     setSubmitting(true);
-    setTimeout(() => {
-      submitCampaignApplication({
+    const { score, breakdown } = calculateAlignmentScore(selectedCampaign, {
+      category: selectedEvent.category,
+      title: selectedEvent.title,
+      description: `${selectedEvent.description || ""} ${finalPitch}`,
+    });
+    try {
+      await submitApplication({
         campaignId: selectedCampaign.id,
         campaignTitle: selectedCampaign.title,
         eventId: selectedEvent.id,
         eventTitle: selectedEvent.title,
         eventCategory: selectedEvent.category || "Umum",
-        eventLocation: selectedEvent.location || "Venue Resmi",
-        eventDate: selectedEvent.date || "Jadwal Terjadwal",
+        eventLocation: selectedEvent.location || "",
+        eventDate: selectedEvent.date || "",
         organizerEmail: user?.email || "",
-        organizerName: user?.businessName || user?.name || "PT. Event Kreasi Nusantara",
+        organizerName: user?.businessName || user?.name || "",
         submissionPitch: finalPitch,
+        alignmentScore: score,
+        alignmentBreakdown: breakdown,
       });
-
-      refreshData();
-      setSubmitting(false);
+      await refreshData();
       setSelectedCampaign(null);
-      showNotification("Pengajuan berhasil dikirim ke Admin untuk proses kurasi keselarasan!");
-    }, 400);
+      showNotification("Pengajuan berhasil dikirim ke Admin untuk proses kurasi.");
+    } catch (err) {
+      showNotification(errorMessage(err, "Pengajuan gagal dikirim."));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="space-y-8 animate-fade-in" id="organizer-campaigns-page">
+      {loadError && (
+        <div className="p-4 rounded-xl bg-error/10 border border-error/20 text-sm text-error" role="alert">{loadError}</div>
+      )}
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-purple-600 text-white shadow-2xl border border-purple-400/40 text-xs font-semibold flex items-center gap-2 animate-bounce">
@@ -374,8 +356,8 @@ export default function OrganizerCampaignsPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <span className="text-3xl p-2 rounded-xl bg-purple-500/10 border border-purple-500/20">
-                        {camp.icon}
+                      <span className="p-2 rounded-lg bg-foreground text-background flex-shrink-0" aria-hidden="true">
+                        <Icon name="star" size={24} />
                       </span>
                       <div>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-success border border-emerald-500/30">
@@ -464,7 +446,7 @@ export default function OrganizerCampaignsPage() {
           <div className="card-base max-w-lg w-full p-6 relative border border-purple-500/30 shadow-2xl max-h-[90vh] overflow-y-auto space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center gap-2">
-                <span className="text-2xl">{selectedCampaign.icon}</span>
+                <span className="p-2 rounded-lg bg-foreground text-background flex-shrink-0" aria-hidden="true"><Icon name="star" size={20} /></span>
                 <div>
                   <h3 className="text-base font-bold text-foreground">Ajukan Event ke Campaign</h3>
                   <p className="text-xs text-info">{selectedCampaign.title}</p>
@@ -604,5 +586,13 @@ export default function OrganizerCampaignsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function OrganizerCampaignsPage() {
+  return (
+    <FreshOnNavigate>
+      <OrganizerCampaignsPageContent />
+    </FreshOnNavigate>
   );
 }

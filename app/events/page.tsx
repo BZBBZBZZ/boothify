@@ -4,10 +4,9 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { isEventInApprovedCampaign } from "@/app/lib/admin-campaigns";
-
-import { getEventsFromSupabase } from "@/app/lib/supabase-service";
+import { listPublishedEvents, approvedCampaignsByEvent, errorMessage } from "@/app/lib/db";
 import Icon from "../components/Icon";
+import CategoryPopover from "../components/CategoryPopover";
 
 export default function EventsPage() {
   const [eventsList, setEventsList] = useState<Array<{
@@ -26,52 +25,45 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
+  const [loadError, setLoadError] = useState("");
+  const [campaignEvents, setCampaignEvents] = useState<Set<string>>(new Set());
+
   useEffect(() => {
-    // Ambil data event langsung dari tabel events di Supabase & merge dengan local
-    getEventsFromSupabase().then((data) => {
-      let combined = (data || []).map((e) => ({
-        id: String(e.id),
-        title: e.title,
-        date: e.date,
-        location: e.location,
-        category: e.category,
-        categories: e.categories && e.categories.length > 0 ? e.categories : [e.category],
-        boothsFilled: e.boothsFilled || 0,
-        boothsTotal: e.boothsTotal || 30,
-        price: e.priceRange?.split("–")[0]?.trim() || "Rp 2.000.000",
-        image: e.image || "🎪",
-        gradient: e.gradient || "from-emerald-500/20 to-teal-500/20",
-      }));
-
-      try {
-        const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-        if (Array.isArray(stored)) {
-          const existingIds = new Set(combined.map((e) => e.id));
-          const missing = stored
-            // Drafts are private to their organizer until published
-            .filter((e: { id: string; status?: string }) => !existingIds.has(String(e.id)) && e.status !== "draft")
-            .map((e: { id: string; title: string; date: string; location: string; category?: string; categories?: string[]; boothsFilled?: number; boothsTotal?: number; priceRange?: string; image?: string; gradient?: string }) => ({
-              id: String(e.id),
-              title: e.title,
-              date: e.date,
-              location: e.location || "Venue Acara",
-              category: e.category || "Umum",
-              categories: e.categories && e.categories.length > 0 ? e.categories : [e.category || "Umum"],
-              boothsFilled: e.boothsFilled || 0,
-              boothsTotal: e.boothsTotal || 30,
-              price: e.priceRange?.split("–")[0]?.trim() || "Rp 2.000.000",
-              image: e.image || "🎪",
-              gradient: e.gradient || "from-emerald-500/20 to-teal-500/20",
-            }));
-          if (missing.length > 0) {
-            combined = [...missing, ...combined];
-          }
-        }
-      } catch { /* ignore */ }
-
-      setEventsList(combined);
-      setLoading(false);
-    });
+    let cancelled = false;
+    listPublishedEvents()
+      .then((data) => {
+        if (cancelled) return;
+        setEventsList(
+          data.map((e) => ({
+            id: e.id,
+            title: e.title,
+            date: e.date,
+            location: e.location,
+            category: e.category,
+            categories: e.categories && e.categories.length > 0 ? e.categories : [e.category],
+            boothsFilled: e.boothsFilled,
+            boothsTotal: e.boothsTotal,
+            price: e.priceRange?.split("–")[0]?.trim() || "",
+            image: e.image,
+            gradient: "",
+          }))
+        );
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(errorMessage(err, "Daftar event gagal dimuat."));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    // Events in an approved campaign are listed first
+    approvedCampaignsByEvent()
+      .then((byEvent) => {
+        if (!cancelled) setCampaignEvents(new Set(Object.keys(byEvent)));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filtered = eventsList
@@ -82,8 +74,8 @@ export default function EventsPage() {
       return matchesSearch;
     })
     .sort((a, b) => {
-      const aCamp = isEventInApprovedCampaign(a.id).isApproved ? 1 : 0;
-      const bCamp = isEventInApprovedCampaign(b.id).isApproved ? 1 : 0;
+      const aCamp = campaignEvents.has(a.id) ? 1 : 0;
+      const bCamp = campaignEvents.has(b.id) ? 1 : 0;
       return bCamp - aCamp;
     });
 
@@ -127,13 +119,16 @@ export default function EventsPage() {
           </div>
 
           {/* Results count */}
-          <p className="text-sm text-muted-foreground mb-6">{filtered.length} event ditemukan</p>
+          {loadError ? (
+            <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-sm text-error" role="alert">{loadError}</div>
+          ) : (
+            <p className="text-sm text-muted-foreground mb-6">{loading ? "Memuat event..." : `${filtered.length} event ditemukan`}</p>
+          )}
 
           {/* Events Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filtered.map((event, i) => {
-              const campInfo = isEventInApprovedCampaign(event.id);
-              const isHighlight = campInfo.isApproved;
+              const isHighlight = campaignEvents.has(event.id);
 
               return (
                 <Link
@@ -157,10 +152,14 @@ export default function EventsPage() {
                     </div>
                   )}
 
-                  <div className="event-cover event-cover--card h-36 relative">
-                    <span className="event-cover-mark" aria-hidden="true">
-                      {event.title.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
-                    </span>
+                  <div className="event-cover event-cover--card h-36 relative overflow-hidden">
+                    {event.image ? (
+                      <img src={event.image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                      <span className="event-cover-mark" aria-hidden="true">
+                        {event.title.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
+                      </span>
+                    )}
                     {isHighlight && (
                       <span className="absolute bottom-2 right-2 badge bg-success text-white">
                         Free Tax 0%
@@ -168,11 +167,8 @@ export default function EventsPage() {
                     )}
                   </div>
                   <div className="p-5">
-                    <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                      {(event.categories || [event.category]).slice(0, 3).map((category) => (
-                        <span key={category} className="badge badge-primary text-[10px] max-w-[48%] truncate" title={category}>{category}</span>
-                      ))}
-                      {(event.categories || []).length > 3 && <span className="text-[10px] text-muted-foreground">+{event.categories.length - 3}</span>}
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      <CategoryPopover categories={event.categories} category={event.category} label="Kategori" />
                       <span className="text-xs text-muted-foreground ml-auto">{event.price}</span>
                     </div>
                     <h3 className="font-bold text-base mb-2 line-clamp-1">{event.title}</h3>
@@ -192,7 +188,7 @@ export default function EventsPage() {
                         <span className="font-semibold text-primary-light">{event.boothsFilled}/{event.boothsTotal}</span>
                       </div>
                       <div className="h-1.5 bg-foreground/10 overflow-hidden">
-                        <div className="h-full gradient-primary" style={{ width: `${(event.boothsFilled / event.boothsTotal) * 100}%` }} />
+                        <div className="h-full gradient-primary" style={{ width: `${event.boothsTotal > 0 ? (event.boothsFilled / event.boothsTotal) * 100 : 0}%` }} />
                       </div>
                     </div>
                   </div>
@@ -201,7 +197,7 @@ export default function EventsPage() {
             })}
           </div>
 
-          {!loading && filtered.length === 0 && (
+          {!loading && !loadError && filtered.length === 0 && (
             <div className="text-center py-20">
               <div className="mb-4 flex justify-center text-muted-foreground"><Icon name={eventsList.length === 0 ? "store" : "search"} size={40} /></div>
               <h3 className="text-lg font-semibold mb-2">

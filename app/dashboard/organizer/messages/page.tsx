@@ -5,115 +5,80 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../../components/AuthContext";
 
 import {
-  getOrganizerMessagesFromSupabase,
-  updateOrganizerMessageStatusInSupabase,
-  deleteOrganizerMessageInSupabase,
-} from "@/app/lib/supabase-service";
+  listOrganizerMessages,
+  setMessageStatus,
+  deleteOrganizerMessage,
+  errorMessage,
+  type InboxMessage as DbMessage,
+} from "@/app/lib/db";
 
-type InboxMessage = {
-  id: string;
-  eventId?: string;
-  eventTitle: string;
-  organizerEmail?: string;
-  senderName: string;
-  senderEmail: string;
-  senderPhone: string;
-  message: string;
-  time: string;
-  status: "unread" | "read" | "replied";
-};
+type InboxMessage = DbMessage & { time: string };
 
 export default function OrganizerMessagesPage() {
   const { user } = useAuth();
-  const email = user?.email || "";
+  const organizerId = user?.id || "";
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    if (!email) return;
-    async function loadMessages() {
-      // Only messages sent to this organizer
-      const sbMsgs = await getOrganizerMessagesFromSupabase(email);
-      if (sbMsgs && sbMsgs.length > 0) {
+    if (!organizerId) return;
+    let cancelled = false;
+    listOrganizerMessages(organizerId)
+      .then((list) => {
+        if (cancelled) return;
         setMessages(
-          sbMsgs.map((m) => ({
-            id: m.id,
-            eventId: m.eventId,
-            eventTitle: m.eventTitle || "Event Boothify",
-            organizerEmail: m.organizerEmail,
-            senderName: m.senderName,
-            senderEmail: m.senderEmail,
-            senderPhone: m.senderPhone,
-            message: m.message,
-            time: m.createdAt ? new Date(m.createdAt).toLocaleDateString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "Baru saja",
-            status: (m.status as "unread" | "read" | "replied") || "unread",
+          list.map((m) => ({
+            ...m,
+            time: m.createdAt ? new Date(m.createdAt).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "",
           }))
         );
-        return;
-      }
-
-      try {
-        const storedInbox = JSON.parse(localStorage.getItem("boothify_organizer_inbox") || "[]");
-        if (Array.isArray(storedInbox) && storedInbox.length > 0) {
-          setMessages(
-            storedInbox.filter(
-              (m: InboxMessage) => !m.organizerEmail || m.organizerEmail.toLowerCase() === email.toLowerCase()
-            )
-          );
-        }
-      } catch {
-        // ignore
-      }
-    }
-
-    loadMessages();
-  }, [email]);
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(errorMessage(err, "Pesan gagal dimuat."));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [organizerId]);
 
   const unreadCount = messages.filter((message) => message.status === "unread").length;
   const visibleMessages = filter === "unread" ? messages.filter((message) => message.status === "unread") : messages;
 
-  const updateMessages = (nextMessages: InboxMessage[]) => {
-    setMessages(nextMessages);
-    // Write back into the shared inbox without dropping other organizers' messages
+  const markAsRead = async (id: string) => {
+    const previous = messages;
+    setMessages(messages.map((message) => (message.id === id ? { ...message, status: "read" } : message)));
     try {
-      const stored = JSON.parse(localStorage.getItem("boothify_organizer_inbox") || "[]");
-      const others = Array.isArray(stored)
-        ? stored.filter((m: InboxMessage) => !nextMessages.some((n) => n.id === m.id) && !messages.some((o) => o.id === m.id))
-        : [];
-      localStorage.setItem("boothify_organizer_inbox", JSON.stringify([...nextMessages, ...others]));
-    } catch {
-      localStorage.setItem("boothify_organizer_inbox", JSON.stringify(nextMessages));
+      await setMessageStatus(id, "read");
+    } catch (err) {
+      setMessages(previous);
+      setLoadError(errorMessage(err, "Pesan gagal diperbarui."));
     }
   };
 
-  const markAsRead = (id: string) => {
-    updateMessages(messages.map((message) => (message.id === id ? { ...message, status: "read" } : message)));
-    updateOrganizerMessageStatusInSupabase(id, "read");
-  };
-
-  const deleteMessage = (id: string) => {
-    updateMessages(messages.filter((message) => message.id !== id));
-    deleteOrganizerMessageInSupabase(id);
+  const deleteMessage = async (id: string) => {
+    const previous = messages;
+    setMessages(messages.filter((message) => message.id !== id));
+    try {
+      await deleteOrganizerMessage(id);
+    } catch (err) {
+      setMessages(previous);
+      setLoadError(errorMessage(err, "Pesan gagal dihapus."));
+    }
   };
 
   return (
     <div className="animate-fade-in max-w-5xl" id="organizer-messages">
+      {loadError && (
+        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-sm text-error" role="alert">{loadError}</div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-8 pb-6 border-b border-border">
         <div>
           <Link href="/dashboard/organizer" className="text-xs text-muted-foreground hover:text-primary-light transition inline-flex items-center gap-2 mb-4">
             Kembali ke dashboard
           </Link>
-          <p className="text-xs tracking-[0.12em] text-primary-light font-semibold mb-2">Communication</p>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Pesan masuk</h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-xl">Kelola pertanyaan tenant dan pengunjung dari satu tempat.</p>
-        </div>
-        <div className="flex items-center gap-3 text-sm shrink-0">
-          <div className="px-3 py-2 rounded-lg border border-border bg-card">
-            <span className="text-muted-foreground">Total </span><strong>{messages.length}</strong>
-          </div>
-          <div className="px-3 py-2 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-700">
-            <span>Belum dibaca </span><strong>{unreadCount}</strong>
-          </div>
         </div>
       </div>
 
@@ -151,7 +116,7 @@ export default function OrganizerMessagesPage() {
                   <p className="text-sm leading-6 text-foreground/90">{message.message}</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 shrink-0 lg:max-w-[260px] lg:justify-end">
-                  {message.senderPhone && <a href={`https://wa.me/${message.senderPhone.replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm min-h-11 text-xs text-emerald-700">WhatsApp</a>}
+                  {message.senderPhone && <a href={`https://wa.me/${message.senderPhone.replace(/[^0-9]/g, "").replace(/^0/, "62")}`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm min-h-11 text-xs text-emerald-700">WhatsApp</a>}
                   <a href={`mailto:${message.senderEmail}?subject=Re: Pertanyaan Event ${encodeURIComponent(message.eventTitle)}`} className="btn btn-secondary btn-sm min-h-11 text-xs">Email</a>
                   {message.status === "unread" && <button type="button" onClick={() => markAsRead(message.id)} className="btn btn-ghost btn-sm min-h-11 text-xs text-primary-light">Tandai dibaca</button>}
                   <button type="button" onClick={() => deleteMessage(message.id)} className="btn btn-ghost btn-sm min-h-11 text-xs text-error">Hapus</button>

@@ -3,17 +3,22 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/components/AuthContext";
-import { EVENT_CATEGORY_OPTIONS, getEventCategoryValue } from "@/app/lib/event-categories";
+import { EVENT_CATEGORY_OPTIONS } from "@/app/lib/event-categories";
+import { createEvent, errorMessage } from "@/app/lib/db";
+import { uploadImage } from "@/app/lib/file-upload";
+import { setActiveOrganizerEventId } from "@/app/lib/event-defaults";
 import { ASIA_LOCATIONS } from "@/app/lib/asia-locations";
+import FreshOnNavigate from "../../../../components/FreshOnNavigate";
 
-export default function CreateEventPage() {
+function CreateEventPageContent() {
   const router = useRouter();
   const { user } = useAuth();
   const organizerEmail = user?.email || "";
-  const organizerName = user?.businessName || user?.name || "PT. Event Kreasi Nusantara";
+  const organizerName = user?.businessName || user?.name || "";
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
-  const [bannerUploaded, setBannerUploaded] = useState(false);
+  const [bannerUrl, setBannerUrl] = useState("");
+  const [bannerUploading, setBannerUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -35,53 +40,51 @@ export default function CreateEventPage() {
   const [formError, setFormError] = useState("");
 
   // A new event stays a private draft until the organizer publishes it from the floor plan builder
-  const buildDraft = (eventId: string) => ({
-    id: eventId,
-    title: formData.name || "Draft Event Baru",
-    date: formData.date_start ? `${formData.date_start} s/d ${formData.date_end || formData.date_start}` : "Belum ditentukan",
-    time: `${formData.time_start} - ${formData.time_end}`,
-    status: "draft",
-    boothsFilled: 0,
-    boothsTotal: 0,
-    location: formData.location || "Belum ditentukan",
-    country: formData.country || "Indonesia",
-    province: formData.province,
-    city: formData.city,
-    address: formData.address || "",
-    category: formData.categories.filter((category) => category !== "all").join(", ") || "Umum",
-    categories: formData.categories,
-    categoryKeys: formData.categories.filter((category) => category !== "all").map(getEventCategoryValue),
-    description: formData.description || "Pameran & expo booth interaktif.",
-    organizer: organizerName,
-    organizerEmail: organizerEmail,
-    priceRange: "Rp 2.000.000 – Rp 4.500.000",
-    image: "🎪",
-    theme: formData.theme,
-    guidelines: formData.guidelines,
-  });
-
-  const storeDraft = (draft: ReturnType<typeof buildDraft>) => {
-    const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-    stored.unshift(draft);
-    localStorage.setItem("boothify_events", JSON.stringify(stored));
+  const saveDraft = async (): Promise<string | null> => {
+    const categories = formData.categories.filter((category) => category !== "all");
+    try {
+      const id = await createEvent({
+        title: formData.name.trim(),
+        date: formData.date_start ? `${formData.date_start} s/d ${formData.date_end || formData.date_start}` : "",
+        time: formData.time_start && formData.time_end ? `${formData.time_start} - ${formData.time_end}` : "",
+        location: formData.location.trim(),
+        country: formData.country || "Indonesia",
+        province: formData.province,
+        city: formData.city,
+        address: formData.address.trim(),
+        category: categories.join(", ") || "Umum",
+        categories,
+        description: formData.description.trim(),
+        theme: formData.theme.trim(),
+        guidelines: formData.guidelines.trim(),
+        image: bannerUrl,
+        organizer: organizerName,
+        organizerEmail,
+      });
+      setActiveOrganizerEventId(id);
+      return id;
+    } catch (err) {
+      setFormError(errorMessage(err, "Event gagal disimpan."));
+      return null;
+    }
   };
 
-  const handleSaveDraft = () => {
-    if (submitting) return;
+  const handleSaveDraft = async () => {
+    if (submitting || bannerUploading) return;
+    setFormError("");
     if (!formData.name.trim()) {
       setFormError("Isi nama event dulu sebelum menyimpan draft.");
       return;
     }
     setSubmitting(true);
-    try {
-      storeDraft(buildDraft(String(Date.now())));
-    } catch { /* ignore */ }
-    router.push("/dashboard/organizer");
+    const id = await saveDraft();
+    if (id) router.push("/dashboard/organizer");
+    else setSubmitting(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (submitting) return;
+    if (submitting || bannerUploading) return;
     setFormError("");
     if (formData.date_end && formData.date_start && formData.date_end < formData.date_start) {
       setFormError("Tanggal selesai tidak boleh sebelum tanggal mulai.");
@@ -92,11 +95,22 @@ export default function CreateEventPage() {
       return;
     }
     setSubmitting(true);
-    const eventId = String(Date.now());
+    const id = await saveDraft();
+    if (id) router.push(`/dashboard/organizer/events/${id}/floor-plan`);
+    else setSubmitting(false);
+  };
+
+  const handleBanner = async (file: File) => {
+    if (!user) return;
+    setFormError("");
+    setBannerUploading(true);
     try {
-      storeDraft(buildDraft(eventId));
-    } catch { /* ignore */ }
-    router.push(`/dashboard/organizer/events/${eventId}/floor-plan`);
+      setBannerUrl(await uploadImage(user.id, file, "banner", 1600));
+    } catch (err) {
+      setFormError(errorMessage(err, "Banner gagal diunggah."));
+    } finally {
+      setBannerUploading(false);
+    }
   };
 
   const update = (key: string, value: string | string[]) =>
@@ -235,7 +249,7 @@ export default function CreateEventPage() {
             <label htmlFor="event-theme" className="block text-sm font-medium mb-2">Tema / Campaign</label>
             <input id="event-theme" type="text" className="input-base" placeholder="Sustainable Fashion, Green Living, dll." value={formData.theme} onChange={(e) => update("theme", e.target.value)} />
             <p className="text-xs text-muted-foreground mt-1">
-              Setelah event dibuat, buka AI Campaign Generator di menu samping untuk rekomendasi tema.
+              Setelah event dibuat, buka Ide Campaign di menu samping untuk rekomendasi tema.
             </p>
           </div>
 
@@ -257,20 +271,21 @@ export default function CreateEventPage() {
             className="hidden"
             accept="image/*"
             onChange={(e) => {
-              if (e.target.files?.[0]) {
-                setBannerUploaded(true);
-              }
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) handleBanner(file);
             }}
           />
           <div
             onClick={() => bannerInputRef.current?.click()}
             className="border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-primary/50 transition cursor-pointer"
           >
-            {bannerUploaded ? (
-              <div className="text-primary-light">
-                <svg className="mx-auto mb-2 text-primary" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
-                <p className="text-sm font-semibold">Banner Event Berhasil Diunggah!</p>
-                <p className="text-xs text-muted-foreground mt-1">Klik untuk mengganti banner</p>
+            {bannerUploading ? (
+              <p className="text-sm text-muted-foreground">Mengunggah banner...</p>
+            ) : bannerUrl ? (
+              <div>
+                <img src={bannerUrl} alt="Banner event" className="w-full max-h-48 object-cover rounded-xl mb-2" />
+                <p className="text-xs text-muted-foreground">Klik untuk mengganti banner</p>
               </div>
             ) : (
               <>
@@ -302,5 +317,13 @@ export default function CreateEventPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function CreateEventPage() {
+  return (
+    <FreshOnNavigate>
+      <CreateEventPageContent />
+    </FreshOnNavigate>
   );
 }

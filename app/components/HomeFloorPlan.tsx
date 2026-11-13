@@ -14,7 +14,7 @@ const ZONES = {
   C: { name: "Craft & Aksesoris Etnik", tone: "craft" },
 } as const;
 
-/* Sample hall, laid out from the Green Fashion Expo 2026 zones. */
+/* Illustration of a sample hall for the hero; not real event data. */
 const BOOTHS: Booth[] = [
   { label: "A1", zone: "A", taken: true },
   { label: "A2", zone: "A", taken: false },
@@ -58,7 +58,7 @@ export default function HomeFloorPlan() {
       <div className="plan-sheet">
         <div className="plan-sheet-head">
           <p className="plan-sheet-title">Denah Hall A</p>
-          <p className="plan-sheet-meta">Green Fashion Expo 2026</p>
+          <p className="plan-sheet-meta">Contoh tata letak</p>
         </div>
         <div className="plan-hall">
           <div className="plan-zone plan-zone--a">

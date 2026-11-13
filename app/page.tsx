@@ -3,45 +3,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import HomeFloorPlan from "./components/HomeFloorPlan";
 import HomeRoles from "./components/HomeRoles";
-
-const FEATURED_EVENTS = [
-  {
-    id: "1",
-    title: "Green Fashion Expo 2026",
-    date: "15-17 Nov 2026",
-    location: "Jakarta Convention Center",
-    category: "Fashion",
-    boothsFilled: 5,
-    boothsTotal: 14,
-  },
-  {
-    id: "2",
-    title: "Indonesia Food Festival",
-    date: "22-24 Nov 2026",
-    location: "ICE BSD, Tangerang",
-    category: "F&B",
-    boothsFilled: 3,
-    boothsTotal: 10,
-  },
-  {
-    id: "3",
-    title: "EduTech Innovation Fair",
-    date: "1-3 Des 2026",
-    location: "Surabaya Grand City",
-    category: "Education",
-    boothsFilled: 2,
-    boothsTotal: 8,
-  },
-  {
-    id: "4",
-    title: "AutoMotive Show 2026",
-    date: "10-12 Des 2026",
-    location: "JIEXPO Kemayoran",
-    category: "Automotive",
-    boothsFilled: 4,
-    boothsTotal: 12,
-  },
-];
+import HomeFeaturedEvents from "./components/HomeFeaturedEvents";
 
 const STEPS = [
   {
@@ -97,43 +59,12 @@ export default function HomePage() {
         <section className="home-events" id="featured-events">
           <div className="container">
             <div className="home-head home-head--split">
-              <h2>Event yang sedang trending</h2>
+              <h2>Event yang akan datang</h2>
               <p className="lead">Temukan pameran, bazar, dan event terbaik di seluruh Indonesia.</p>
             </div>
 
             <div className="ledger">
-              <table className="ledger-table">
-                <caption className="visually-hidden">Event pilihan dan booth yang sudah terisi</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Event</th>
-                    <th scope="col">Tanggal</th>
-                    <th scope="col" className="ledger-col-place">Lokasi</th>
-                    <th scope="col" className="ledger-col-cat">Kategori</th>
-                    <th scope="col" className="ledger-col-fill">Booth terisi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {FEATURED_EVENTS.map((event) => (
-                    <tr key={event.id} className="ledger-row">
-                      <td>
-                        <Link href={`/events/${event.id}`} className="ledger-link" id={`event-card-${event.id}`}>
-                          {event.title}
-                        </Link>
-                      </td>
-                      <td className="ledger-date fig">{event.date}</td>
-                      <td className="ledger-col-place">{event.location}</td>
-                      <td className="ledger-col-cat">
-                        <span className="ledger-tag">{event.category}</span>
-                      </td>
-                      <td className="ledger-col-fill fig">
-                        {event.boothsFilled}
-                        <span className="ledger-total">/{event.boothsTotal}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <HomeFeaturedEvents />
               <div className="ledger-foot">
                 <Link href="/events" className="btn btn-secondary" id="view-all-events">
                   Lihat Semua Event

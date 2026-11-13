@@ -7,6 +7,7 @@ import { useAuth } from "../../components/AuthContext";
 import { homeForRole, safeNextPath } from "../../lib/auth-redirect";
 import Navbar from "../../components/Navbar";
 import BrandMark from "../../components/BrandMark";
+import FreshOnNavigate from "../../components/FreshOnNavigate";
 
 function LoginContent() {
   const router = useRouter();
@@ -17,6 +18,7 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   // Already signed in with a real account: go to that account's home.
   // A visitor who only ordered as a guest can still sign in or register.
@@ -32,20 +34,21 @@ function LoginContent() {
 
   if (signedIn) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setError("");
+    setSubmitting(true);
     submittedRef.current = true;
-    const result = login(email, password);
-    if (!result.success) submittedRef.current = false;
+    const result = await login(email, password);
     if (result.success) {
-      // Read the role just stored, then return to where the person was heading
-      const storedUser = localStorage.getItem("boothify_current_user");
-      const role = storedUser ? JSON.parse(storedUser).role : undefined;
-      router.replace(next || homeForRole(role));
-    } else {
-      setError(result.message);
+      // Return to where the person was heading, else to their own dashboard
+      router.replace(next || homeForRole(result.role));
+      return;
     }
+    submittedRef.current = false;
+    setSubmitting(false);
+    setError(result.message);
   };
 
   return (
@@ -157,8 +160,8 @@ function LoginContent() {
   </div>
 </div>
 
-            <button type="submit" className="btn btn-primary w-full btn-lg" id="login-submit">
-              Masuk
+            <button type="submit" className="btn btn-primary w-full btn-lg" id="login-submit" disabled={submitting}>
+              {submitting ? "Memeriksa akun..." : "Masuk"}
             </button>
           </form>
 
@@ -186,7 +189,9 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Memuat halaman masuk...</div>}>
-      <LoginContent />
+      <FreshOnNavigate>
+        <LoginContent />
+      </FreshOnNavigate>
     </Suspense>
   );
 }

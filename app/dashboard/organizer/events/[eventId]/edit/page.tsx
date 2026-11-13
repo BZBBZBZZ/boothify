@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "../../../../../components/AuthContext";
-import { getEventMeta, type EventDetail } from "../../../../../lib/event-defaults";
-import { saveEventToSupabase, getEventByIdFromSupabase } from "@/app/lib/supabase-service";
+import type { EventDetail } from "../../../../../lib/event-defaults";
+import { getEvent, updateEvent, errorMessage } from "@/app/lib/db";
+import FreshOnNavigate from "../../../../../components/FreshOnNavigate";
 
 const FIELDS: Array<{ key: keyof EventDetail; label: string; multiline?: boolean }> = [
   { key: "title", label: "Nama Event" },
@@ -12,46 +13,39 @@ const FIELDS: Array<{ key: keyof EventDetail; label: string; multiline?: boolean
   { key: "time", label: "Waktu" },
   { key: "location", label: "Nama Venue" },
   { key: "address", label: "Alamat Lengkap" },
-  { key: "priceRange", label: "Rentang Harga Sewa Booth" },
   { key: "description", label: "Deskripsi", multiline: true },
+  { key: "theme", label: "Tema / Campaign" },
+  { key: "guidelines", label: "Panduan untuk Tenant", multiline: true },
 ];
 
-export default function EditEventPage() {
+function EditEventPageContent() {
   const params = useParams();
   const router = useRouter();
   const eventId = String(params?.eventId || "");
   const { user, isLoading } = useAuth();
   const [event, setEvent] = useState<EventDetail | null>(null);
-  const [status, setStatus] = useState<string>("active");
+  const [status, setStatus] = useState<string>("published");
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (isLoading || !user) return;
     let cancelled = false;
-
-    const applyOwned = (loaded: EventDetail) => {
-      // Only the organizer who owns the event may edit it
-      if (loaded.organizerEmail && loaded.organizerEmail.toLowerCase() !== user.email.toLowerCase()) {
-        router.replace(`/events/${eventId}`);
-        return;
-      }
-      setEvent(loaded);
-    };
-
-    // A draft lives on this device; a published event can be loaded from Supabase
-    const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-    const local = Array.isArray(stored) ? stored.find((item: { id: string }) => String(item.id) === eventId) : null;
-    if (local) {
-      setStatus(local.status || "active");
-      applyOwned(getEventMeta(eventId));
-    } else {
-      getEventByIdFromSupabase(eventId).then((remote) => {
+    getEvent(eventId)
+      .then((loaded) => {
         if (cancelled) return;
-        if (remote) applyOwned(remote);
-        else router.replace("/dashboard/organizer");
+        // Only the organizer who owns the event may edit it
+        if (!loaded || loaded.organizerId !== user.id) {
+          router.replace(loaded ? `/events/${eventId}` : "/dashboard/organizer");
+          return;
+        }
+        setStatus(loaded.status || "published");
+        setEvent(loaded);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(errorMessage(err, "Event gagal dimuat."));
       });
-    }
     return () => {
       cancelled = true;
     };
@@ -63,26 +57,36 @@ export default function EditEventPage() {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!event || saving) return;
-    setSaving(true);
-    const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-    const list = Array.isArray(stored) ? stored : [];
-    const updated = list.some((item: { id: string }) => String(item.id) === eventId)
-      ? list.map((item: { id: string }) => (String(item.id) === eventId ? { ...item, ...event, status } : item))
-      : [{ ...event, status }, ...list];
-    localStorage.setItem("boothify_events", JSON.stringify(updated));
-
-    // A draft stays private; a published event is updated in Supabase too
-    if (status !== "draft") {
-      await saveEventToSupabase(event);
+    if (!event.title.trim()) {
+      setError("Nama event wajib diisi.");
+      return;
     }
-
-    setSaving(false);
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1800);
+    setSaving(true);
+    setError("");
+    try {
+      await updateEvent(eventId, {
+        title: event.title.trim(),
+        date: event.date,
+        time: event.time || "",
+        location: event.location,
+        address: event.address || "",
+        description: event.description,
+        theme: event.theme || "",
+        guidelines: event.guidelines || "",
+      });
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 1800);
+    } catch (err) {
+      setError(errorMessage(err, "Event gagal disimpan."));
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!event) {
-    return <p className="py-16 text-center text-sm text-muted-foreground">Memuat event...</p>;
+    return error
+      ? <p className="py-16 text-center text-sm text-error" role="alert">{error}</p>
+      : <p className="py-16 text-center text-sm text-muted-foreground">Memuat event...</p>;
   }
 
   return (
@@ -106,6 +110,7 @@ export default function EditEventPage() {
             )}
           </label>
         ))}
+        {error && <p className="text-sm text-error" role="alert">{error}</p>}
         <div className="flex flex-wrap gap-2 pt-2">
           <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving ? "Menyimpan..." : saved ? "Tersimpan" : "Simpan Perubahan"}
@@ -122,5 +127,13 @@ export default function EditEventPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function EditEventPage() {
+  return (
+    <FreshOnNavigate>
+      <EditEventPageContent />
+    </FreshOnNavigate>
   );
 }

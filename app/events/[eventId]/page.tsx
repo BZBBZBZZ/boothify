@@ -6,32 +6,22 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../components/AuthContext";
+import type { FloorPlanBooth, EventTenantInfo, EventDetail } from "../../lib/event-defaults";
+import type { AdminCampaign } from "@/app/lib/admin-campaigns";
 import {
-  ensureEventFloorPlanInitialized,
-  DEFAULT_EVENTS_META,
-  FloorPlanBooth,
-  EventTenantInfo,
-  EventDetail,
-} from "../../lib/event-defaults";
-import { isEventInApprovedCampaign } from "@/app/lib/admin-campaigns";
-import {
-  getEventByIdFromSupabase,
-  getBoothsByEventFromSupabase,
-  getTenantsByEventFromSupabase,
-} from "@/app/lib/supabase-service";
+  getEvent,
+  getBooths,
+  getEventTenants,
+  getEventCampaign,
+  getProfile,
+  sendOrganizerMessage,
+  errorMessage,
+} from "@/app/lib/db";
 import { loginUrlFor } from "@/app/lib/auth-redirect";
+import CategoryPopover from "../../components/CategoryPopover";
+import FreshOnNavigate from "../../components/FreshOnNavigate";
 
 const PENDING_BOOTHS_KEY = "boothify_pending_booths";
-
-const getZoneBadgeColor = (zone: string) => {
-  const z = zone.toLowerCase();
-  if (z.includes("fnb") || z.includes("food") || z.includes("makanan")) return "bg-amber-500/15 border-amber-500/40 text-amber-700";
-  if (z.includes("fash") || z.includes("busana")) return "bg-emerald-500/15 border-emerald-500/40 text-emerald-700";
-  if (z.includes("craft") || z.includes("kriya")) return "bg-rose-500/15 border-rose-500/40 text-rose-700";
-  if (z.includes("edu") || z.includes("tech")) return "bg-purple-500/15 border-purple-500/40 text-purple-700";
-  if (z.includes("auto")) return "bg-blue-500/15 border-blue-500/40 text-blue-700";
-  return "bg-cyan-500/15 border-cyan-500/40 text-cyan-700";
-};
 
 const getZoneDisplay = (zone: string) => {
   const z = zone.toLowerCase();
@@ -47,92 +37,83 @@ function EventDetailContent() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const eventId = (params?.eventId as string) || "1";
+  const eventId = (params?.eventId as string) || "";
   const { user } = useAuth();
   const [loadState, setLoadState] = useState<"loading" | "ready" | "missing">("loading");
   const [checkoutNotice, setCheckoutNotice] = useState("");
-  const [campInfo, setCampInfo] = useState<ReturnType<typeof isEventInApprovedCampaign>>({ isApproved: false });
+  const [campaign, setCampaign] = useState<AdminCampaign | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [organizerPhone, setOrganizerPhone] = useState("");
 
-  const [event, setEvent] = useState<EventDetail>(
-    DEFAULT_EVENTS_META[eventId] || DEFAULT_EVENTS_META["1"]
-  );
+  const [event, setEvent] = useState<EventDetail | null>(null);
   const [booths, setBooths] = useState<FloorPlanBooth[]>([]);
   const [tenantsMap, setTenantsMap] = useState<Record<string, EventTenantInfo>>({});
   const [takenBooths, setTakenBooths] = useState<string[]>([]);
   const [selectedBoothLabels, setSelectedBoothLabels] = useState<string[]>([]);
+  const tabParam = searchParams.get("tab");
   const [activeTab, setActiveTab] = useState<"info" | "booths" | "tenants">(
-    searchParams.get("tab") === "booths" ? "booths" : searchParams.get("tab") === "tenants" ? "tenants" : "info"
+    tabParam === "booths" ? "booths" : tabParam === "tenants" ? "tenants" : "info"
   );
+  // Follow ?tab= whenever the URL changes (e.g. coming back from sign-in to rent a booth)
+  useEffect(() => {
+    if (tabParam === "booths" || tabParam === "tenants" || tabParam === "info") setActiveTab(tabParam);
+  }, [tabParam]);
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", email: "", phone: "", message: "" });
   const [contactSent, setContactSent] = useState(false);
+  const [contactSending, setContactSending] = useState(false);
+  const [contactError, setContactError] = useState("");
 
   useEffect(() => {
-    // 1. Fetch Event Info from Supabase
-    setCampInfo(isEventInApprovedCampaign(eventId));
-    getEventByIdFromSupabase(eventId).then((ev) => {
-      if (ev) {
-        setEvent(ev);
-        setLoadState("ready");
-        return;
-      }
-      try {
-        const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-        const found = storedEvents.find((e: { id: string }) => String(e.id) === String(eventId));
-        if (found) {
-          setEvent({ ...DEFAULT_EVENTS_META[eventId], ...found });
-          setLoadState("ready");
-          return;
-        }
-      } catch { /* ignore */ }
-      // No such event anywhere: say so instead of showing a stand-in event
-      setLoadState("missing");
-    });
+    let cancelled = false;
+    setLoadState("loading");
 
     // Restore booths picked before the visitor was asked to sign in
     try {
-      const pending = JSON.parse(localStorage.getItem(PENDING_BOOTHS_KEY) || "null");
+      const pending = JSON.parse(sessionStorage.getItem(PENDING_BOOTHS_KEY) || "null");
       if (pending && String(pending.eventId) === String(eventId) && Array.isArray(pending.booths)) {
         setSelectedBoothLabels(pending.booths);
         setActiveTab("booths");
       }
     } catch { /* ignore */ }
 
-    // 2. Fetch Booths & Tenants from Supabase
-    getBoothsByEventFromSupabase(eventId).then((supabaseBooths) => {
-      if (supabaseBooths && supabaseBooths.length > 0) {
-        setBooths(supabaseBooths);
-        const booked = supabaseBooths.filter((b) => b.isBooked).map((b) => b.label);
-        if (booked.length > 0) {
-          setTakenBooths((prev) => Array.from(new Set([...prev, ...booked])));
+    Promise.all([getEvent(eventId), getBooths(eventId), getEventTenants(eventId)])
+      .then(([ev, boothList, tenants]) => {
+        if (cancelled) return;
+        if (!ev) {
+          setLoadState("missing");
+          return;
         }
-      } else {
-        // Cek apakah ada denah booth custom di localStorage
-        try {
-          const localBooths = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booths`) || "[]");
-          if (Array.isArray(localBooths) && localBooths.length > 0) {
-            setBooths(localBooths);
-            return;
-          }
-        } catch { /* ignore */ }
+        setEvent(ev);
+        setBooths(boothList);
+        setTenantsMap(tenants);
+        setTakenBooths(boothList.filter((b) => b.isBooked).map((b) => b.label));
+        // Booths taken since they were picked are dropped from the selection
+        setSelectedBoothLabels((prev) => prev.filter((label) => boothList.some((b) => b.label === label && !b.isBooked)));
+        setLoadState("ready");
+        if (ev.organizerId) {
+          getProfile(ev.organizerId)
+            .then((p) => {
+              if (!cancelled) setOrganizerPhone(p?.phone || "");
+            })
+            .catch(() => {});
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setLoadError(errorMessage(err, "Event gagal dimuat."));
+        setLoadState("missing");
+      });
 
-        const initialized = ensureEventFloorPlanInitialized(eventId);
-        setBooths(initialized.booths);
-      }
-    });
+    getEventCampaign(eventId)
+      .then((c) => {
+        if (!cancelled) setCampaign(c);
+      })
+      .catch(() => {});
 
-    getTenantsByEventFromSupabase(eventId).then((supabaseTenants) => {
-      if (supabaseTenants && Object.keys(supabaseTenants).length > 0) {
-        setTenantsMap(supabaseTenants);
-        // Merge, never replace: booths marked booked by the booth query must stay booked
-        setTakenBooths((prev) => Array.from(new Set([...prev, ...Object.keys(supabaseTenants)])));
-      } else {
-        const initialized = ensureEventFloorPlanInitialized(eventId);
-        setTenantsMap(initialized.tenants);
-        const eventTaken = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booked_booths`) || "[]");
-        setTakenBooths((prev) => Array.from(new Set([...prev, ...initialized.booked, ...eventTaken])));
-      }
-    });
+    return () => {
+      cancelled = true;
+    };
   }, [eventId]);
 
   const toggleBooth = (label: string) => {
@@ -144,13 +125,15 @@ function EventDetailContent() {
   };
 
   const selectedBoothsData = booths.filter((b) => selectedBoothLabels.includes(b.label));
-  const subtotalPrice = selectedBoothsData.reduce((sum, b) => sum + (b.price || 2500000), 0);
+  const subtotalPrice = selectedBoothsData.reduce((sum, b) => sum + (b.price || 0), 0);
 
   const handleProceedCheckout = () => {
     if (selectedBoothsData.length === 0) return;
     if (!user || user.role === "guest") {
       // Keep the picked booths, sign in, then come straight back to this tab
-      localStorage.setItem(PENDING_BOOTHS_KEY, JSON.stringify({ eventId, booths: selectedBoothLabels }));
+      try {
+        sessionStorage.setItem(PENDING_BOOTHS_KEY, JSON.stringify({ eventId, booths: selectedBoothLabels }));
+      } catch { /* ignore */ }
       router.push(loginUrlFor(`/events/${eventId}?tab=booths`));
       return;
     }
@@ -160,37 +143,23 @@ function EventDetailContent() {
       );
       return;
     }
-    localStorage.removeItem(PENDING_BOOTHS_KEY);
-    const items = selectedBoothsData.map((b) => ({
-      booth: b.label,
-      zone: getZoneDisplay(b.zone),
-      price: b.price || 2500000,
-    }));
-    localStorage.setItem("boothify_checkout_items", JSON.stringify(items));
-    localStorage.setItem("boothify_checkout_eventId", eventId);
-    router.push(`/dashboard/tenant/bookings/${eventId}/checkout`);
+    try {
+      sessionStorage.removeItem(PENDING_BOOTHS_KEY);
+    } catch { /* ignore */ }
+    const picked = selectedBoothsData.map((b) => encodeURIComponent(b.label)).join(",");
+    router.push(`/dashboard/tenant/bookings/${eventId}/checkout?booths=${picked}`);
   };
 
   const registeredTenantsList = Object.values(tenantsMap);
 
-  // Check if current logged in user is specifically the organizer of this event
-  const isEventOrganizer = Boolean(
-    user &&
-    user.role === "organizer" &&
-    (
-      // 1. Matches event organizer email
-      (event.organizerEmail && user.email?.toLowerCase() === event.organizerEmail.toLowerCase()) ||
-      // 3. Matches organizer organization/business name or user name
-      (event.organizer && (
-        user.businessName?.toLowerCase() === event.organizer.toLowerCase() ||
-        user.name?.toLowerCase() === event.organizer.toLowerCase()
-      ))
-    )
-  );
+  // Only the organizer who owns this event gets the edit shortcuts
+  const isEventOrganizer = Boolean(user && user.role === "organizer" && event?.organizerId === user.id);
 
-  const isCampaignApproved = campInfo.isApproved;
+  const isCampaignApproved = Boolean(campaign);
+  // Organizer's phone as a WhatsApp number (08xx becomes 628xx)
+  const waNumber = organizerPhone.replace(/\D/g, "").replace(/^0/, "62");
 
-  if (loadState !== "ready") {
+  if (loadState !== "ready" || !event) {
     return (
       <>
         <Navbar />
@@ -200,9 +169,9 @@ function EventDetailContent() {
               <p className="text-sm text-muted-foreground">Memuat event...</p>
             ) : (
               <div className="card-base p-8">
-                <h1 className="text-2xl font-bold mb-2">Event tidak ditemukan</h1>
+                <h1 className="text-2xl font-bold mb-2">{loadError ? "Event gagal dimuat" : "Event tidak ditemukan"}</h1>
                 <p className="text-sm text-muted-foreground mb-6">
-                  Event ini mungkin sudah dihapus, belum diterbitkan, atau tautannya salah.
+                  {loadError || "Event ini mungkin sudah dihapus, belum diterbitkan, atau tautannya salah."}
                 </p>
                 <Link href="/events" className="btn btn-primary">Lihat Semua Event</Link>
               </div>
@@ -232,19 +201,16 @@ function EventDetailContent() {
 
           {/* Hero */}
           <div className="card-base overflow-hidden mb-8">
-            <div className="event-cover h-48 sm:h-64 relative">
-              <span className="event-cover-mark" aria-hidden="true">
-                {event.title.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
-              </span>
+            <div className="event-cover h-48 sm:h-64 relative overflow-hidden">
+              {event.image ? (
+                <img src={event.image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <span className="event-cover-mark" aria-hidden="true">
+                  {event.title.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
+                </span>
+              )}
               <div className="absolute top-4 right-4 flex items-center gap-2">
-                <span className="badge event-cover-tag">{event.category}</span>
-                <Link
-                  href={`/events/${eventId}/guide`}
-                  className="btn btn-secondary btn-sm text-xs"
-                  id="btn-goto-visitor-guide"
-                >
-                  Buka Panduan Digital
-                </Link>
+                <CategoryPopover categories={event.categories} category={event.category} />
               </div>
             </div>
             <div className="p-6 sm:p-8">
@@ -258,7 +224,7 @@ function EventDetailContent() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-foreground">
-                          Official Partner: {campInfo.campaign?.title}
+                          Official Partner: {campaign?.title}
                         </span>
                         <span className="badge bg-success/15 text-success">
                           Bebas Pajak (Free Tax)
@@ -303,7 +269,7 @@ function EventDetailContent() {
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs">Waktu</p>
-                    <p className="font-medium">{event.time || "10:00 – 21:00 WIB"}</p>
+                    <p className="font-medium">{event.time || "Belum ditentukan"}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -333,8 +299,9 @@ function EventDetailContent() {
             {([
               { key: "info", label: "Informasi Event" },
               { key: "booths", label: `Pilih Booth (${booths.length - takenBooths.length} Tersedia)` },
-              { key: "tenants", label: `Daftar Tenant (${registeredTenantsList.length})` },
-            ] as const).map((tab) => (
+              // Tenants rent booths here; the list of other tenants is for visitors and organizers
+              ...(user?.role === "tenant" ? [] : [{ key: "tenants", label: `Daftar Tenant (${registeredTenantsList.length})` }]),
+            ] as Array<{ key: "info" | "booths" | "tenants"; label: string }>).map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
@@ -423,6 +390,13 @@ function EventDetailContent() {
                     Pilih &amp; Sewa Booth Sekarang
                   </button>
                 </div>
+                <Link
+                  href={`/events/${eventId}/guide`}
+                  className="btn btn-secondary w-full"
+                  id="btn-goto-visitor-guide"
+                >
+                  Buka Panduan Digital
+                </Link>
               </div>
             </div>
           )}
@@ -474,7 +448,6 @@ function EventDetailContent() {
                         const isTaken = takenBooths.includes(b.label);
                         const isSelected = selectedBoothLabels.includes(b.label);
                         const tenant = tenantsMap[b.label];
-                        const zoneBadge = getZoneBadgeColor(b.zone);
 
                         return (
                           <div
@@ -497,16 +470,14 @@ function EventDetailContent() {
                             }}
                             id={`booth-card-${b.label}`}
                           >
-                            <div className="public-floor-plan-booth-header flex items-center justify-between gap-1 mb-0.5 w-full min-w-0">
-                              <span className="public-floor-plan-booth-label font-bold text-xs sm:text-sm text-foreground truncate">{b.label}</span>
-                              <span className={`public-floor-plan-booth-zone badge text-[8px] sm:text-[9px] border truncate flex-shrink-0 max-w-[50%] ${zoneBadge}`}>
-                                {getZoneDisplay(b.zone)}
-                              </span>
+                            <div className="public-floor-plan-booth-header w-full min-w-0 mb-0.5">
+                              <span className="public-floor-plan-booth-label block font-bold text-xs sm:text-sm text-foreground truncate">{b.label}</span>
+                              <span className="public-floor-plan-booth-zone-text">{getZoneDisplay(b.zone)}</span>
                             </div>
 
                             {/* PERUBAHAN: Penambahan truncate, w-full, dan leading-tight agar teks rapat dan tidak meluber */}
                             <p className="public-floor-plan-booth-price text-[10px] sm:text-xs font-semibold text-primary-light mb-0.5 truncate w-full leading-tight">
-                              Rp {(b.price || 2500000).toLocaleString("id-ID")}
+                              Rp {(b.price || 0).toLocaleString("id-ID")}
                             </p>
                             <p className="public-floor-plan-booth-size text-[8px] sm:text-[9px] text-muted-foreground truncate w-full leading-tight">
                               Ukuran: {b.sizeCm || "-"}
@@ -562,7 +533,7 @@ function EventDetailContent() {
                                 </div>
                               </div>
                               <span className="text-sm font-semibold">
-                                Rp {(b.price || 2500000).toLocaleString("id-ID")}
+                                Rp {(b.price || 0).toLocaleString("id-ID")}
                               </span>
                             </div>
                           ))}
@@ -603,7 +574,7 @@ function EventDetailContent() {
           )}
 
           {/* Tab 3: Daftar Tenant Resmi */}
-          {activeTab === "tenants" && (
+          {activeTab === "tenants" && user?.role !== "tenant" && (
             <div className="animate-fade-in">
               <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -690,9 +661,11 @@ function EventDetailContent() {
               </p>
 
               {/* Quick Contact Buttons */}
-              <div className="grid grid-cols-2 gap-3 mb-5">
+              {(waNumber || event.organizerEmail) && (
+              <div className={`grid gap-3 mb-5 ${waNumber && event.organizerEmail ? "grid-cols-2" : "grid-cols-1"}`}>
+                {waNumber && (
                 <a
-                  href={`https://wa.me/6281234567890?text=${encodeURIComponent(`Halo Organizer ${event.title}, saya tertarik seputar sewa booth`)}`}
+                  href={`https://wa.me/${waNumber}?text=${encodeURIComponent(`Halo Organizer ${event.title}, saya tertarik seputar sewa booth`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2.5 border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 text-emerald-700"
@@ -701,15 +674,19 @@ function EventDetailContent() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
                   Chat WhatsApp
                 </a>
+                )}
+                {event.organizerEmail && (
                 <a
-                  href={`mailto:${event.organizerEmail || "admin@greenevents.id"}?subject=${encodeURIComponent(`Pertanyaan Sewa Booth - ${event.title}`)}`}
+                  href={`mailto:${event.organizerEmail}?subject=${encodeURIComponent(`Pertanyaan Sewa Booth - ${event.title}`)}`}
                   className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2.5"
                   id="contact-email"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                   Kirim Email
                 </a>
+                )}
               </div>
+              )}
 
               {/* In-app Message Form */}
               <div className="pt-4 border-t border-border">
@@ -721,26 +698,25 @@ function EventDetailContent() {
                   </div>
                 ) : (
                   <form
-                    onSubmit={(e) => {
+                    onSubmit={async (e) => {
                       e.preventDefault();
+                      if (contactSending) return;
+                      setContactError("");
+                      setContactSending(true);
                       try {
-                        const messages = JSON.parse(localStorage.getItem("boothify_organizer_inbox") || "[]");
-                        messages.unshift({
-                          id: "MSG-" + Date.now().toString().slice(-4),
+                        await sendOrganizerMessage({
                           eventId: event.id,
-                          eventTitle: event.title,
-                          organizerEmail: event.organizerEmail || "",
-                          senderName: contactForm.name,
-                          senderEmail: contactForm.email,
-                          senderPhone: contactForm.phone,
+                          name: contactForm.name,
+                          email: contactForm.email,
+                          phone: contactForm.phone,
                           message: contactForm.message,
-                          time: "Baru saja",
-                          status: "unread",
                         });
-                        localStorage.setItem("boothify_organizer_inbox", JSON.stringify(messages));
                         setContactSent(true);
-                      } catch {
-                        setContactSent(true);
+                        setContactForm({ name: "", email: "", phone: "", message: "" });
+                      } catch (err) {
+                        setContactError(errorMessage(err, "Pesan gagal dikirim."));
+                      } finally {
+                        setContactSending(false);
                       }
                     }}
                     className="space-y-3"
@@ -778,8 +754,9 @@ function EventDetailContent() {
                       onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
                       className="input-base text-xs resize-none"
                     />
-                    <button type="submit" className="btn btn-primary btn-sm w-full" id="submit-contact-form">
-                      Kirim Pesan ke Organizer
+                    {contactError && <p className="text-xs text-error" role="alert">{contactError}</p>}
+                    <button type="submit" className="btn btn-primary btn-sm w-full" id="submit-contact-form" disabled={contactSending}>
+                      {contactSending ? "Mengirim..." : "Kirim Pesan ke Organizer"}
                     </button>
                   </form>
                 )}
@@ -793,10 +770,18 @@ function EventDetailContent() {
   );
 }
 
-export default function EventDetailPage() {
+function EventDetailPageContent() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Memuat event...</div>}>
       <EventDetailContent />
     </Suspense>
+  );
+}
+
+export default function EventDetailPage() {
+  return (
+    <FreshOnNavigate>
+      <EventDetailPageContent />
+    </FreshOnNavigate>
   );
 }
