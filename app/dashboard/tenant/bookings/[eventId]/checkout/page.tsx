@@ -8,7 +8,7 @@ import { DEFAULT_EVENTS_META } from "@/app/lib/event-defaults";
 import { getEventCategoryLabel, isFoodCategory } from "@/app/lib/event-categories";
 import { isEventInApprovedCampaign } from "@/app/lib/admin-campaigns";
 import { supabase } from "@/app/lib/supabase";
-import { getEventByIdFromSupabase } from "@/app/lib/supabase-service";
+import { getEventByIdFromSupabase, getBoothsByEventFromSupabase } from "@/app/lib/supabase-service";
 import Icon from "../../../../../components/Icon";
 
 interface CheckoutItem {
@@ -28,14 +28,17 @@ function CheckoutContent() {
   const [success, setSuccess] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const [eventTitle, setEventTitle] = useState("Green Fashion Expo 2026");
-  const [eventDate, setEventDate] = useState("15–17 Nov 2026");
+  const [eventTitle, setEventTitle] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [payError, setPayError] = useState("");
 
   useEffect(() => {
     async function loadData() {
       try {
         const stored = localStorage.getItem("boothify_checkout_items");
-        if (stored) {
+        const storedEventId = localStorage.getItem("boothify_checkout_eventId");
+        // Only pick up booths chosen for this event, never a leftover cart from another event
+        if (stored && String(storedEventId) === String(eventId)) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
             setItems(parsed);
@@ -85,10 +88,27 @@ function CheckoutContent() {
   const serviceFee = isFreeTax ? 0 : 50000;
   const total = subtotal + appliedTax + serviceFee;
 
-  const handlePay = () => {
+  const handlePay = async () => {
     if (!paymentMethod || !agreed) return;
+    setPayError("");
     setProcessing(true);
-    setTimeout(() => {
+
+    // Someone else may have taken a booth while this page was open: check again before paying
+    try {
+      const localTaken: string[] = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booked_booths`) || "[]");
+      const remote = await getBoothsByEventFromSupabase(eventId);
+      const remoteTaken = remote.filter((b) => b.isBooked).map((b) => b.label);
+      const taken = new Set([...localTaken, ...remoteTaken]);
+      const clashes = items.filter((i) => taken.has(i.booth)).map((i) => i.booth);
+      if (clashes.length > 0) {
+        setProcessing(false);
+        setPayError(`Booth ${clashes.join(", ")} baru saja disewa tenant lain. Kembali ke denah untuk memilih booth lain.`);
+        return;
+      }
+    } catch { /* if the check cannot run, the booking below still records the booths */ }
+
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    {
       try {
         // Get tenant brand name & email
         const tenantProfile = JSON.parse(localStorage.getItem(`boothify_profile_${user?.email}`) || localStorage.getItem("boothify_tenant_profile") || "{}");
@@ -160,13 +180,15 @@ function CheckoutContent() {
         // Update organizer events stats: increase boothsFilled
         const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
         const updatedEvents = storedEvents.map((ev: { id: string; boothsFilled: number }) => {
-          if (ev.id === eventId) {
+          if (String(ev.id) === String(eventId)) {
             return { ...ev, boothsFilled: (ev.boothsFilled || 0) + items.length };
           }
           return ev;
         });
-        // Background sync ke Supabase
-        items.forEach(async (item) => {
+        localStorage.setItem("boothify_events", JSON.stringify(updatedEvents));
+
+        // Sync ke Supabase, waiting for each write so the success screen means it was saved
+        await Promise.all(items.map(async (item) => {
           try {
             const bookingId = `bk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
             await supabase.from("tenant_bookings").insert({
@@ -185,14 +207,14 @@ function CheckoutContent() {
           } catch (e) {
             console.error("Failed to sync booking to Supabase:", e);
           }
-        });
+        }));
       } catch (err) {
         console.error("Failed to save booking:", err);
       }
 
       setProcessing(false);
       setSuccess(true);
-    }, 1200);
+    }
   };
 
   if (success) {
@@ -397,6 +419,13 @@ function CheckoutContent() {
             </span>
           </label>
 
+          {payError && (
+            <div className="mt-4 p-3 rounded-lg bg-error/10 text-xs text-error leading-relaxed" role="alert">
+              {payError}{" "}
+              <Link href={`/events/${eventId}?tab=booths`} className="underline font-semibold">Pilih ulang booth</Link>
+            </div>
+          )}
+
           <button
             onClick={handlePay}
             disabled={!paymentMethod || !agreed || processing}
@@ -428,8 +457,9 @@ function CheckoutContent() {
                 onClick={() => setShowTermsModal(false)}
                 className="text-muted-foreground hover:text-foreground text-xl p-1"
                 id="close-terms-modal"
+              aria-label="Tutup"
               >
-
+                <Icon name="x" size={20} />
               </button>
             </div>
             <div className="space-y-3 text-xs text-muted-foreground leading-relaxed">
@@ -466,8 +496,9 @@ function CheckoutContent() {
                 onClick={() => setShowCancelModal(false)}
                 className="text-muted-foreground hover:text-foreground text-xl p-1"
                 id="close-cancel-modal"
+              aria-label="Tutup"
               >
-
+                <Icon name="x" size={20} />
               </button>
             </div>
             <div className="space-y-3 text-xs text-muted-foreground leading-relaxed">

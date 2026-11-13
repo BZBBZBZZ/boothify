@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../components/AuthContext";
 import Navbar from "../../components/Navbar";
 import { EVENT_CATEGORY_OPTIONS } from "../../lib/event-categories";
 import BrandMark from "../../components/BrandMark";
+import { homeForRole, safeNextPath } from "../../lib/auth-redirect";
 
 type Role = "tenant" | "organizer" | null;
 
@@ -14,6 +15,7 @@ function RegisterFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { register, user } = useAuth();
+  const next = safeNextPath(searchParams.get("next"));
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [role, setRole] = useState<Role>(null);
   const [error, setError] = useState("");
@@ -36,14 +38,19 @@ function RegisterFormContent() {
     }
   }, [searchParams]);
 
-  // Redirect if already logged in
+  // Already signed in with a real account: go to that account's home.
+  // A guest visitor (who only ordered food) may still create an account.
+  const signedIn = Boolean(user && user.role !== "guest");
+  // Set once this form signs someone in, so the form's own redirect (to `next`) is the one that wins
+  const submittedRef = useRef(false);
   useEffect(() => {
-    if (user) {
-      router.push(user.role === "organizer" ? "/dashboard/organizer" : "/dashboard/tenant");
+    if (submittedRef.current) return;
+    if (user && user.role !== "guest") {
+      router.replace(homeForRole(user.role));
     }
   }, [user, router]);
 
-  if (user) return null;
+  if (signedIn) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,11 +71,21 @@ function RegisterFormContent() {
         setError("Kata sandi minimal 8 karakter!");
         return;
       }
+      // Catch a taken email now, not after the whole profile is filled in
+      try {
+        const users = JSON.parse(localStorage.getItem("boothify_users") || "[]");
+        const taken = Array.isArray(users) && users.some((u: { email?: string }) => u.email?.toLowerCase() === formData.email.trim().toLowerCase());
+        if (taken) {
+          setError("Email sudah terdaftar. Silakan masuk atau gunakan email lain.");
+          return;
+        }
+      } catch { /* ignore */ }
       setStep(3);
       return;
     }
 
     // Step 3: Register
+    submittedRef.current = true;
     const result = register(
       {
         name: formData.name,
@@ -83,8 +100,9 @@ function RegisterFormContent() {
     );
 
     if (result.success) {
-      router.push(role === "organizer" ? "/dashboard/organizer" : "/dashboard/tenant");
+      router.replace(next || homeForRole(role ?? undefined));
     } else {
+      submittedRef.current = false;
       setError(result.message);
     }
   };
@@ -277,7 +295,7 @@ function RegisterFormContent() {
 
           <p className="text-center text-sm text-muted-foreground mt-8">
             Sudah punya akun?{" "}
-            <Link href="/auth/login" className="text-primary-light font-semibold hover:underline">Masuk di sini</Link>
+            <Link href={next ? `/auth/login?next=${encodeURIComponent(next)}` : "/auth/login"} className="text-primary-light font-semibold hover:underline">Masuk di sini</Link>
           </p>
         </div>
       </div>

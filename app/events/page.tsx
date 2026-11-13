@@ -48,7 +48,8 @@ export default function EventsPage() {
         if (Array.isArray(stored)) {
           const existingIds = new Set(combined.map((e) => e.id));
           const missing = stored
-            .filter((e: { id: string }) => !existingIds.has(String(e.id)))
+            // Drafts are private to their organizer until published
+            .filter((e: { id: string; status?: string }) => !existingIds.has(String(e.id)) && e.status !== "draft")
             .map((e: { id: string; title: string; date: string; location: string; category?: string; categories?: string[]; boothsFilled?: number; boothsTotal?: number; priceRange?: string; image?: string; gradient?: string }) => ({
               id: String(e.id),
               title: e.title,
@@ -212,7 +213,7 @@ export default function EventsPage() {
                   : "Coba kata kunci lain."}
               </p>
               {eventsList.length === 0 && (
-                <Link href="/auth/register" className="btn btn-primary btn-sm">Daftar sebagai Organizer</Link>
+                <Link href="/auth/register?role=organizer" className="btn btn-primary btn-sm">Daftar sebagai Organizer</Link>
               )}
             </div>
           )}

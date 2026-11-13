@@ -46,6 +46,7 @@ export default function TenantDashboard() {
 
   useEffect(() => {
     const email = user?.email || "";
+    if (!email) return;
 
     // 1. Load tenant bookings from Supabase
     getTenantBookingsFromSupabase(email).then((supabaseBookings) => {

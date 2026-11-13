@@ -23,7 +23,8 @@ type IconName =
   | "bell"
   | "clock"
   | "flame"
-  | "bank";
+  | "bank"
+  | "x";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
@@ -150,6 +151,12 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   flame: <path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.07-2.14 0-5.5 3-7 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 002.5 2.5z" />,
+  x: (
+    <>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </>
+  ),
   bank: (
     <>
       <path d="M3 10l9-6 9 6" />

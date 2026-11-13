@@ -57,8 +57,12 @@ export default function OrganizerDashboard() {
   const [inbox, setInbox] = useState<InboxMessage[]>([]);
 
   useEffect(() => {
-    // 1. Load Events from Supabase & Merge Local Storage
-    getEventsFromSupabase().then((supabaseEvents) => {
+    if (!email) return;
+    let cancelled = false;
+
+    async function load() {
+      // 1. Events: Supabase holds published events, localStorage also holds drafts
+      const supabaseEvents = await getEventsFromSupabase();
       let combinedEvents: EventItem[] = (supabaseEvents || []).map((e) => ({
         id: String(e.id),
         title: e.title,
@@ -69,59 +73,66 @@ export default function OrganizerDashboard() {
         organizerEmail: e.organizerEmail || "",
       }));
 
-      // Cek apakah ada event di localStorage yang belum masuk ke Supabase
       try {
-        const storedEventsRaw = localStorage.getItem("boothify_events");
-        if (storedEventsRaw) {
-          const localEvents = JSON.parse(storedEventsRaw);
-          if (Array.isArray(localEvents)) {
-            const existingIds = new Set(combinedEvents.map((e) => e.id));
-            const missing = localEvents.filter((le: { id: string }) => !existingIds.has(String(le.id)));
-            if (missing.length > 0) {
-              // Auto-sync missing events ke Supabase di background
-              missing.forEach((item) => {
-                saveEventToSupabase(item).catch(() => {});
-              });
-              const mappedMissing: EventItem[] = missing.map((e) => ({
-                id: String(e.id),
-                title: e.title,
-                date: e.date,
-                status: e.status || "active",
-                boothsFilled: e.boothsFilled || 0,
-                boothsTotal: e.boothsTotal || 30,
-                organizerEmail: e.organizerEmail || "",
-              }));
-              combinedEvents = [...mappedMissing, ...combinedEvents];
-            }
-          }
+        const localEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+        if (Array.isArray(localEvents)) {
+          const existingIds = new Set(combinedEvents.map((e) => e.id));
+          const missing = localEvents.filter((le: { id: string }) => !existingIds.has(String(le.id)));
+          // Published events missing from Supabase are synced; drafts stay private until published
+          missing
+            .filter((item: { status?: string }) => item.status !== "draft")
+            .forEach((item) => {
+              saveEventToSupabase(item).catch(() => {});
+            });
+          const mappedMissing: EventItem[] = missing.map((e) => ({
+            id: String(e.id),
+            title: e.title,
+            date: e.date,
+            status: e.status || "active",
+            boothsFilled: e.boothsFilled || 0,
+            boothsTotal: e.boothsTotal || 30,
+            organizerEmail: e.organizerEmail || "",
+          }));
+          combinedEvents = [...mappedMissing, ...combinedEvents];
         }
       } catch { /* ignore */ }
 
-      setEvents(combinedEvents.filter((e) => e.organizerEmail?.toLowerCase() === email.toLowerCase()));
-    });
+      const ownEvents = combinedEvents.filter((e) => e.organizerEmail?.toLowerCase() === email.toLowerCase());
+      const ownIds = new Set(ownEvents.map((e) => e.id));
+      if (cancelled) return;
+      setEvents(ownEvents);
 
-    // 2. Load Bookings from Supabase
-    getTenantBookingsFromSupabase().then((supabaseBookings) => {
+      // 2. Bookings: only those made for this organizer's own events
+      const supabaseBookings = await getTenantBookingsFromSupabase();
+      let ownBookings: BookingItem[] = [];
       if (supabaseBookings && supabaseBookings.length > 0) {
-        const mapped: BookingItem[] = supabaseBookings.map((b) => ({
-          tenant: b.tenantName || "Tenant",
-          event: b.event,
-          booth: b.booth,
-          amount: b.amount,
-          time: "Baru saja",
-          status: b.payment as "paid" | "unpaid",
-        }));
-        setBookings(mapped);
+        ownBookings = supabaseBookings
+          .filter((b) => ownIds.has(String(b.eventId)))
+          .map((b) => ({
+            tenant: b.tenantName || "Tenant",
+            eventId: String(b.eventId),
+            event: b.event,
+            booth: b.booth,
+            amount: b.amount,
+            time: "Baru saja",
+            status: b.payment as "paid" | "unpaid",
+          }));
       } else {
         try {
-          const storedBookingsRaw = localStorage.getItem("boothify_recent_bookings");
-          if (storedBookingsRaw) setBookings(JSON.parse(storedBookingsRaw));
+          const local = JSON.parse(localStorage.getItem("boothify_recent_bookings") || "[]");
+          if (Array.isArray(local)) {
+            ownBookings = local.filter((b: BookingItem) => ownIds.has(String(b.eventId)));
+          }
         } catch { /* ignore */ }
       }
-    });
+      if (!cancelled) setBookings(ownBookings);
+    }
 
-    // 3. Load Inbox Messages from Supabase
+    load();
+
+    // 3. Inbox: messages addressed to this organizer only
     getOrganizerMessagesFromSupabase(email).then((supabaseMessages) => {
+      if (cancelled) return;
       if (supabaseMessages && supabaseMessages.length > 0) {
         const mapped: InboxMessage[] = supabaseMessages.map((m) => ({
           id: m.id,
@@ -137,12 +148,18 @@ export default function OrganizerDashboard() {
         setInbox(mapped);
       } else {
         try {
-          const storedInboxRaw = localStorage.getItem("boothify_organizer_inbox");
-          if (storedInboxRaw) setInbox(JSON.parse(storedInboxRaw));
+          const storedInbox = JSON.parse(localStorage.getItem("boothify_organizer_inbox") || "[]");
+          if (Array.isArray(storedInbox)) {
+            setInbox(storedInbox.filter((m: InboxMessage) => !m.organizerEmail || m.organizerEmail.toLowerCase() === email.toLowerCase()));
+          }
         } catch { /* ignore */ }
       }
     });
-  }, [user, email]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [email]);
 
   const unreadCount = inbox.filter((m) => m.status === "unread").length;
 
@@ -176,8 +193,10 @@ export default function OrganizerDashboard() {
             <span className="text-2xl"><Icon name="calendar" size={24} /></span>
             <span className="text-[11px] text-primary-light font-medium">Event Aktif</span>
           </div>
-          <div className="text-2xl font-bold mb-1">{events.length}</div>
-          <div className="text-xs text-muted-foreground">Total Agenda Event</div>
+          <div className="text-2xl font-bold mb-1">{events.filter((e) => e.status !== "draft").length}</div>
+          <div className="text-xs text-muted-foreground">
+            Event diterbitkan{events.some((e) => e.status === "draft") ? `, ${events.filter((e) => e.status === "draft").length} draft` : ""}
+          </div>
         </div>
 
         <div className="stat-card">
@@ -254,27 +273,48 @@ export default function OrganizerDashboard() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Link
-                        href={`/events/${event.id}/guide`}
-                        onClick={() => setActiveOrganizerEventId(event.id)}
-                        className="btn btn-ghost btn-sm text-xs"
-                      >
-                        Lihat Panduan
-                      </Link>
-                      <Link
-                        href={`/dashboard/organizer/events/${event.id}/qr-code`}
-                        onClick={() => setActiveOrganizerEventId(event.id)}
-                        className="btn btn-secondary btn-sm text-xs"
-                      >
-                        QR
-                      </Link>
-                      <Link
-                        href={`/dashboard/organizer/events/${event.id}/floor-plan`}
-                        onClick={() => setActiveOrganizerEventId(event.id)}
-                        className="btn btn-primary btn-sm text-xs"
-                      >
-                        Denah Booth
-                      </Link>
+                      {event.status === "draft" ? (
+                        <>
+                          <Link
+                            href={`/dashboard/organizer/events/${event.id}/edit`}
+                            onClick={() => setActiveOrganizerEventId(event.id)}
+                            className="btn btn-ghost btn-sm text-xs"
+                          >
+                            Edit Info
+                          </Link>
+                          <Link
+                            href={`/dashboard/organizer/events/${event.id}/floor-plan`}
+                            onClick={() => setActiveOrganizerEventId(event.id)}
+                            className="btn btn-primary btn-sm text-xs"
+                          >
+                            Lanjutkan Denah &amp; Terbitkan
+                          </Link>
+                        </>
+                      ) : (
+                        <>
+                          <Link
+                            href={`/events/${event.id}`}
+                            onClick={() => setActiveOrganizerEventId(event.id)}
+                            className="btn btn-ghost btn-sm text-xs"
+                          >
+                            Lihat Halaman
+                          </Link>
+                          <Link
+                            href={`/dashboard/organizer/events/${event.id}/qr-code`}
+                            onClick={() => setActiveOrganizerEventId(event.id)}
+                            className="btn btn-secondary btn-sm text-xs"
+                          >
+                            QR
+                          </Link>
+                          <Link
+                            href={`/dashboard/organizer/events/${event.id}/floor-plan`}
+                            onClick={() => setActiveOrganizerEventId(event.id)}
+                            className="btn btn-primary btn-sm text-xs"
+                          >
+                            Denah Booth
+                          </Link>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}

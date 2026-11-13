@@ -1,56 +1,48 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../components/AuthContext";
+import { homeForRole, safeNextPath } from "../../lib/auth-redirect";
 import Navbar from "../../components/Navbar";
 import BrandMark from "../../components/BrandMark";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = safeNextPath(searchParams.get("next"));
   const { login, user } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  // Redirect if already logged in
+  // Already signed in with a real account: go to that account's home.
+  // A visitor who only ordered as a guest can still sign in or register.
+  const signedIn = Boolean(user && user.role !== "guest");
+  // Set once this form signs someone in, so the form's own redirect (to `next`) is the one that wins
+  const submittedRef = useRef(false);
   useEffect(() => {
-    if (user) {
-      if (user.role === "admin") {
-        router.push("/dashboard/admin");
-      } else if (user.role === "organizer") {
-        router.push("/dashboard/organizer");
-      } else if (user.role === "tenant") {
-        router.push("/dashboard/tenant");
-      } else {
-        router.push("/events/1/guide");
-      }
+    if (submittedRef.current) return;
+    if (user && user.role !== "guest") {
+      router.replace(homeForRole(user.role));
     }
   }, [user, router]);
 
-  if (user) return null;
+  if (signedIn) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    submittedRef.current = true;
     const result = login(email, password);
+    if (!result.success) submittedRef.current = false;
     if (result.success) {
-      // Re-read user from localStorage to get role for redirect
+      // Read the role just stored, then return to where the person was heading
       const storedUser = localStorage.getItem("boothify_current_user");
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        if (userData.role === "admin") {
-          router.push("/dashboard/admin");
-        } else if (userData.role === "organizer") {
-          router.push("/dashboard/organizer");
-        } else if (userData.role === "tenant") {
-          router.push("/dashboard/tenant");
-        } else {
-          router.push("/events/1/guide");
-        }
-      }
+      const role = storedUser ? JSON.parse(storedUser).role : undefined;
+      router.replace(next || homeForRole(role));
     } else {
       setError(result.message);
     }
@@ -100,7 +92,9 @@ export default function LoginPage() {
           </div>
 
           <h1 className="text-2xl font-bold mb-2">Masuk ke Akun</h1>
-          <p className="text-muted-foreground text-sm mb-8">Masukkan email dan kata sandi untuk melanjutkan</p>
+          <p className="text-muted-foreground text-sm mb-8">
+            {next ? "Masuk dulu untuk melanjutkan ke halaman yang kamu buka." : "Masukkan email dan kata sandi untuk melanjutkan"}
+          </p>
 
           {/* Error message */}
           {error && (
@@ -178,7 +172,7 @@ export default function LoginPage() {
           {/* Register link */}
           <p className="text-center text-sm text-muted-foreground mt-6">
             Belum punya akun?{" "}
-            <Link href="/auth/register" className="text-primary-light font-semibold hover:underline">
+            <Link href={next ? `/auth/register?next=${encodeURIComponent(next)}` : "/auth/register"} className="text-primary-light font-semibold hover:underline">
               Daftar sekarang
             </Link>
           </p>
@@ -186,5 +180,13 @@ export default function LoginPage() {
       </div>
       </div>
     </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted-foreground">Memuat halaman masuk...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

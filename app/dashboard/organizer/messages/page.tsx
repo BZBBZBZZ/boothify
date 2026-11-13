@@ -30,8 +30,10 @@ export default function OrganizerMessagesPage() {
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
   useEffect(() => {
+    if (!email) return;
     async function loadMessages() {
-      const sbMsgs = await getOrganizerMessagesFromSupabase();
+      // Only messages sent to this organizer
+      const sbMsgs = await getOrganizerMessagesFromSupabase(email);
       if (sbMsgs && sbMsgs.length > 0) {
         setMessages(
           sbMsgs.map((m) => ({
@@ -53,7 +55,11 @@ export default function OrganizerMessagesPage() {
       try {
         const storedInbox = JSON.parse(localStorage.getItem("boothify_organizer_inbox") || "[]");
         if (Array.isArray(storedInbox) && storedInbox.length > 0) {
-          setMessages(storedInbox);
+          setMessages(
+            storedInbox.filter(
+              (m: InboxMessage) => !m.organizerEmail || m.organizerEmail.toLowerCase() === email.toLowerCase()
+            )
+          );
         }
       } catch {
         // ignore
@@ -68,7 +74,16 @@ export default function OrganizerMessagesPage() {
 
   const updateMessages = (nextMessages: InboxMessage[]) => {
     setMessages(nextMessages);
-    localStorage.setItem("boothify_organizer_inbox", JSON.stringify(nextMessages));
+    // Write back into the shared inbox without dropping other organizers' messages
+    try {
+      const stored = JSON.parse(localStorage.getItem("boothify_organizer_inbox") || "[]");
+      const others = Array.isArray(stored)
+        ? stored.filter((m: InboxMessage) => !nextMessages.some((n) => n.id === m.id) && !messages.some((o) => o.id === m.id))
+        : [];
+      localStorage.setItem("boothify_organizer_inbox", JSON.stringify([...nextMessages, ...others]));
+    } catch {
+      localStorage.setItem("boothify_organizer_inbox", JSON.stringify(nextMessages));
+    }
   };
 
   const markAsRead = (id: string) => {

@@ -58,13 +58,11 @@ export default function Navbar() {
           </div>
           {/* Account */}
           <div className="site-nav-account">
-            {user ? (
+            {user && user.role !== "guest" ? (
               <>
-                {user.role !== "guest" && (
-                  <Link href={dashboardLink} className="site-nav-link" id="nav-dashboard">
+                <Link href={dashboardLink} className="site-nav-link" id="nav-dashboard">
                     Dashboard
                   </Link>
-                )}
                 <div className="site-nav-user">
                   <span className="site-nav-avatar" aria-hidden="true">
                     {user.name.charAt(0).toUpperCase()}
@@ -130,13 +128,11 @@ export default function Navbar() {
             <Link href="/#how-it-works" className="site-nav-drawer-link" onClick={() => setMobileOpen(false)}>
               Cara Kerja
             </Link>
-            {user ? (
+            {user && user.role !== "guest" ? (
               <>
-                {user.role !== "guest" && (
-                  <Link href={dashboardLink} className="site-nav-drawer-link" onClick={() => setMobileOpen(false)}>
+                <Link href={dashboardLink} className="site-nav-drawer-link" onClick={() => setMobileOpen(false)}>
                     Dashboard
                   </Link>
-                )}
                 <div className="site-nav-user site-nav-drawer-user">
                   <span className="site-nav-avatar" aria-hidden="true">
                     {user.name.charAt(0).toUpperCase()}

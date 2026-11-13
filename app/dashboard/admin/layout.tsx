@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/components/AuthContext";
+import { homeForRole, loginUrlFor } from "@/app/lib/auth-redirect";
 import Icon from "../../components/Icon";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -40,11 +41,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </p>
           <div className="flex flex-col gap-2.5">
             <Link
-              href="/auth/login"
+              href={user && user.role !== "guest" ? homeForRole(user.role) : loginUrlFor("/dashboard/admin")}
               className="btn btn-primary w-full text-xs py-2.5 shadow-md"
               id="admin-login-redirect-btn"
             >
-              Masuk sebagai Admin
+              {user && user.role !== "guest" ? "Kembali ke Dashboard Saya" : "Masuk sebagai Admin"}
             </Link>
             <button
               type="button"

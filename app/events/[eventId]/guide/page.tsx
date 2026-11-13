@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { useAuth } from "../../../components/AuthContext";
 import Navbar from "../../../components/Navbar";
 import {
@@ -161,6 +160,13 @@ function EventGuideContent() {
   };
 
   const addToCart = (boothId: string, name: string, price: number) => {
+    // One order goes to one booth (it is collected there), so the cart holds one booth at a time
+    const otherBooth = cart.find((i) => i.boothId !== boothId);
+    if (otherBooth) {
+      setCartToast(`Keranjang berisi pesanan dari booth ${otherBooth.boothId}. Selesaikan atau kosongkan dulu sebelum memesan dari booth lain.`);
+      window.setTimeout(() => setCartToast(null), 4500);
+      return;
+    }
     setCart((prev) => {
       const existing = prev.find((i) => i.boothId === boothId && i.name === name);
       if (existing) {
@@ -201,11 +207,10 @@ function EventGuideContent() {
 
     // 1. Snapshot cart items & total BEFORE clearing cart
     const purchasedItems = cart.map((i) => ({ ...i }));
-    const rawTotal = purchasedItems.reduce((sum, i) => sum + i.price * i.qty, 0);
-    const purchasedTotal = rawTotal > 0 ? rawTotal : 185000;
+    const purchasedTotal = purchasedItems.reduce((sum, i) => sum + i.price * i.qty, 0);
 
     // 2. Identify target booth & tenant
-    const firstBoothId = purchasedItems[0]?.boothId || "A1";
+    const firstBoothId = purchasedItems[0].boothId;
     const targetTenant = tenantsMap[firstBoothId];
     let targetTenantEmail = targetTenant?.tenantEmail || "";
 
@@ -234,13 +239,13 @@ function EventGuideContent() {
       booth: firstBoothId,
       items: purchasedItems,
       total: purchasedTotal,
-      customer: user?.name || guestName || "Andi Pengunjung",
-      phone: user?.phone || guestPhone || "+62 811 2233 4455",
+      customer: user?.name || guestName || "Pengunjung",
+      phone: user?.phone || guestPhone || "",
       method: selectedPaymentMethod,
       time: "Baru saja",
       status: "pending" as const,
       tenantEmail: targetTenantEmail,
-      tenantName: targetTenant?.name || (firstBoothId === "A1" ? "EcoWear Studio" : `Booth ${firstBoothId}`),
+      tenantName: targetTenant?.name || `Booth ${firstBoothId}`,
     };
 
     try {
@@ -622,8 +627,8 @@ function EventGuideContent() {
                   <p className="text-xs text-muted-foreground">Booth {selectedBooth.id} • {selectedBooth.category}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedBooth(null)} className="btn btn-ghost btn-icon">
-
+              <button onClick={() => setSelectedBooth(null)} className="btn btn-ghost btn-icon" aria-label="Tutup">
+                <Icon name="x" size={20} />
               </button>
             </div>
 
@@ -631,7 +636,7 @@ function EventGuideContent() {
 
             {cartToast && (
               <button type="button" onClick={() => { setCartToast(null); setShowCart(true); }} className="w-full text-left p-3 rounded-xl mb-5 bg-primary/10 border border-primary/30 text-sm animate-fade-in" id="cart-toast">
-                <span className="font-semibold text-primary-light">Produk berhasil ditambahkan ke keranjang.</span>
+                <span className="font-semibold text-primary-light">{cartToast}</span>
                 <span className="block text-xs text-muted-foreground mt-1">Ketuk untuk melihat keranjang Anda</span>
               </button>
             )}
@@ -764,8 +769,9 @@ function EventGuideContent() {
               <button
                 onClick={() => setShowMiniWebsite(false)}
                 className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center text-sm"
+              aria-label="Tutup"
               >
-
+                <Icon name="x" size={20} />
               </button>
               <div
                 className="w-20 h-20 rounded-2xl flex items-center justify-center font-bold text-2xl shadow-xl"
@@ -851,15 +857,14 @@ function EventGuideContent() {
           <div className="modal-content max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-base">Keranjang Pesanan</h3>
-              <button onClick={() => setShowCart(false)} className="btn btn-ghost btn-icon">
-
+              <button onClick={() => setShowCart(false)} className="btn btn-ghost btn-icon" aria-label="Tutup">
+                <Icon name="x" size={20} />
               </button>
             </div>
 
             {cartToast && (
               <div className="p-3 rounded-xl mb-4 bg-primary/10 border border-primary/30 text-sm animate-fade-in" id="cart-toast-drawer">
-                <p className="font-semibold text-primary-light">Produk berhasil ditambahkan ke keranjang.</p>
-                <p className="text-xs text-muted-foreground mt-1">Pesanan Anda sudah tercatat di keranjang ini.</p>
+                <p className="font-semibold text-primary-light">{cartToast}</p>
               </div>
             )}
 
@@ -878,8 +883,8 @@ function EventGuideContent() {
                     <button onClick={() => updateQty(item.boothId, item.name, 1)} className="w-6 h-6 rounded bg-foreground/5 flex items-center justify-center text-xs">
                       +
                     </button>
-                    <button onClick={() => removeFromCart(item.boothId, item.name)} className="text-xs text-error ml-2">
-
+                    <button onClick={() => removeFromCart(item.boothId, item.name)} className="text-xs text-error ml-2" aria-label="Tutup">
+                      <Icon name="x" size={20} />
                     </button>
                   </div>
                 </div>

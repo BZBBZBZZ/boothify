@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/components/AuthContext";
 import { EVENT_CATEGORY_OPTIONS, getEventCategoryValue } from "@/app/lib/event-categories";
 import { ASIA_LOCATIONS } from "@/app/lib/asia-locations";
-import { saveEventToSupabase } from "@/app/lib/supabase-service";
 
 export default function CreateEventPage() {
   const router = useRouter();
@@ -33,90 +32,71 @@ export default function CreateEventPage() {
     categories: [] as string[],
   });
 
-  const handleSaveDraft = async () => {
-    setSubmitting(true);
-    const eventId = String(Date.now());
-    const draftEvent = {
-      id: eventId,
-      title: formData.name || "Draft Event Baru",
-      date: formData.date_start ? `${formData.date_start} – ${formData.date_end || formData.date_start}` : "Belum ditentukan",
-      time: `${formData.time_start} - ${formData.time_end}`,
-      status: "draft",
-      boothsFilled: 0,
-      boothsTotal: 40,
-      location: formData.location || "Belum ditentukan",
-      country: formData.country || "Indonesia",
-      province: formData.province,
-      city: formData.city,
-      address: formData.address || "",
-      category: formData.categories.filter((category) => category !== "all").join(", ") || "Umum",
-      categories: formData.categories,
-      categoryKeys: formData.categories.filter((category) => category !== "all").map(getEventCategoryValue),
-      description: formData.description,
-      organizer: organizerName,
-      organizerEmail: organizerEmail,
-      priceRange: "Rp 2.000.000 – Rp 4.500.000",
-      image: "🎪",
-    };
+  const [formError, setFormError] = useState("");
 
-    try {
-      // 1. Simpan langsung ke Supabase
-      await saveEventToSupabase(draftEvent);
+  // A new event stays a private draft until the organizer publishes it from the floor plan builder
+  const buildDraft = (eventId: string) => ({
+    id: eventId,
+    title: formData.name || "Draft Event Baru",
+    date: formData.date_start ? `${formData.date_start} s/d ${formData.date_end || formData.date_start}` : "Belum ditentukan",
+    time: `${formData.time_start} - ${formData.time_end}`,
+    status: "draft",
+    boothsFilled: 0,
+    boothsTotal: 0,
+    location: formData.location || "Belum ditentukan",
+    country: formData.country || "Indonesia",
+    province: formData.province,
+    city: formData.city,
+    address: formData.address || "",
+    category: formData.categories.filter((category) => category !== "all").join(", ") || "Umum",
+    categories: formData.categories,
+    categoryKeys: formData.categories.filter((category) => category !== "all").map(getEventCategoryValue),
+    description: formData.description || "Pameran & expo booth interaktif.",
+    organizer: organizerName,
+    organizerEmail: organizerEmail,
+    priceRange: "Rp 2.000.000 – Rp 4.500.000",
+    image: "🎪",
+    theme: formData.theme,
+    guidelines: formData.guidelines,
+  });
 
-      // 2. Simpan juga ke localStorage
-      const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-      stored.unshift(draftEvent);
-      localStorage.setItem("boothify_events", JSON.stringify(stored));
-    } catch {
-      // ignore
+  const storeDraft = (draft: ReturnType<typeof buildDraft>) => {
+    const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+    stored.unshift(draft);
+    localStorage.setItem("boothify_events", JSON.stringify(stored));
+  };
+
+  const handleSaveDraft = () => {
+    if (submitting) return;
+    if (!formData.name.trim()) {
+      setFormError("Isi nama event dulu sebelum menyimpan draft.");
+      return;
     }
+    setSubmitting(true);
+    try {
+      storeDraft(buildDraft(String(Date.now())));
+    } catch { /* ignore */ }
     router.push("/dashboard/organizer");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    setFormError("");
+    if (formData.date_end && formData.date_start && formData.date_end < formData.date_start) {
+      setFormError("Tanggal selesai tidak boleh sebelum tanggal mulai.");
+      return;
+    }
+    if (formData.categories.filter((category) => category !== "all").length === 0) {
+      setFormError("Pilih minimal satu kategori event.");
+      return;
+    }
     setSubmitting(true);
     const eventId = String(Date.now());
     try {
-      const categoryFromTheme = formData.categories.filter((category) => category !== "all").join(", ") || "Umum";
-      const categoryKeys = formData.categories.filter((category) => category !== "all").map(getEventCategoryValue);
-
-      const newEvent = {
-        id: eventId,
-        title: formData.name || "Event Baru",
-        date: formData.date_start ? `${formData.date_start} s/d ${formData.date_end || formData.date_start}` : "Nov 2026",
-        time: `${formData.time_start} - ${formData.time_end}`,
-        status: "active",
-        category: categoryFromTheme,
-        categories: formData.categories,
-        categoryKeys,
-        boothsFilled: 0,
-        boothsTotal: 30,
-        location: formData.location || "Venue Acara",
-        country: formData.country || "Indonesia",
-        province: formData.province,
-        city: formData.city,
-        address: formData.address || "",
-        description: formData.description || "Pameran & expo booth interaktif.",
-        organizer: organizerName,
-        organizerEmail: organizerEmail,
-        priceRange: "Rp 2.000.000 – Rp 4.500.000",
-        image: "🎪",
-        theme: formData.theme,
-        guidelines: formData.guidelines,
-      };
-
-      // 1. Simpan langsung ke Supabase
-      await saveEventToSupabase(newEvent);
-
-      // 2. Simpan juga ke localStorage
-      const stored = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-      stored.unshift(newEvent);
-      localStorage.setItem("boothify_events", JSON.stringify(stored));
-      router.push(`/dashboard/organizer/events/${eventId}/floor-plan`);
-    } catch {
-      router.push(`/dashboard/organizer/events/${eventId}/floor-plan`);
-    }
+      storeDraft(buildDraft(eventId));
+    } catch { /* ignore */ }
+    router.push(`/dashboard/organizer/events/${eventId}/floor-plan`);
   };
 
   const update = (key: string, value: string | string[]) =>
@@ -126,7 +106,9 @@ export default function CreateEventPage() {
     <div className="animate-fade-in" id="create-event-page">
       <div className="mb-8">
         <h1 className="text-2xl font-bold mb-1">Buat Event Baru</h1>
-        <p className="text-sm text-muted-foreground">Isi detail acara untuk mulai menerima pendaftaran booth</p>
+        <p className="text-sm text-muted-foreground">
+          Langkah 1 dari 2: isi detail acara. Langkah berikutnya menata denah booth, lalu event diterbitkan.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
@@ -253,7 +235,7 @@ export default function CreateEventPage() {
             <label htmlFor="event-theme" className="block text-sm font-medium mb-2">Tema / Campaign</label>
             <input id="event-theme" type="text" className="input-base" placeholder="Sustainable Fashion, Green Living, dll." value={formData.theme} onChange={(e) => update("theme", e.target.value)} />
             <p className="text-xs text-muted-foreground mt-1">
-              Gunakan <a href="/dashboard/organizer/events/1/ai-campaign" className="text-primary-light underline">AI Campaign Generator</a> untuk mendapatkan rekomendasi tema
+              Setelah event dibuat, buka AI Campaign Generator di menu samping untuk rekomendasi tema.
             </p>
           </div>
 
@@ -301,15 +283,19 @@ export default function CreateEventPage() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-3">
-          <button type="submit" className="btn btn-primary btn-lg" id="create-event-submit">
-            Lanjut ke Floor Plan Builder
+        {formError && (
+          <p className="text-sm text-error" role="alert">{formError}</p>
+        )}
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="submit" className="btn btn-primary btn-lg" id="create-event-submit" disabled={submitting}>
+            {submitting ? "Menyimpan..." : "Lanjut ke Denah Booth"}
           </button>
           <button
             type="button"
             onClick={handleSaveDraft}
             className="btn btn-secondary btn-lg"
             id="save-event-draft"
+            disabled={submitting}
           >
             Simpan sebagai Draft
           </button>

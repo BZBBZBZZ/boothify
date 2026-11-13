@@ -474,8 +474,9 @@ export default function OrganizerCampaignsPage() {
                 type="button"
                 onClick={() => setSelectedCampaign(null)}
                 className="text-muted-foreground hover:text-foreground text-lg cursor-pointer"
+              aria-label="Tutup"
               >
-
+                <Icon name="x" size={20} />
               </button>
             </div>
 

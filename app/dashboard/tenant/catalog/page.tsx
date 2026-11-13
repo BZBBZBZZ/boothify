@@ -735,8 +735,9 @@ export default function CatalogPage() {
                 onClick={() => setShowAddMediaModal(false)}
                 className="text-muted-foreground hover:text-foreground text-xl p-1"
                 id="close-add-media-modal"
+              aria-label="Tutup"
               >
-
+                <Icon name="x" size={20} />
               </button>
             </div>
             <form

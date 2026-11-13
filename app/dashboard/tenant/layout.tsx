@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "../../components/AuthContext";
 import BrandMark from "../../components/BrandMark";
+import { homeForRole, loginUrlFor } from "../../lib/auth-redirect";
 
 const NAV_ITEMS = [
   { href: "/dashboard/tenant", label: "Dashboard", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg> },
@@ -49,16 +50,31 @@ function TenantLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, logout, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const currentPath = usePathname();
   useEffect(() => {
-    if (!isLoading && (!user || user.role !== "tenant")) {
-      router.push("/auth/login");
+    if (isLoading) return;
+    if (!user || user.role === "guest") {
+      // Not signed in: sign in, then come back to this page
+      router.replace(loginUrlFor(currentPath));
+    } else if (user.role !== "tenant") {
+      // Signed in with another role: send them to their own dashboard
+      router.replace(homeForRole(user.role));
     }
-  }, [isLoading, user, router]);
+  }, [isLoading, user, router, currentPath]);
 
   const handleLogout = () => {
     logout();
     router.push("/");
   };
+
+  // Hold the dashboard until the account is known, so pages never load data for the wrong person
+  if (isLoading || !user || user.role !== "tenant") {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
+        Memeriksa akun...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row" id="tenant-dashboard">
@@ -107,9 +123,6 @@ function TenantLayoutContent({ children }: { children: React.ReactNode }) {
             <div className="px-3 py-2 mb-2 rounded-xl bg-foreground/[0.03] border border-foreground/[0.05]">
               <p className="text-xs font-semibold truncate text-foreground">{user.name}</p>
               <p className="text-[11px] text-muted-foreground truncate">{user.businessName || user.email}</p>
-              {user.role === "organizer" && (
-                <span className="badge badge-accent text-[9px] mt-1.5 inline-block py-0.5">Mode Organizer (Simulasi)</span>
-              )}
             </div>
           )}
           <button onClick={handleLogout} className="sidebar-link text-xs w-full text-primary hover:bg-foreground/10 transition">

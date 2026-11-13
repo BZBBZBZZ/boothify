@@ -50,6 +50,7 @@ export default function TenantBookingsAndOrdersPage() {
   // Load from localStorage scoped to user
   useEffect(() => {
     const email = user?.email || "";
+    if (!email) return;
 
     // 1. Load tenant bookings from Supabase
     getTenantBookingsFromSupabase(email).then((supabaseBookings) => {
@@ -430,8 +431,9 @@ export default function TenantBookingsAndOrdersPage() {
             <button
               onClick={() => setSelectedPass(null)}
               className="absolute top-4 right-4 text-muted-foreground hover:text-foreground text-lg"
+            aria-label="Tutup"
             >
-
+              <Icon name="x" size={20} />
             </button>
 
             <span className="badge badge-primary text-[10px] mb-2">Official tenant pass</span>

@@ -6,6 +6,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "../../components/AuthContext";
 
 import BrandMark from "../../components/BrandMark";
+import { homeForRole, loginUrlFor } from "../../lib/auth-redirect";
 import {
   getAllOrganizerEvents,
   getActiveOrganizerEventId,
@@ -16,7 +17,7 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
-  const [activeEventId, setActiveEventId] = useState("1");
+  const [activeEventId, setActiveEventId] = useState("");
   const [eventsList, setEventsList] = useState<Array<{ id: string; title: string; category: string }>>([]);
 
   useEffect(() => {
@@ -35,7 +36,7 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
         setActiveEventId(list[0].id);
         setActiveOrganizerEventId(list[0].id);
       } else {
-        setActiveEventId(stored || (list[0]?.id || "1"));
+        setActiveEventId(stored || list[0]?.id || "");
       }
     }
   }, [pathname, user?.email]);
@@ -59,6 +60,12 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
     }
     if (onNavigate) onNavigate();
   };
+
+  // Event tools need an event: without one, they lead to creating it
+  const eventHref = (tool: string) =>
+    activeEventId && eventsList.some((e) => e.id === activeEventId)
+      ? `/dashboard/organizer/events/${activeEventId}/${tool}`
+      : "/dashboard/organizer/events/new";
 
   const navItems = [
     {
@@ -87,7 +94,7 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
       ),
     },
     {
-      href: `/dashboard/organizer/events/${activeEventId}/floor-plan`,
+      href: eventHref("floor-plan"),
       label: "Floor Plan",
       isActive: pathname.includes("/floor-plan"),
       icon: (
@@ -99,7 +106,7 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
       ),
     },
     {
-      href: `/dashboard/organizer/events/${activeEventId}/ai-campaign`,
+      href: eventHref("ai-campaign"),
       label: "AI Campaign",
       isActive: pathname.includes("/ai-campaign"),
       icon: (
@@ -111,7 +118,7 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
       ),
     },
     {
-      href: `/dashboard/organizer/events/${activeEventId}/qr-code`,
+      href: eventHref("qr-code"),
       label: "QR Code",
       isActive: pathname.includes("/qr-code"),
       icon: (
@@ -167,7 +174,7 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
         <div className="p-2.5 rounded-xl bg-foreground/[0.04] border border-foreground/[0.08] text-xs">
           <div className="flex items-center justify-between mb-1.5 text-muted-foreground font-medium text-[11px]">
             <span>Acara Aktif</span>
-            <span className="badge badge-primary text-[9px] py-0 px-1.5">ID #{activeEventId}</span>
+            {activeEventId && <span className="badge badge-primary text-[9px] py-0 px-1.5">ID #{activeEventId}</span>}
           </div>
           <select
             value={activeEventId}
@@ -191,7 +198,7 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
       <div className="space-y-1">
         {navItems.map((item) => (
           <Link
-            key={item.href}
+            key={item.label}
             href={item.href}
             className={`sidebar-link ${item.isActive ? "active" : ""} flex items-center justify-between`}
             onClick={onNavigate}
@@ -216,7 +223,7 @@ function NavFallback() {
     <div className="space-y-1">
       <Link href="/dashboard/organizer" className="sidebar-link active">Dashboard</Link>
       <Link href="/dashboard/organizer/events/new" className="sidebar-link">Buat Event</Link>
-      <Link href="/dashboard/organizer/events/1/floor-plan" className="sidebar-link">Floor Plan</Link>
+      <Link href="/dashboard/organizer/events/new" className="sidebar-link">Floor Plan</Link>
     </div>
   );
 }
@@ -227,16 +234,31 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Auth guard
+  const currentPath = usePathname();
   useEffect(() => {
-    if (!isLoading && (!user || user.role !== "organizer")) {
-      router.push("/auth/login");
+    if (isLoading) return;
+    if (!user || user.role === "guest") {
+      // Not signed in: sign in, then come back to this page
+      router.replace(loginUrlFor(currentPath));
+    } else if (user.role !== "organizer") {
+      // Signed in with another role: send them to their own dashboard
+      router.replace(homeForRole(user.role));
     }
-  }, [isLoading, user, router]);
+  }, [isLoading, user, router, currentPath]);
 
   const handleLogout = () => {
     logout();
     router.push("/");
   };
+
+  // Hold the dashboard until the account is known, so pages never load data for the wrong person
+  if (isLoading || !user || user.role !== "organizer") {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
+        Memeriksa akun...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row" id="organizer-dashboard">
@@ -287,9 +309,6 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
             <div className="px-3 py-2 mb-2 rounded-xl bg-foreground/[0.03] border border-foreground/[0.05]">
               <p className="text-xs font-semibold truncate text-foreground">{user.name}</p>
               <p className="text-[11px] text-muted-foreground truncate">{user.businessName || user.email}</p>
-              {user.role === "tenant" && (
-                <span className="badge badge-accent text-[9px] mt-1.5 inline-block py-0.5">Mode Tenant (Simulasi)</span>
-              )}
             </div>
           )}
           <button onClick={handleLogout} className="sidebar-link text-xs w-full text-primary hover:bg-foreground/10 transition">

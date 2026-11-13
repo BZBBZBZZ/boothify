@@ -12,7 +12,7 @@ import {
   EventZone,
 } from "@/app/lib/event-defaults";
 import { useAuth } from "@/app/components/AuthContext";
-import { saveFloorPlanBoothsToSupabase } from "@/app/lib/supabase-service";
+import { saveFloorPlanBoothsToSupabase, saveEventToSupabase, getEventByIdFromSupabase, getBoothsByEventFromSupabase } from "@/app/lib/supabase-service";
 import Icon from "../../../../../components/Icon";
 
 type Booth = {
@@ -98,24 +98,60 @@ function FloorPlanContent() {
   const [boothQuantity, setBoothQuantity] = useState(1);
   const [openPanels, setOpenPanels] = useState<Record<string, boolean>>({});
   const [saved, setSaved] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [metaLoaded, setMetaLoaded] = useState(false);
+  const [eventStatus, setEventStatus] = useState<string>("active");
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // Load from localStorage on mount & when eventId changes
   useEffect(() => {
+    let cancelled = false;
     try {
       setActiveOrganizerEventId(eventId);
-      setEventMeta(getEventMeta(eventId));
       setAllEvents(getAllOrganizerEvents(user?.email));
+
+      // Event details: this device first (drafts live here), then the published copy in Supabase
+      const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+      const localEvent = Array.isArray(storedEvents) ? storedEvents.find((e: { id: string }) => String(e.id) === String(eventId)) : null;
+      if (localEvent) {
+        setEventMeta(getEventMeta(eventId));
+        setEventStatus(localEvent.status || "active");
+        setMetaLoaded(true);
+      } else {
+        getEventByIdFromSupabase(eventId).then((remote) => {
+          if (cancelled) return;
+          if (remote) {
+            setEventMeta(remote);
+            setEventStatus("active");
+          }
+          setMetaLoaded(true);
+        });
+      }
+
+      // Booths: the layout saved on this device, else the published layout, else a starter grid
+      const hasLocalLayout = localStorage.getItem(`boothify_event_${eventId}_booths`) !== null;
       const initialized = ensureEventFloorPlanInitialized(eventId);
       setBooths(initialized.booths);
+      if (!hasLocalLayout) {
+        getBoothsByEventFromSupabase(eventId).then((remoteBooths) => {
+          if (!cancelled && remoteBooths && remoteBooths.length > 0) setBooths(remoteBooths as Booth[]);
+        });
+      }
       const storedZones = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_zones`) || "null");
       setZones(Array.isArray(storedZones) && storedZones.length > 0 ? storedZones : ZONES);
       const storedObjects = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_objects`) || "[]");
       setLayoutObjects(Array.isArray(storedObjects) ? storedObjects : []);
     } catch { /* ignore */ }
+    return () => {
+      cancelled = true;
+    };
   }, [eventId, user?.email]);
 
-  const saveFloorPlan = async () => {
+  const isDraft = eventStatus === "draft";
+
+  // Save the layout. Publishing also makes the event public: its details go to Supabase first,
+  // then its booths (the booths table needs the event row to exist).
+  const saveFloorPlan = async (publish = false) => {
     try {
       localStorage.setItem(`boothify_event_${eventId}_booths`, JSON.stringify(booths));
       localStorage.setItem("boothify_floor_plan", JSON.stringify(booths));
@@ -123,10 +159,22 @@ function FloorPlanContent() {
       localStorage.setItem(`boothify_event_${eventId}_objects`, JSON.stringify(layoutObjects));
       // Update boothsTotal on event
       const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+      const nextStatus = publish ? "active" : eventStatus;
       const updatedEvents = storedEvents.map((ev: { id: string; boothsTotal: number; status: string }) =>
-        ev.id === eventId ? { ...ev, boothsTotal: booths.length, status: "active" } : ev
+        String(ev.id) === String(eventId) ? { ...ev, boothsTotal: booths.length, status: nextStatus } : ev
       );
       localStorage.setItem("boothify_events", JSON.stringify(updatedEvents));
+      if (publish) setEventStatus("active");
+
+      // A draft stays on this device until it is published
+      if (nextStatus === "draft") {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+        return;
+      }
+
+      const thisEvent = updatedEvents.find((ev: { id: string }) => String(ev.id) === String(eventId));
+      await saveEventToSupabase({ ...eventMeta, ...(thisEvent || {}), id: String(eventId), title: (thisEvent?.title || eventMeta.title), boothsTotal: booths.length });
 
       // Sync booths ke database Supabase
       await saveFloorPlanBoothsToSupabase(
@@ -149,8 +197,10 @@ function FloorPlanContent() {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handlePublishAndGetQR = () => {
-    saveFloorPlan();
+  const handlePublishAndGetQR = async () => {
+    if (publishing) return;
+    setPublishing(true);
+    await saveFloorPlan(true);
     router.push(`/dashboard/organizer/events/${eventId}/qr-code`);
   };
 
@@ -348,6 +398,10 @@ function FloorPlanContent() {
     )
   );
 
+  if (!authLoading && !metaLoaded) {
+    return <p className="py-16 text-center text-sm text-muted-foreground">Memuat denah event...</p>;
+  }
+
   if (!authLoading && user && !isAuthorizedOrganizer) {
     return (
       <div className="animate-fade-in max-w-lg mx-auto py-12 px-4 text-center">
@@ -379,6 +433,9 @@ function FloorPlanContent() {
           <div className="flex flex-wrap items-center gap-2 mb-1.5">
             <h1 className="text-2xl font-bold tracking-tight">Interactive Floor Plan Builder</h1>
             <span className="badge badge-primary text-xs shrink-0">Event #{eventId}</span>
+            {isDraft && (
+              <span className="badge badge-secondary text-xs shrink-0">Draft, belum tampil di publik</span>
+            )}
             {/* INI BAGIAN YANG DIUBAH */}
             <span className="badge badge-secondary text-xs truncate max-w-[200px] md:max-w-md inline-block">
               {eventMeta.category}
@@ -654,11 +711,11 @@ function FloorPlanContent() {
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <p className="text-xs text-muted-foreground">Drag booth untuk memindahkan • Klik untuk edit booth</p>
               <div className="flex items-center gap-2">
-                <button onClick={saveFloorPlan} className="btn btn-secondary btn-sm" id="save-floor-plan">
-                  {saved ? "Tersimpan!" : "Simpan Draft"}
+                <button onClick={() => saveFloorPlan(false)} className="btn btn-secondary btn-sm" id="save-floor-plan">
+                  {saved ? "Tersimpan" : isDraft ? "Simpan Draft" : "Simpan Perubahan"}
                 </button>
-                <button onClick={handlePublishAndGetQR} className="btn btn-primary btn-sm" id="publish-event-btn">
-                  Terbitkan & Dapatkan QR Code
+                <button onClick={handlePublishAndGetQR} className="btn btn-primary btn-sm" id="publish-event-btn" disabled={publishing}>
+                  {publishing ? "Menerbitkan..." : isDraft ? "Terbitkan & Dapatkan QR Code" : "Simpan & Buka QR Code"}
                 </button>
               </div>
             </div>

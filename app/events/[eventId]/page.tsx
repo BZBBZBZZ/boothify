@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, Suspense } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../components/AuthContext";
@@ -19,6 +19,9 @@ import {
   getBoothsByEventFromSupabase,
   getTenantsByEventFromSupabase,
 } from "@/app/lib/supabase-service";
+import { loginUrlFor } from "@/app/lib/auth-redirect";
+
+const PENDING_BOOTHS_KEY = "boothify_pending_booths";
 
 const getZoneBadgeColor = (zone: string) => {
   const z = zone.toLowerCase();
@@ -43,8 +46,12 @@ const getZoneDisplay = (zone: string) => {
 function EventDetailContent() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const eventId = (params?.eventId as string) || "1";
   const { user } = useAuth();
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "missing">("loading");
+  const [checkoutNotice, setCheckoutNotice] = useState("");
+  const [campInfo, setCampInfo] = useState<ReturnType<typeof isEventInApprovedCampaign>>({ isApproved: false });
 
   const [event, setEvent] = useState<EventDetail>(
     DEFAULT_EVENTS_META[eventId] || DEFAULT_EVENTS_META["1"]
@@ -53,29 +60,43 @@ function EventDetailContent() {
   const [tenantsMap, setTenantsMap] = useState<Record<string, EventTenantInfo>>({});
   const [takenBooths, setTakenBooths] = useState<string[]>([]);
   const [selectedBoothLabels, setSelectedBoothLabels] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<"info" | "booths" | "tenants">("info");
+  const [activeTab, setActiveTab] = useState<"info" | "booths" | "tenants">(
+    searchParams.get("tab") === "booths" ? "booths" : searchParams.get("tab") === "tenants" ? "tenants" : "info"
+  );
   const [showContactModal, setShowContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", email: "", phone: "", message: "" });
   const [contactSent, setContactSent] = useState(false);
 
   useEffect(() => {
     // 1. Fetch Event Info from Supabase
+    setCampInfo(isEventInApprovedCampaign(eventId));
     getEventByIdFromSupabase(eventId).then((ev) => {
       if (ev) {
         setEvent(ev);
-      } else {
-        try {
-          const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
-          const found = storedEvents.find((e: { id: string }) => e.id === eventId);
-          const fallbackMeta = DEFAULT_EVENTS_META[eventId] || DEFAULT_EVENTS_META["1"];
-          if (found) {
-            setEvent({ ...fallbackMeta, ...found });
-          } else {
-            setEvent(fallbackMeta);
-          }
-        } catch { /* ignore */ }
+        setLoadState("ready");
+        return;
       }
+      try {
+        const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
+        const found = storedEvents.find((e: { id: string }) => String(e.id) === String(eventId));
+        if (found) {
+          setEvent({ ...DEFAULT_EVENTS_META[eventId], ...found });
+          setLoadState("ready");
+          return;
+        }
+      } catch { /* ignore */ }
+      // No such event anywhere: say so instead of showing a stand-in event
+      setLoadState("missing");
     });
+
+    // Restore booths picked before the visitor was asked to sign in
+    try {
+      const pending = JSON.parse(localStorage.getItem(PENDING_BOOTHS_KEY) || "null");
+      if (pending && String(pending.eventId) === String(eventId) && Array.isArray(pending.booths)) {
+        setSelectedBoothLabels(pending.booths);
+        setActiveTab("booths");
+      }
+    } catch { /* ignore */ }
 
     // 2. Fetch Booths & Tenants from Supabase
     getBoothsByEventFromSupabase(eventId).then((supabaseBooths) => {
@@ -103,18 +124,20 @@ function EventDetailContent() {
     getTenantsByEventFromSupabase(eventId).then((supabaseTenants) => {
       if (supabaseTenants && Object.keys(supabaseTenants).length > 0) {
         setTenantsMap(supabaseTenants);
-        setTakenBooths(Object.keys(supabaseTenants));
+        // Merge, never replace: booths marked booked by the booth query must stay booked
+        setTakenBooths((prev) => Array.from(new Set([...prev, ...Object.keys(supabaseTenants)])));
       } else {
         const initialized = ensureEventFloorPlanInitialized(eventId);
         setTenantsMap(initialized.tenants);
         const eventTaken = JSON.parse(localStorage.getItem(`boothify_event_${eventId}_booked_booths`) || "[]");
-        setTakenBooths(Array.from(new Set([...initialized.booked, ...eventTaken])));
+        setTakenBooths((prev) => Array.from(new Set([...prev, ...initialized.booked, ...eventTaken])));
       }
     });
   }, [eventId]);
 
   const toggleBooth = (label: string) => {
     if (takenBooths.includes(label)) return;
+    setCheckoutNotice("");
     setSelectedBoothLabels((prev) =>
       prev.includes(label) ? prev.filter((b) => b !== label) : [...prev, label]
     );
@@ -125,10 +148,19 @@ function EventDetailContent() {
 
   const handleProceedCheckout = () => {
     if (selectedBoothsData.length === 0) return;
-    if (user?.role !== "tenant") {
-      router.push("/auth/login");
+    if (!user || user.role === "guest") {
+      // Keep the picked booths, sign in, then come straight back to this tab
+      localStorage.setItem(PENDING_BOOTHS_KEY, JSON.stringify({ eventId, booths: selectedBoothLabels }));
+      router.push(loginUrlFor(`/events/${eventId}?tab=booths`));
       return;
     }
+    if (user.role !== "tenant") {
+      setCheckoutNotice(
+        `Sewa booth hanya bisa dilakukan dengan akun tenant. Kamu sedang masuk sebagai ${user.role === "admin" ? "admin" : "organizer"}.`
+      );
+      return;
+    }
+    localStorage.removeItem(PENDING_BOOTHS_KEY);
     const items = selectedBoothsData.map((b) => ({
       booth: b.label,
       zone: getZoneDisplay(b.zone),
@@ -156,8 +188,31 @@ function EventDetailContent() {
     )
   );
 
-  const campInfo = isEventInApprovedCampaign(eventId);
   const isCampaignApproved = campInfo.isApproved;
+
+  if (loadState !== "ready") {
+    return (
+      <>
+        <Navbar />
+        <main className="flex-1 pt-24 pb-16">
+          <div className="max-w-xl mx-auto px-4 py-16 text-center">
+            {loadState === "loading" ? (
+              <p className="text-sm text-muted-foreground">Memuat event...</p>
+            ) : (
+              <div className="card-base p-8">
+                <h1 className="text-2xl font-bold mb-2">Event tidak ditemukan</h1>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Event ini mungkin sudah dihapus, belum diterbitkan, atau tautannya salah.
+                </p>
+                <Link href="/events" className="btn btn-primary">Lihat Semua Event</Link>
+              </div>
+            )}
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -526,8 +581,19 @@ function EventDetailContent() {
                           className="btn btn-primary w-full btn-lg mt-2"
                           id="proceed-checkout"
                         >
-                          Lanjut ke Pembayaran ({selectedBoothsData.length} Booth)
+                          {!user || user.role === "guest"
+                            ? `Masuk untuk Menyewa (${selectedBoothsData.length} Booth)`
+                            : `Lanjut ke Pembayaran (${selectedBoothsData.length} Booth)`}
                         </button>
+                        {checkoutNotice ? (
+                          <p className="text-xs text-error leading-relaxed" role="alert">
+                            {checkoutNotice}
+                          </p>
+                        ) : (!user || user.role === "guest") && (
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            Pilihan booth kamu disimpan. Setelah masuk dengan akun tenant, kamu kembali ke sini untuk membayar.
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
