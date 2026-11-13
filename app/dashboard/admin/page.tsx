@@ -12,6 +12,7 @@ import {
   errorMessage,
 } from "@/app/lib/db";
 import Icon from "../../components/Icon";
+import { useAuth } from "../../components/AuthContext";
 import FreshOnNavigate from "../../components/FreshOnNavigate";
 
 function AdminDashboardPageContent() {
@@ -43,7 +44,11 @@ function AdminDashboardPageContent() {
     }
   };
 
+  // Load only once the signed-in account is confirmed as admin
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   useEffect(() => {
+    if (!isAdmin) return;
     let cancelled = false;
     Promise.all([listCampaigns(), listApplications()])
       .then(([camps, apps]) => {
@@ -57,7 +62,7 @@ function AdminDashboardPageContent() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAdmin]);
 
   const showNotification = (msg: string) => {
     setToastMessage(msg);

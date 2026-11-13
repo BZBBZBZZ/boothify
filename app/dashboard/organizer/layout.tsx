@@ -140,17 +140,18 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
     router.push("/");
   };
 
-  // Hold the dashboard until the account is known, so pages never load data for the wrong person
-  if (isLoading || !user || user.role !== "organizer") {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
-        Memeriksa akun...
-      </div>
-    );
-  }
+  // Until the account is confirmed, the dashboard stays hidden behind this notice.
+  // The page itself still renders (hidden), so Next.js can validate the segment.
+  const allowed = !isLoading && user?.role === "organizer";
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row" id="organizer-dashboard">
+    <>
+    {!allowed && (
+      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground" role="status">
+        Memeriksa akun...
+      </div>
+    )}
+    <div className="min-h-screen flex flex-col md:flex-row" id="organizer-dashboard" style={allowed ? undefined : { display: "none" }} aria-hidden={!allowed || undefined}>
       {/* Mobile header */}
       <div className="dashboard-mobile-header glass sticky top-0 z-40 px-4 py-3 items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
@@ -187,6 +188,7 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
         <div className="w-full max-w-6xl p-4 sm:p-8">{children}</div>
       </div>
     </div>
+    </>
   );
 }
 

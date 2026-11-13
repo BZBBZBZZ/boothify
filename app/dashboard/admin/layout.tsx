@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/components/AuthContext";
@@ -10,14 +10,13 @@ import Icon from "../../components/Icon";
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  // Until the account is confirmed as admin, the admin area stays hidden behind a notice.
+  // The page itself still renders (hidden), so Next.js can validate the segment.
+  const allowed = !isLoading && user?.role === "admin";
+  let gate: ReactNode = null;
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted || isLoading) {
-    return (
+  if (isLoading) {
+    gate = (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-2 border-foreground border-t-transparent rounded-full animate-spin keep-motion" />
@@ -28,8 +27,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   // Route guard: Access restricted strictly to Admin role
-  if (!user || user.role !== "admin") {
-    return (
+  else if (!allowed) {
+    gate = (
       <div className="min-h-screen flex items-center justify-center p-4 bg-background">
         <div className="card-base max-w-md w-full p-8 text-center border-2 border-foreground relative overflow-hidden">
           <div className="w-16 h-16 mx-auto mb-4 bg-foreground text-primary flex items-center justify-center">
@@ -61,7 +60,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <>
+    {gate}
+    <div className="min-h-screen bg-background text-foreground flex flex-col" style={allowed ? undefined : { display: "none" }} aria-hidden={!allowed || undefined}>
       {/* Top Admin Bar */}
       <header className="sticky top-0 z-40 border-b-2 border-foreground bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -114,5 +115,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
     </div>
+    </>
   );
 }
