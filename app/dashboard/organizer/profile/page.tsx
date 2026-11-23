@@ -115,7 +115,7 @@ function OrganizerProfilePageContent() {
       )}
 
       <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-1">Profil Organisasi</h1>
+        <h1 className="page-header-title mb-1">Profil Organisasi</h1>
         <p className="text-sm text-muted-foreground">Kelola informasi perusahaan penyelenggara event dan kontak resmi</p>
       </div>
 
@@ -153,8 +153,8 @@ function OrganizerProfilePageContent() {
         className="card-base p-6 space-y-5"
       >
         <div>
-          <label className="block text-sm font-medium mb-2">Nama Organisasi / PT Penyelenggara</label>
-          <input
+          <label htmlFor="profile-nama-organisasi-pt-penyelengga" className="field-label">Nama organisasi / PT penyelenggara</label>
+          <input id="profile-nama-organisasi-pt-penyelengga"
             type="text"
             required
             className="input-base"
@@ -164,8 +164,8 @@ function OrganizerProfilePageContent() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Email Akun</label>
-            <input
+            <label htmlFor="profile-email-akun" className="field-label">Email akun</label>
+            <input id="profile-email-akun"
               type="email"
               className="input-base"
               value={profile.email}
@@ -175,8 +175,8 @@ function OrganizerProfilePageContent() {
             <p id="org-email-note" className="text-xs text-muted-foreground mt-1">Email dipakai untuk masuk dan tidak bisa diubah di sini.</p>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Telepon / WhatsApp Panitia</label>
-            <input
+            <label htmlFor="profile-telepon-whatsapp-panitia" className="field-label">Telepon / WhatsApp panitia</label>
+            <input id="profile-telepon-whatsapp-panitia"
               type="tel"
               className="input-base"
               value={profile.phone}
@@ -185,8 +185,8 @@ function OrganizerProfilePageContent() {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Deskripsi Organisasi</label>
-          <textarea
+          <label htmlFor="profile-deskripsi-organisasi" className="field-label">Deskripsi organisasi</label>
+          <textarea id="profile-deskripsi-organisasi"
             className="input-base min-h-[100px] resize-y"
             value={profile.description}
             onChange={(e) => setProfile({ ...profile, description: e.target.value })}
@@ -195,8 +195,8 @@ function OrganizerProfilePageContent() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Website Resmi</label>
-            <input
+            <label htmlFor="profile-website-resmi" className="field-label">Website resmi</label>
+            <input id="profile-website-resmi"
               type="url"
               className="input-base"
               value={profile.website}
@@ -204,8 +204,8 @@ function OrganizerProfilePageContent() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Instagram Organisasi</label>
-            <input
+            <label htmlFor="profile-instagram-organisasi" className="field-label">Instagram organisasi</label>
+            <input id="profile-instagram-organisasi"
               type="text"
               className="input-base"
               value={profile.instagram}

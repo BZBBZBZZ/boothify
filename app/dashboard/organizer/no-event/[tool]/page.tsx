@@ -26,7 +26,7 @@ export default function NoEventPage() {
 
   return (
     <div className="animate-fade-in" id="organizer-no-event">
-      <h1 className="text-2xl font-bold mb-6">{tool.title}</h1>
+      <h1 className="page-header-title mb-6">{tool.title}</h1>
       <div className="card-base p-10 text-center max-w-lg">
         <span className="inline-flex mb-4 text-muted-foreground" aria-hidden="true">
           <Icon name="calendar" size={40} />

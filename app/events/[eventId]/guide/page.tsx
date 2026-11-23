@@ -254,7 +254,7 @@ function EventGuideContent() {
             <p className="text-sm text-muted-foreground">Memuat panduan event...</p>
           ) : (
             <div className="card-base p-8">
-              <h1 className="text-2xl font-bold mb-2">{loadError ? "Panduan gagal dimuat" : "Event tidak ditemukan"}</h1>
+              <h1 className="page-header-title mb-2">{loadError ? "Panduan gagal dimuat" : "Event tidak ditemukan"}</h1>
               <p className="text-sm text-muted-foreground mb-6">
                 {loadError || "Event ini belum diterbitkan atau tautannya salah."}
               </p>
@@ -339,7 +339,7 @@ function EventGuideContent() {
                   </p>
                   <p className="text-sm font-bold text-foreground">
                     {activeOrder.status === "making"
-                      ? "Sedang Dibuat oleh Merchant"
+                      ? "Sedang dibuat oleh tenant"
                       : activeOrder.status === "ready"
                       ? "Siap diambil di booth"
                       : activeOrder.status === "done"
@@ -368,10 +368,10 @@ function EventGuideContent() {
             </div>
             <p className="text-xs text-muted-foreground">
               {activeOrder.status === "ready"
-                ? "Silakan datangi meja booth Anda dan tunjukkan nomor pesanan untuk mengambil hidangan."
+                ? "Silakan datangi meja booth kamu dan tunjukkan nomor pesanan untuk mengambil hidangan."
                 : activeOrder.status === "making"
-                ? "Pesanan Anda sedang dipersiapkan di booth tenant. Mohon bersabar."
-                : "Merchant telah menerima pesanan Anda dan akan segera memprosesnya."}
+                ? "Pesanan kamu sedang dipersiapkan di booth tenant. Mohon bersabar."
+                : "Tenant sudah menerima pesanan kamu dan akan segera memprosesnya."}
             </p>
           </div>
         )}
@@ -397,7 +397,7 @@ function EventGuideContent() {
                 Denah Booth Acara (Tap Booth untuk Info)
               </h3>
               <p className="text-[11px] text-muted-foreground">
-                Denah ini disinkronkan langsung dari desain Floor Plan Builder Organizer.
+                Denah ini sama dengan denah yang dibuat organizer.
               </p>
             </div>
           </div>
@@ -597,7 +597,7 @@ function EventGuideContent() {
             {cartToast && (
               <button type="button" onClick={() => { setCartToast(null); setShowCart(true); }} className="w-full text-left p-3 rounded-xl mb-5 bg-primary/10 border border-primary/30 text-sm animate-fade-in" id="cart-toast">
                 <span className="font-semibold text-primary-light">{cartToast}</span>
-                <span className="block text-xs text-muted-foreground mt-1">Ketuk untuk melihat keranjang Anda</span>
+                <span className="block text-xs text-muted-foreground mt-1">Ketuk untuk melihat keranjang kamu</span>
               </button>
             )}
 
@@ -709,7 +709,7 @@ function EventGuideContent() {
               Zona {getZoneDisplay(emptyBoothSelected.zone)} • Biaya Sewa Rp {(emptyBoothSelected.price || 0).toLocaleString("id-ID")}
             </p>
             <p className="text-xs text-muted-foreground mb-5">
-              Apakah Anda pelaku usaha / brand yang berminat menyewa booth ini?
+              Apakah kamu pelaku usaha / brand yang berminat menyewa booth ini?
             </p>
             <div className="flex flex-col gap-2">
               <button
@@ -895,13 +895,13 @@ function EventGuideContent() {
           <div className="modal-content max-w-sm" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold text-base mb-2">Identitas Pemesan</h3>
             <p className="text-xs text-muted-foreground mb-4">
-              Isi nama &amp; WhatsApp Anda agar tenant dapat memberi tahu saat pesanan Anda siap diambil.
+              Isi nama &amp; WhatsApp kamu agar tenant dapat memberi tahu saat pesanan kamu siap diambil.
             </p>
 
             <form onSubmit={handleGuestQuickLogin} className="space-y-3">
               <div>
-                <label className="text-[11px] font-semibold block mb-1">Nama Lengkap</label>
-                <input
+                <label htmlFor="guide-nama-lengkap" className="field-label">Nama lengkap</label>
+                <input id="guide-nama-lengkap"
                   type="text"
                   required
                   placeholder="Misal: Andi Pengunjung"
@@ -911,8 +911,8 @@ function EventGuideContent() {
                 />
               </div>
               <div>
-                <label className="text-[11px] font-semibold block mb-1">Nomor WhatsApp</label>
-                <input
+                <label htmlFor="guide-nomor-whatsapp" className="field-label">Nomor WhatsApp</label>
+                <input id="guide-nomor-whatsapp"
                   type="tel"
                   required
                   placeholder="0812-xxxx-xxxx"
@@ -939,7 +939,7 @@ function EventGuideContent() {
 
             <div className="p-4 rounded-xl bg-foreground/[0.03] border border-foreground/5 mb-4 text-xs space-y-3 text-left">
               <div>
-                <label className="text-[10px] text-muted-foreground block mb-1">Metode Pembayaran</label>
+                <label className="field-label">Metode pembayaran</label>
                 <div className="grid grid-cols-2 gap-1.5">
                   {["QRIS", "GoPay", "ShopeePay", "Tunai"].map((m) => (
                     <button

@@ -66,7 +66,7 @@ export default function Navbar() {
             {user && user.role !== "guest" ? (
               <>
                 <Link href={dashboardLink} className="site-nav-link" id="nav-dashboard">
-                    Dashboard
+                    Dasbor
                   </Link>
                 <div className="site-nav-user">
                   <span className="site-nav-avatar" aria-hidden="true">
@@ -135,7 +135,7 @@ export default function Navbar() {
             {user && user.role !== "guest" ? (
               <>
                 <Link href={dashboardLink} className="site-nav-drawer-link" onClick={() => setMobileOpen(false)}>
-                    Dashboard
+                    Dasbor
                   </Link>
                 <div className="site-nav-user site-nav-drawer-user">
                   <span className="site-nav-avatar" aria-hidden="true">

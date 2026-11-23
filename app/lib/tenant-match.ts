@@ -106,7 +106,7 @@ export function calculateEventTenantMatch(
   // PILAR 1: Kategori & Industri (Bobot 35%)
   // =========================================================================
   let categoryScore = 40;
-  let categoryReason = `Kategori pameran (${event.category || "Umum"}) berbeda dari lini utama produk Anda.`;
+  let categoryReason = `Kategori pameran (${event.category || "Umum"}) berbeda dari lini utama produk kamu.`;
 
   const isExactCategory =
     eventCat.includes(tenantCatVal) ||
@@ -130,7 +130,7 @@ export function calculateEventTenantMatch(
 
     if (matchingZone) {
       categoryScore = 88;
-      categoryReason = `Pameran menyediakan zona khusus (${matchingZone.name}) yang sangat cocok untuk brand Anda.`;
+      categoryReason = `Pameran menyediakan zona khusus (${matchingZone.name}) yang sangat cocok untuk brand kamu.`;
     } else if (tenantCatVal === "fnb") {
       // F&B selalu memiliki kebutuhan pelengkap di pameran multi-hari
       categoryScore = 75;
@@ -173,16 +173,16 @@ export function calculateEventTenantMatch(
 
   if (hasEcoTenant && hasEcoEvent) {
     sustainabilityScore = 96;
-    sustainabilityReason = "Nilai keberlanjutan & eco-friendly brand Anda selaras kuat dengan visi zero-waste pameran.";
+    sustainabilityReason = "Nilai keberlanjutan & eco-friendly brand kamu selaras kuat dengan visi zero-waste pameran.";
   } else if (hasArtisanTenant && hasArtisanEvent) {
     sustainabilityScore = 93;
-    sustainabilityReason = "Konsep produk lokal otentik nusantara brand Anda sejalan sempurna dengan semangat pameran.";
+    sustainabilityReason = "Konsep produk lokal otentik nusantara brand kamu sejalan sempurna dengan semangat pameran.";
   } else if (hasTechTenant && hasTechEvent) {
     sustainabilityScore = 92;
     sustainabilityReason = "Fokus inovasi teknologi dan edukasi masa depan selaras dengan tema expo.";
   } else if (hasEcoEvent || hasArtisanEvent) {
     sustainabilityScore = 78;
-    sustainabilityReason = "Tersedia sinergi konsep lokal dan keramahan lingkungan yang dapat diadopsi brand Anda.";
+    sustainabilityReason = "Tersedia sinergi konsep lokal dan keramahan lingkungan yang dapat diadopsi brand kamu.";
   } else {
     sustainabilityScore = 60;
     sustainabilityReason = "Tema pameran berorientasi komersial umum.";

@@ -126,7 +126,7 @@ function AICampaignContent() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-foreground/[0.08]">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-2xl font-bold">Ide Campaign Event</h1>
+            <h1 className="page-header-title">Ide Campaign Event</h1>
           </div>
           <p className="text-sm text-primary-light font-medium">
             {eventTitle} <span className="text-muted-foreground text-xs font-normal">({eventCategory})</span>
@@ -178,7 +178,7 @@ function AICampaignContent() {
                 Menyusun ide...
               </>
             ) : (
-              <>Generate</>
+              <>Buat ide</>
             )}
           </button>
         </div>

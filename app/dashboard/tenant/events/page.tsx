@@ -179,7 +179,7 @@ export default function TenantEventsPage() {
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-2xl font-bold">Cari Event &amp; Smart Matching</h1>
+            <h1 className="page-header-title">Cari event</h1>
             <span className="badge badge-secondary text-[10px]">SMART MATCH</span>
           </div>
           <p className="text-sm text-muted-foreground">
@@ -188,8 +188,8 @@ export default function TenantEventsPage() {
         </div>
 
         {/* Tenant Profile Context Badge */}
-        <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3 self-start md:self-auto">
-          <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center font-bold text-white text-xs">
+        <div className="p-3 rounded-xl bg-foreground/[0.04] border border-border flex items-center gap-3 self-start md:self-auto">
+          <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center font-bold text-xs">
             {tenantProfile.brandName.charAt(0).toUpperCase()}
           </div>
           <div className="text-xs">
@@ -210,7 +210,7 @@ export default function TenantEventsPage() {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer border ${
               smartFilter === "all"
                 ? "bg-primary/20 text-primary-light border-primary/40 shadow-sm"
-                : "bg-white/5 text-muted-foreground hover:text-foreground border-white/10"
+                : "bg-foreground/[0.04] text-muted-foreground hover:text-foreground border-border"
             }`}
           >
             Semua Event ({eventsWithMatch.length})
@@ -222,7 +222,7 @@ export default function TenantEventsPage() {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer border flex items-center gap-1.5 ${
               smartFilter === "high_match"
                 ? "bg-emerald-500/20 text-success border-emerald-500/40 shadow-sm"
-                : "bg-white/5 text-muted-foreground hover:text-foreground border-white/10"
+                : "bg-foreground/[0.04] text-muted-foreground hover:text-foreground border-border"
             }`}
           >
             <span>Kecocokan Sangat Tinggi (≥80%)</span>
@@ -237,7 +237,7 @@ export default function TenantEventsPage() {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer border flex items-center gap-1.5 ${
               smartFilter === "matching_category"
                 ? "bg-teal-500/20 text-success border-teal-500/40 shadow-sm"
-                : "bg-white/5 text-muted-foreground hover:text-foreground border-white/10"
+                : "bg-foreground/[0.04] text-muted-foreground hover:text-foreground border-border"
             }`}
           >
             <span>Kategori Sesuai</span>
@@ -252,7 +252,7 @@ export default function TenantEventsPage() {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer border flex items-center gap-1.5 ${
               smartFilter === "complete_facilities"
                 ? "bg-blue-500/20 text-info border-blue-500/40 shadow-sm"
-                : "bg-white/5 text-muted-foreground hover:text-foreground border-white/10"
+                : "bg-foreground/[0.04] text-muted-foreground hover:text-foreground border-border"
             }`}
           >
             <span>Banyak Booth Kosong</span>
@@ -327,13 +327,13 @@ export default function TenantEventsPage() {
       ) : loading ? (
         <p className="py-12 text-center text-sm text-muted-foreground">Memuat event...</p>
       ) : eventsList.length === 0 ? (
-        <div className="card-base p-12 text-center text-muted-foreground border border-dashed border-white/10 rounded-2xl">
+        <div className="card-base p-12 text-center text-muted-foreground border border-dashed border-border rounded-2xl">
           <span className="text-4xl block mb-3"><Icon name="calendar" size={32} /></span>
           <p className="font-semibold text-foreground text-base mb-1">Belum ada event yang membuka booth</p>
           <p className="text-xs">Event yang diterbitkan organizer akan muncul di sini.</p>
         </div>
       ) : filteredEvents.length === 0 ? (
-        <div className="card-base p-12 text-center text-muted-foreground border border-dashed border-white/10 rounded-2xl">
+        <div className="card-base p-12 text-center text-muted-foreground border border-dashed border-border rounded-2xl">
           <span className="text-4xl block mb-3"><Icon name="search" size={32} /></span>
           <p className="font-semibold text-foreground text-base mb-1">Tidak ada event yang sesuai</p>
           <p className="text-xs mb-4">Coba sesuaikan kata kunci pencarian atau ubah filter cerdas di atas.</p>
@@ -394,10 +394,10 @@ export default function TenantEventsPage() {
                   </div>
 
                   {/* Match Score Badge & Action */}
-                  <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-white/5">
+                  <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-border">
                     <div className="text-left sm:text-right">
                       <div
-                        className={`text-2xl font-black flex items-center gap-1 sm:justify-end ${
+                        className={`text-2xl font-semibold flex items-center gap-1 sm:justify-end ${
                           isHigh
                             ? "text-success drop-shadow-[0_0_12px_rgba(16,185,129,0.3)]"
                             : matchData.overallScore >= 60
@@ -406,13 +406,13 @@ export default function TenantEventsPage() {
                         }`}
                       >
                         <span>{matchData.match}</span>
-                        <span className="text-[11px] font-bold text-muted-foreground">Match</span>
+                        <span className="text-[11px] font-bold text-muted-foreground">Cocok</span>
                       </div>
                       <span
                         className={`text-xs font-semibold px-2 py-0.5 ${
                           isHigh
                             ? "bg-emerald-500/15 text-success border border-emerald-500/30"
-                            : "bg-white/5 text-muted-foreground border border-white/10"
+                            : "bg-foreground/[0.04] text-muted-foreground border border-border"
                         }`}
                       >
                         {isHigh ? "Sangat Cocok" : matchData.overallScore >= 60 ? "Cukup Cocok" : "Umum"}
@@ -436,7 +436,7 @@ export default function TenantEventsPage() {
                 {/* Expandable Breakdown Card (Rincian 4 Pilar Kecocokan)                      */}
                 {/* ========================================================================= */}
                 {isExpanded && (
-                  <div className="mt-5 pt-5 border-t border-white/10 animate-fade-in space-y-4">
+                  <div className="mt-5 pt-5 border-t border-border animate-fade-in space-y-4">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-semibold text-foreground flex items-center gap-2">
                         <span>Rincian Analisis Multi-Kriteria untuk brand</span>
@@ -452,10 +452,10 @@ export default function TenantEventsPage() {
                       {matchData.pillars.map((pillar) => (
                         <div
                           key={pillar.id}
-                          className="p-3.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1.5"
+                          className="p-3.5 rounded-xl bg-foreground/[0.03] border border-border space-y-1.5"
                         >
                           <div className="flex items-center justify-between text-xs">
-                            <span className="font-semibold text-white flex items-center gap-1.5">
+                            <span className="font-semibold text-foreground flex items-center gap-1.5">
                               <span
                                 className="w-2 h-2 rounded-full inline-block"
                                 style={{ backgroundColor: pillar.color }}
@@ -470,8 +470,8 @@ export default function TenantEventsPage() {
                             </div>
                           </div>
 
-                          {/* Progress bar container: h-2 w-full bg-white/10 rounded-full overflow-hidden */}
-                          <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+                          {/* Progress bar container: h-2 w-full bg-foreground/[0.06] rounded-full overflow-hidden */}
+                          <div className="h-2 w-full bg-foreground/[0.06] rounded-full overflow-hidden">
                             <div
                               className="h-full rounded-full transition-colors duration-500 ease-out"
                               style={{
@@ -481,7 +481,7 @@ export default function TenantEventsPage() {
                             />
                           </div>
 
-                          <p className="text-[11px] text-white/70 leading-relaxed pt-0.5">
+                          <p className="text-[11px] text-muted-foreground leading-relaxed pt-0.5">
                             {pillar.reason}
                           </p>
                         </div>
@@ -489,7 +489,7 @@ export default function TenantEventsPage() {
                     </div>
 
                     {/* Footer Tindakan Card */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-border">
                       <div className="text-xs text-muted-foreground flex items-center gap-2">
                         <span>Rekomendasi:</span>
                         <span className="text-foreground">

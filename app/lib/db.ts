@@ -26,6 +26,9 @@ function friendly(error: NonNullable<PgError>, fallback: string): string {
   if (/Failed to fetch|NetworkError|fetch failed/i.test(text)) {
     return "Tidak bisa terhubung ke server. Periksa koneksi internet lalu coba lagi.";
   }
+  if (/facilities_(included|excluded)/.test(text)) {
+    return "Kolom fasilitas booth belum ada di database. Jalankan supabase/migrations/20261123_event_facilities.sql di Supabase SQL Editor.";
+  }
   if (error.code === "PGRST205" || /schema cache|does not exist/i.test(text)) {
     return "Database belum disiapkan. Jalankan supabase/schema.sql di Supabase SQL Editor.";
   }
@@ -150,6 +153,8 @@ type EventRow = {
   description: string;
   theme: string | null;
   guidelines: string | null;
+  facilities_included?: string[] | null;
+  facilities_excluded?: string[] | null;
   price_range: string;
   image: string;
   highlights: string[] | null;
@@ -182,6 +187,8 @@ const mapEvent = (r: EventRow): EventDetail => ({
   status: r.status,
   theme: r.theme || undefined,
   guidelines: r.guidelines || undefined,
+  facilitiesIncluded: r.facilities_included || [],
+  facilitiesExcluded: r.facilities_excluded || [],
   highlights: r.highlights || [],
   floorZones: r.floor_zones,
   floorObjects: Array.isArray(r.floor_objects) ? r.floor_objects : [],
@@ -232,6 +239,8 @@ export type EventInput = {
   description: string;
   theme?: string;
   guidelines?: string;
+  facilitiesIncluded?: string[];
+  facilitiesExcluded?: string[];
   image?: string;
   organizer: string;
   organizerEmail: string;
@@ -255,6 +264,9 @@ export async function createEvent(input: EventInput): Promise<string> {
       description: input.description,
       theme: input.theme || null,
       guidelines: input.guidelines || null,
+      // Only sent when filled, so events still save on a database without the facility columns
+      ...(input.facilitiesIncluded?.length ? { facilities_included: input.facilitiesIncluded } : {}),
+      ...(input.facilitiesExcluded?.length ? { facilities_excluded: input.facilitiesExcluded } : {}),
       image: input.image || "",
       organizer: input.organizer,
       organizer_email: input.organizerEmail,
@@ -267,7 +279,10 @@ export async function createEvent(input: EventInput): Promise<string> {
 }
 
 export type EventPatch = Partial<
-  Pick<EventDetail, "title" | "date" | "time" | "location" | "address" | "description" | "theme" | "guidelines" | "image" | "status">
+  Pick<
+    EventDetail,
+    "title" | "date" | "time" | "location" | "address" | "description" | "theme" | "guidelines" | "image" | "status" | "facilitiesIncluded" | "facilitiesExcluded"
+  >
 >;
 
 export async function updateEvent(id: string, patch: EventPatch): Promise<void> {
@@ -275,6 +290,8 @@ export async function updateEvent(id: string, patch: EventPatch): Promise<void> 
   (["title", "date", "time", "location", "address", "description", "theme", "guidelines", "image", "status"] as const).forEach((key) => {
     if (patch[key] !== undefined) row[key] = patch[key];
   });
+  if (patch.facilitiesIncluded !== undefined) row.facilities_included = patch.facilitiesIncluded;
+  if (patch.facilitiesExcluded !== undefined) row.facilities_excluded = patch.facilitiesExcluded;
   const { data, error } = await supabase.from("events").update(row).eq("id", id).select("id");
   check(error, "Event gagal disimpan.");
   if (!data || data.length === 0) throw new DbError("Event tidak ditemukan atau bukan milik akun ini.");

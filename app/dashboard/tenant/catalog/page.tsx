@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/app/components/AuthContext";
 import Icon from "../../../components/Icon";
 import FreshOnNavigate from "../../../components/FreshOnNavigate";
+import { EmptyState, Field, PageHeader, TabPanel, Tabs } from "../../../components/ui";
 import { getTenantUpcomingEvents, type TenantEvent } from "@/app/lib/tenant-events";
 import { openStoredFile, uploadImage, uploadMediaFile } from "@/app/lib/file-upload";
 import { getTenantMenu, saveTenantMenu, errorMessage } from "@/app/lib/db";
@@ -32,23 +33,21 @@ function MenuFields({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label htmlFor={`${idPrefix}-name`} className="field-label">Nama Menu</label>
-          <input
-            id={`${idPrefix}-name`}
+        <Field label="Nama menu" required id={`${idPrefix}-name`} hint="Nama yang dilihat pengunjung saat memesan.">
+          {(id) => <input
+            id={id}
             type="text"
             className="input-base"
             placeholder="Contoh: Kopi Susu Gula Aren"
             value={value.name}
             onChange={(e) => onChange({ ...value, name: e.target.value })}
             required
-          />
-        </div>
+          />}
+        </Field>
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor={`${idPrefix}-price`} className="field-label">Harga (Rp)</label>
-            <input
-              id={`${idPrefix}-price`}
+          <Field label="Harga (Rp)" required id={`${idPrefix}-price`} hint="Tanpa titik, contoh 22000.">
+            {(id) => <input
+              id={id}
               type="number"
               min={0}
               inputMode="numeric"
@@ -57,35 +56,33 @@ function MenuFields({
               value={value.price}
               onChange={(e) => onChange({ ...value, price: e.target.value })}
               required
-            />
-          </div>
-          <div>
-            <label htmlFor={`${idPrefix}-stock`} className="field-label">Stok</label>
-            <input
-              id={`${idPrefix}-stock`}
+            />}
+          </Field>
+          <Field label="Stok tersedia" id={`${idPrefix}-stock`} hint="Porsi/barang yang siap dijual.">
+            {(id) => <input
+              id={id}
               type="number"
               min={0}
               inputMode="numeric"
               className="input-base"
               value={value.stock}
               onChange={(e) => onChange({ ...value, stock: e.target.value })}
-            />
-          </div>
+            />}
+          </Field>
         </div>
       </div>
-      <div>
-        <label htmlFor={`${idPrefix}-desc`} className="field-label">Deskripsi</label>
-        <textarea
-          id={`${idPrefix}-desc`}
+      <Field label="Deskripsi menu" optional id={`${idPrefix}-desc`}>
+        {(id) => <textarea
+          id={id}
           className="input-base min-h-[80px] resize-y"
           placeholder="Contoh: racikan rempah atau varian rasa"
           value={value.description}
           onChange={(e) => onChange({ ...value, description: e.target.value })}
           rows={3}
-        />
-      </div>
+        />}
+      </Field>
       <div>
-        <p className="field-label">Gambar Menu</p>
+        <p className="field-label">Foto menu <span className="field-tag">Opsional</span></p>
         <div className="flex flex-wrap items-center gap-4">
           <div className="menu-image-preview">
             {value.image ? (
@@ -96,7 +93,7 @@ function MenuFields({
           </div>
           <div className="flex flex-wrap gap-2">
             <label className="btn btn-secondary btn-sm cursor-pointer">
-              {uploading ? "Mengunggah..." : value.image ? "Ganti Gambar" : "Upload Gambar"}
+              {uploading ? "Mengunggah..." : value.image ? "Ganti foto" : "Unggah foto"}
               <input
                 type="file"
                 accept="image/*"
@@ -111,12 +108,12 @@ function MenuFields({
             </label>
             {value.image && (
               <button type="button" className="btn btn-ghost btn-sm text-error" onClick={() => onChange({ ...value, image: "" })}>
-                Hapus Gambar
+                Hapus foto
               </button>
             )}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">JPG, PNG, atau WebP. Gambar diperkecil otomatis.</p>
+        <p className="field-hint">JPG, PNG, atau WebP. Foto diperkecil otomatis.</p>
       </div>
     </div>
   );
@@ -142,6 +139,7 @@ function CatalogContent() {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [editingMediaId, setEditingMediaId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
+  const [tab, setTab] = useState<"menu" | "media">("menu");
 
   const showToast = (text: string, tone: "ok" | "error" = "ok") => {
     setToast({ text, tone });
@@ -331,20 +329,31 @@ function CatalogContent() {
         </div>
       )}
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">Katalog Produk &amp; Media</h1>
-        <p className="text-sm text-muted-foreground">
-          Menu diatur per event. Media promosi dipakai di semua event yang kamu ikuti.
-        </p>
-      </div>
+      <PageHeader
+        title="Katalog produk"
+        description="Menu diatur per event. Media promosi dipakai di semua event yang kamu ikuti."
+      />
+
+      <Tabs<"menu" | "media">
+        label="Bagian katalog"
+        idPrefix="catalog"
+        active={tab}
+        onChange={setTab}
+        items={[
+          { key: "menu", label: "Menu per event", count: menuItems.length },
+          { key: "media", label: "Media promosi", count: mediaItems.length },
+        ]}
+      />
 
       <div className="space-y-6">
         {/* ===== MENU PER EVENT ===== */}
+        {tab === "menu" && (
+        <TabPanel idPrefix="catalog" tabKey="menu">
         <section className="card-base p-6" aria-labelledby="menu-heading">
           <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
             <div>
-              <h2 id="menu-heading" className="font-semibold">Menu Makanan &amp; Minuman</h2>
-              <p className="text-xs text-muted-foreground mt-1">Produk ini dapat langsung dipesan pengunjung di event yang dipilih.</p>
+              <h2 id="menu-heading" className="section-title">Menu makanan &amp; minuman</h2>
+              <p className="section-desc">Pengunjung bisa langsung memesan produk ini di event yang dipilih.</p>
             </div>
             {selectedEventId && !showAddMenu && (
               <button
@@ -357,7 +366,7 @@ function CatalogContent() {
                 className="btn btn-primary btn-sm"
                 id="add-menu-btn"
               >
-                + Tambah Menu
+                + Tambah menu
               </button>
             )}
           </div>
@@ -365,18 +374,16 @@ function CatalogContent() {
           {!eventsLoaded ? (
             <p className="text-sm text-muted-foreground py-6">Memuat event yang kamu ikuti...</p>
           ) : events.length === 0 ? (
-            <div className="text-center py-10 px-4 border border-dashed border-border rounded-xl">
-              <span className="inline-flex mb-3 text-muted-foreground"><Icon name="calendar" size={32} /></span>
-              <p className="font-medium text-sm mb-1">Belum ada event yang kamu ikuti</p>
-              <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto">
-                Menu dibuat per event. Sewa booth di event yang akan datang, lalu atur menunya di sini.
-              </p>
-              <Link href="/dashboard/tenant/events" className="btn btn-primary btn-sm">Cari Event</Link>
-            </div>
+            <EmptyState
+              icon={<Icon name="calendar" size={32} />}
+              title="Belum ada event yang kamu ikuti"
+              text="Menu dibuat per event. Sewa booth di event yang akan datang, lalu atur menunya di sini."
+              action={<Link href="/dashboard/tenant/events" className="btn btn-primary btn-sm">Cari event</Link>}
+            />
           ) : (
             <>
               <div className="mb-5 max-w-md">
-                <label htmlFor="catalog-event" className="field-label">Event</label>
+                <label htmlFor="catalog-event" className="field-label">Atur menu untuk event</label>
                 <select
                   id="catalog-event"
                   className="input-base"
@@ -397,7 +404,7 @@ function CatalogContent() {
 
               {showAddMenu && (
                 <form onSubmit={addMenuItem} className="menu-form mb-5 animate-fade-in">
-                  <h3 className="text-sm font-semibold mb-4">Tambah Menu Baru</h3>
+                  <h3 className="section-title mb-4">Tambah menu baru</h3>
                   <MenuFields
                     idPrefix="new-menu"
                     value={newMenu}
@@ -406,25 +413,25 @@ function CatalogContent() {
                     onPickImage={(file) => pickImage(file, (url) => setNewMenu((d) => ({ ...d, image: url })))}
                   />
                   <div className="flex flex-wrap gap-2 mt-5">
-                    <button type="submit" className="btn btn-primary btn-sm" disabled={uploadingImage}>Simpan Menu</button>
+                    <button type="submit" className="btn btn-primary btn-sm" disabled={uploadingImage || saving}>Simpan menu</button>
                     <button type="button" onClick={() => setShowAddMenu(false)} className="btn btn-ghost btn-sm">Batal</button>
                   </div>
                 </form>
               )}
 
               {menuItems.length === 0 ? (
-                <div className="text-center py-10 px-4 border border-dashed border-border rounded-xl">
-                  <span className="inline-flex mb-3 text-muted-foreground"><Icon name="utensils" size={32} /></span>
-                  <p className="font-medium text-sm mb-1">Belum ada menu untuk event ini</p>
-                  <p className="text-xs text-muted-foreground">Tambahkan menu makanan, minuman, atau produk untuk mulai menerima pesanan.</p>
-                </div>
+                <EmptyState
+                  icon={<Icon name="utensils" size={32} />}
+                  title="Belum ada menu untuk event ini"
+                  text="Tambahkan menu makanan, minuman, atau produk untuk mulai menerima pesanan."
+                />
               ) : (
                 <ul className="space-y-3">
                   {menuItems.map((item) => (
                     <li key={item.id} className="menu-row">
                       {editingMenuId === item.id ? (
                         <form onSubmit={saveEditMenuItem} className="animate-fade-in">
-                          <h3 className="text-sm font-semibold mb-4">Edit Menu</h3>
+                          <h3 className="section-title mb-4">Edit menu: {item.name}</h3>
                           <MenuFields
                             idPrefix={`edit-${item.id}`}
                             value={editingMenuData}
@@ -433,7 +440,7 @@ function CatalogContent() {
                             onPickImage={(file) => pickImage(file, (url) => setEditingMenuData((d) => ({ ...d, image: url })))}
                           />
                           <div className="flex flex-wrap gap-2 mt-5">
-                            <button type="submit" className="btn btn-primary btn-sm" disabled={uploadingImage}>Simpan Perubahan</button>
+                            <button type="submit" className="btn btn-primary btn-sm" disabled={uploadingImage || saving}>Simpan perubahan</button>
                             <button type="button" onClick={() => setEditingMenuId(null)} className="btn btn-ghost btn-sm">Batal</button>
                           </div>
                         </form>
@@ -469,13 +476,17 @@ function CatalogContent() {
                                 });
                               }}
                               className="btn btn-ghost btn-sm text-xs"
+                              aria-label={`Edit menu ${item.name}`}
                             >
                               Edit
                             </button>
                             <button
                               type="button"
-                              onClick={() => saveMenu(menuItems.filter((m) => m.id !== item.id), "Menu dihapus.")}
+                              onClick={() => {
+                                if (window.confirm(`Hapus menu "${item.name}"?`)) saveMenu(menuItems.filter((m) => m.id !== item.id), "Menu dihapus.");
+                              }}
                               className="btn btn-ghost btn-sm text-xs text-error"
+                              aria-label={`Hapus menu ${item.name}`}
                             >
                               Hapus
                             </button>
@@ -489,12 +500,16 @@ function CatalogContent() {
             </>
           )}
         </section>
+        </TabPanel>
+        )}
 
         {/* ===== MEDIA PROMOSI ===== */}
+        {tab === "media" && (
+        <TabPanel idPrefix="catalog" tabKey="media">
         <section className="card-base p-6" aria-labelledby="media-heading">
           <div className="mb-5">
-            <h2 id="media-heading" className="font-semibold">Media Promosi Digital</h2>
-            <p className="text-xs text-muted-foreground mt-1">Brosur, lookbook, foto galeri, dan video yang bisa dibuka pengunjung.</p>
+            <h2 id="media-heading" className="section-title">Media promosi</h2>
+            <p className="section-desc">Brosur, lookbook, foto galeri, dan video yang bisa dibuka pengunjung.</p>
           </div>
 
           {mediaItems.length > 0 && (
@@ -504,7 +519,7 @@ function CatalogContent() {
                   {editingMediaId === item.id ? (
                     <div className="space-y-4 animate-fade-in">
                       <div>
-                        <label htmlFor={`media-name-${item.id}`} className="field-label">Nama Media</label>
+                        <label htmlFor={`media-name-${item.id}`} className="field-label">Nama file</label>
                         <input
                           id={`media-name-${item.id}`}
                           type="text"
@@ -514,7 +529,7 @@ function CatalogContent() {
                         />
                       </div>
                       <div>
-                        <label htmlFor={`media-desc-${item.id}`} className="field-label">Deskripsi</label>
+                        <label htmlFor={`media-desc-${item.id}`} className="field-label">Keterangan</label>
                         <input
                           id={`media-desc-${item.id}`}
                           type="text"
@@ -532,6 +547,9 @@ function CatalogContent() {
                         className="btn btn-primary btn-sm"
                       >
                         Simpan
+                      </button>
+                      <button type="button" onClick={() => setEditingMediaId(null)} className="btn btn-ghost btn-sm ml-2">
+                        Batal
                       </button>
                     </div>
                   ) : (
@@ -571,7 +589,7 @@ function CatalogContent() {
           <label className={`upload-drop ${uploadingMedia ? "is-busy" : ""}`}>
             <Icon name="folder" size={32} />
             <span className="text-sm font-medium">
-              {uploadingMedia ? "Mengunggah..." : "Upload brosur (PDF), foto galeri, atau video"}
+              {uploadingMedia ? "Mengunggah..." : "Unggah brosur (PDF), foto galeri, atau video"}
             </span>
             <span className="text-xs text-muted-foreground">PDF dan video maks. 1,5 MB. Foto diperkecil otomatis.</span>
             <input
@@ -587,10 +605,12 @@ function CatalogContent() {
             />
           </label>
         </section>
+        </TabPanel>
+        )}
 
         <p className="text-sm text-muted-foreground">
-          Halaman branding booth kini ada di{" "}
-          <Link href="/dashboard/tenant/mini-website" className="text-primary-light font-semibold underline">Mini Website Builder</Link>.
+          Logo, tagline, dan warna booth diatur di{" "}
+          <Link href="/dashboard/tenant/mini-website" className="text-primary-light font-semibold underline">Mini Website</Link>.
         </p>
       </div>
     </div>

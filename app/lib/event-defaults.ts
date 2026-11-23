@@ -90,6 +90,10 @@ export type EventDetail = {
   status?: EventStatus;
   theme?: string;
   guidelines?: string;
+  /** Booth facilities the organizer provides, e.g. "Meja", "Listrik 900 watt". */
+  facilitiesIncluded?: string[];
+  /** Facilities tenants must bring themselves. */
+  facilitiesExcluded?: string[];
   gradient?: string;
   zones?: Array<{ name: string; booths: number; color: string }>;
   highlights?: string[];

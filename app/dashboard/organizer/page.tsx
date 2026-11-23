@@ -34,6 +34,8 @@ import {
   type InboxMessage,
 } from "@/app/lib/db";
 import Icon from "../../components/Icon";
+import OnboardingGuide from "../../components/OnboardingGuide";
+import { Notice, PageHeader } from "../../components/ui";
 
 export default function OrganizerDashboard() {
   const { user } = useAuth();
@@ -102,21 +104,55 @@ export default function OrganizerDashboard() {
 
   return (
     <div className="animate-fade-in" id="organizer-overview">
-      {loadError && (
-        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-sm text-error" role="alert">{loadError}</div>
-      )}
-      {/* Header */}
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold mb-1">Dashboard Organizer</h1>
-          <p className="text-muted-foreground text-sm">
-            Selamat datang, <span className="text-foreground font-semibold">{user?.businessName || user?.name || "Organizer"}</span>! Pantau event, pendaftaran booth, dan pesan masuk.
-          </p>
-        </div>
-        <Link href="/dashboard/organizer/events/new" className="btn btn-primary" id="btn-create-event-header">
-          + Buat Event Baru
-        </Link>
-      </div>
+      {loadError && <Notice tone="error" className="mb-6">{loadError}</Notice>}
+      <PageHeader
+        title="Dasbor Organizer"
+        description={<>Halo, <span className="text-foreground font-semibold">{user?.businessName || user?.name || "Organizer"}</span>. Pantau event, sewa booth, dan pesan masuk di sini.</>}
+        actions={
+          <Link href="/dashboard/organizer/events/new" className="btn btn-primary" id="btn-create-event-header">
+            + Buat event baru
+          </Link>
+        }
+      />
+
+      <OnboardingGuide
+        userId={organizerId}
+        title="Mulai di sini"
+        description="Empat langkah supaya event pertamamu bisa disewa tenant dan dikunjungi pengunjung."
+        steps={[
+          {
+            key: "profile",
+            title: "Lengkapi profil organisasi",
+            text: "Nomor WhatsApp dan deskripsi tampil di halaman event, supaya tenant bisa menghubungimu.",
+            href: "/dashboard/organizer/profile",
+            cta: "Buka profil",
+            done: Boolean(user?.phone && user?.description),
+          },
+          {
+            key: "event",
+            title: "Buat event pertama",
+            text: "Isi nama, tanggal, lokasi, dan fasilitas booth yang kamu sediakan.",
+            href: "/dashboard/organizer/events/new",
+            cta: "Buat event",
+            done: events.length > 0,
+          },
+          {
+            key: "publish",
+            title: "Tata denah booth lalu terbitkan",
+            text: "Gambar posisi booth, isi harga, lalu tekan Terbitkan agar event tampil di publik.",
+            href: events[0] ? `/dashboard/organizer/events/${events[0].id}/floor-plan` : "/dashboard/organizer/events/new",
+            cta: "Buka denah booth",
+            done: events.some((e) => e.status === "active"),
+          },
+          {
+            key: "qr",
+            title: "Bagikan QR Code ke pengunjung",
+            text: "Pengunjung memindai QR untuk melihat denah, daftar tenant, dan memesan makanan.",
+            href: events[0] ? `/dashboard/organizer/events/${events[0].id}/qr-code` : "/dashboard/organizer/no-event/qr-code",
+            cta: "Buka QR Code",
+          },
+        ]}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -177,10 +213,10 @@ export default function OrganizerDashboard() {
                 <span className="text-4xl block mb-2"><Icon name="store" size={32} /></span>
                 <p className="font-semibold text-sm mb-1">Belum Ada Event Dibuat</p>
                 <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto">
-                  Mulai buat expo, bazar, atau festival Anda dan sediakan denah booth interaktif untuk tenant.
+                  Mulai buat expo, bazar, atau festival kamu dan sediakan denah booth interaktif untuk tenant.
                 </p>
                 <Link href="/dashboard/organizer/events/new" className="btn btn-primary btn-sm">
-                  + Buat Event Pertama Anda
+                  + Buat event pertama
                 </Link>
               </div>
             ) : (

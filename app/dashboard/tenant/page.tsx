@@ -17,6 +17,8 @@ import {
 import { calculateEventTenantMatch, tenantProfileFromUser } from "@/app/lib/tenant-match";
 import { isUpcomingEvent } from "@/app/lib/tenant-events";
 import Icon from "../../components/Icon";
+import OnboardingGuide from "../../components/OnboardingGuide";
+import { Notice, PageHeader } from "../../components/ui";
 import CategoryPopover from "../../components/CategoryPopover";
 
 type OrderView = VisitorOrder & { time: string };
@@ -101,13 +103,51 @@ export default function TenantDashboard() {
 
   return (
     <div className="animate-fade-in" id="tenant-overview">
-      {loadError && (
-        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-sm text-error" role="alert">{loadError}</div>
-      )}
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-1">Dashboard Tenant</h1>
-        <p className="text-muted-foreground text-sm">Kelola booth, produk, dan pantau pesanan kamu secara real-time.</p>
-      </div>
+      {loadError && <Notice tone="error" className="mb-6">{loadError}</Notice>}
+      <PageHeader
+        title="Dasbor Tenant"
+        description="Kelola booth, produk, dan pantau pesanan pengunjung secara langsung."
+        actions={<Link href="/dashboard/tenant/events" className="btn btn-primary">Cari event</Link>}
+      />
+
+      <OnboardingGuide
+        userId={user?.id || ""}
+        title="Mulai di sini"
+        description="Empat langkah supaya booth kamu siap menerima pengunjung dan pesanan."
+        steps={[
+          {
+            key: "profile",
+            title: "Lengkapi profil usaha",
+            text: "Kategori dan deskripsi dipakai untuk mencocokkan kamu dengan event yang sesuai.",
+            href: "/dashboard/tenant/profile",
+            cta: "Buka profil",
+            done: Boolean(user?.businessCategory && user?.phone && user?.description),
+          },
+          {
+            key: "booking",
+            title: "Cari event dan sewa booth",
+            text: "Cek fasilitas booth di halaman event, pilih booth di denah, lalu bayar.",
+            href: "/dashboard/tenant/events",
+            cta: "Cari event",
+            done: bookings.length > 0,
+          },
+          {
+            key: "catalog",
+            title: "Isi menu atau katalog produk",
+            text: "Menu diatur per event. Pengunjung bisa langsung memesan dari panduan digital.",
+            href: "/dashboard/tenant/catalog",
+            cta: "Buka katalog",
+          },
+          {
+            key: "website",
+            title: "Buat mini website booth",
+            text: "Halaman kecil berisi logo, tagline, dan kontak yang dibuka pengunjung dari QR.",
+            href: "/dashboard/tenant/mini-website",
+            cta: "Buka mini website",
+            done: Boolean(user?.branding?.headline),
+          },
+        ]}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -143,7 +183,7 @@ export default function TenantDashboard() {
         <div className="stat-card">
           <div className="flex items-center justify-between mb-3">
             <span className="text-2xl"><Icon name="package" size={24} /></span>
-            <span className="text-[11px] text-secondary-light font-medium">Live dari pengunjung</span>
+            <span className="text-[11px] text-secondary-light font-medium">Langsung dari pengunjung</span>
           </div>
           <div className="text-2xl font-bold mb-1">{visitorOrders.length}</div>
           <div className="text-xs text-muted-foreground">Pesanan Masuk</div>
@@ -211,7 +251,7 @@ export default function TenantDashboard() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                <h2 className="font-semibold text-foreground">Pesanan Masuk dari Pengunjung (Live)</h2>
+                <h2 className="font-semibold text-foreground">Pesanan masuk dari pengunjung</h2>
               </div>
               <div className="flex items-center gap-2">
                 <span className="badge badge-primary text-[10px]">{visitorOrders.length} Pesanan</span>
@@ -221,7 +261,7 @@ export default function TenantDashboard() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-4">
-              Pesanan yang dibuat oleh pengunjung melalui scan QR Code / Digital Guide di booth kamu. Ubah status pesanan secara real-time.
+              Pesanan yang dibuat oleh pengunjung melalui QR Code / panduan pengunjung. Ubah status pesanan di sini.
             </p>
 
             {visitorOrders.length === 0 ? (
@@ -297,7 +337,7 @@ export default function TenantDashboard() {
                           {status === "making" && (
                             <button
                               onClick={() => updateOrderStatus(order.id, "ready")}
-                              className="btn btn-sm text-[11px] py-1 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                              className="btn btn-primary btn-sm"
                               id={`dash-ready-${order.id}`}
                             >
                               Siap
@@ -334,7 +374,7 @@ export default function TenantDashboard() {
             <p className="text-xs text-muted-foreground mb-5">Event yang cocok dengan profil produk kamu</p>
             <div className="space-y-3">
               {recommendedEvents.map((event) => (
-                <Link key={event.id} href={`/events/${event.id}`} className="block p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition">
+                <Link key={event.id} href={`/events/${event.id}`} className="block p-4 rounded-xl bg-foreground/[0.03] hover:bg-white/[0.04] transition">
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="font-medium text-sm">{event.title}</h3>
                     <span className="text-xs font-bold text-primary-light">{event.match}</span>

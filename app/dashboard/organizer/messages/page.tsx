@@ -70,14 +70,14 @@ export default function OrganizerMessagesPage() {
   return (
     <div className="animate-fade-in max-w-5xl" id="organizer-messages">
       {loadError && (
-        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-sm text-error" role="alert">{loadError}</div>
+        <div className="notice notice--error mb-6" role="alert">{loadError}</div>
       )}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-8 pb-6 border-b border-border">
         <div>
           <Link href="/dashboard/organizer" className="text-xs text-muted-foreground hover:text-primary-light transition inline-flex items-center gap-2 mb-4">
             Kembali ke dashboard
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Pesan masuk</h1>
+          <h1 className="page-header-title">Pesan masuk</h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-xl">Kelola pertanyaan tenant dan pengunjung dari satu tempat.</p>
         </div>
       </div>

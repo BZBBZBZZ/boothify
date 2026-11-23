@@ -32,7 +32,7 @@ const ROLES: {
     key: "tenant",
     label: "Tenant",
     features: [
-      { title: "Smart Matching", description: "Mencocokkan produk brand dengan event paling relevan." },
+      { title: "Rekomendasi event", description: "Mencocokkan produk brand dengan event paling relevan." },
       { title: "Pembayaran Langsung", description: "QRIS, e-wallet, transfer bank dan kartu kredit." },
       { title: "Katalog Digital & Menu", description: "Menu F&B untuk self-ordering; brosur, galeri dan video." },
     ],

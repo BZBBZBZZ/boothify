@@ -20,6 +20,8 @@ import {
 import { loginUrlFor } from "@/app/lib/auth-redirect";
 import CategoryPopover from "../../components/CategoryPopover";
 import FreshOnNavigate from "../../components/FreshOnNavigate";
+import { FacilityList } from "../../components/BoothFacilities";
+import { Field, Notice, TabPanel, Tabs } from "../../components/ui";
 
 const PENDING_BOOTHS_KEY = "boothify_pending_booths";
 
@@ -169,7 +171,7 @@ function EventDetailContent() {
               <p className="text-sm text-muted-foreground">Memuat event...</p>
             ) : (
               <div className="card-base p-8">
-                <h1 className="text-2xl font-bold mb-2">{loadError ? "Event gagal dimuat" : "Event tidak ditemukan"}</h1>
+                <h1 className="page-header-title mb-2">{loadError ? "Event gagal dimuat" : "Event tidak ditemukan"}</h1>
                 <p className="text-sm text-muted-foreground mb-6">
                   {loadError || "Event ini mungkin sudah dihapus, belum diterbitkan, atau tautannya salah."}
                 </p>
@@ -224,14 +226,14 @@ function EventDetailContent() {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-foreground">
-                          Official Partner: {campaign?.title}
+                          Partner resmi: {campaign?.title}
                         </span>
                         <span className="badge bg-success/15 text-success">
-                          Bebas Pajak (Free Tax)
+                          Bebas pajak
                         </span>
                       </div>
                       <p className="text-xs text-muted mt-1">
-                        Pameran ini telah dikurasi resmi oleh Admin Boothify. Penyewa booth (tenant) dibebaskan dari pajak transaksi (PPN 0%).
+                        Pameran ini telah dikurasi resmi oleh Admin Boothify. Tenant dibebaskan dari pajak transaksi (PPN 0%).
                       </p>
                     </div>
                   </div>
@@ -239,15 +241,15 @@ function EventDetailContent() {
               )}
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                <h1 className="text-2xl sm:text-3xl font-bold">{event.title}</h1>
+                <h1 className="page-header-title">{event.title}</h1>
                 <div className="flex items-center gap-2">
                   {isEventOrganizer && (
                     <div className="flex flex-wrap gap-2">
                       <Link href={`/dashboard/organizer/events/${eventId}/edit`} className="btn btn-secondary btn-sm text-xs" id="edit-event-info-btn">
-                        Edit Informasi Event
+                        Edit informasi event
                       </Link>
                       <Link href={`/dashboard/organizer/events/${eventId}/floor-plan`} className="btn btn-secondary btn-sm text-xs" id="edit-floor-plan-btn">
-                        Edit Denah
+                        Edit denah booth
                       </Link>
                     </div>
                   )}
@@ -286,7 +288,7 @@ function EventDetailContent() {
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" /><line x1="1" y1="10" x2="23" y2="10" /></svg>
                   </div>
                   <div>
-                    <p className="text-muted-foreground text-xs">Harga Sewa Booth</p>
+                    <p className="text-muted-foreground text-xs">Harga sewa booth</p>
                     <p className="font-medium">{event.priceRange}</p>
                   </div>
                 </div>
@@ -295,38 +297,41 @@ function EventDetailContent() {
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center gap-1 mb-8 border-b border-border">
-            {([
-              { key: "info", label: "Informasi Event" },
-              { key: "booths", label: `Pilih Booth (${booths.length - takenBooths.length} Tersedia)` },
+          <Tabs<"info" | "booths" | "tenants">
+            label="Bagian halaman event"
+            idPrefix="event"
+            active={activeTab}
+            onChange={setActiveTab}
+            items={[
+              { key: "info", label: "Informasi event" },
+              { key: "booths", label: "Pilih booth", count: Math.max(0, booths.length - takenBooths.length) },
               // Tenants rent booths here; the list of other tenants is for visitors and organizers
-              ...(user?.role === "tenant" ? [] : [{ key: "tenants", label: `Daftar Tenant (${registeredTenantsList.length})` }]),
-            ] as Array<{ key: "info" | "booths" | "tenants"; label: string }>).map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === tab.key
-                    ? "border-primary text-primary-light"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-                id={`tab-${tab.key}`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+              ...(user?.role === "tenant" ? [] : [{ key: "tenants" as const, label: "Daftar tenant", count: registeredTenantsList.length }]),
+            ]}
+          />
 
           {/* Tab 1: Informasi */}
           {activeTab === "info" && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
+            <TabPanel idPrefix="event" tabKey="info" className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-6">
                 <div className="card-base p-6">
-                  <h2 className="text-lg font-semibold mb-4">Tentang Event</h2>
-                  <p className="text-muted leading-relaxed">{event.description}</p>
+                  <h2 className="section-title mb-4">Tentang event</h2>
+                  <p className="text-muted leading-relaxed whitespace-pre-line">{event.description || "Organizer belum menulis deskripsi event."}</p>
                 </div>
+                <section className="card-base p-6" id="booth-facilities">
+                  <h2 className="section-title">Fasilitas booth</h2>
+                  <p className="section-desc mb-4">Yang sudah termasuk harga sewa dan yang perlu kamu bawa sendiri.</p>
+                  <FacilityList included={event.facilitiesIncluded} excluded={event.facilitiesExcluded} />
+                </section>
+                {event.guidelines && (
+                  <section className="card-base p-6">
+                    <h2 className="section-title mb-4">Panduan untuk tenant</h2>
+                    <p className="text-sm text-muted leading-relaxed whitespace-pre-line">{event.guidelines}</p>
+                  </section>
+                )}
+                {(event.zones || []).length > 0 && (
                 <div className="card-base p-6">
-                  <h2 className="text-lg font-semibold mb-4">Zona Booth</h2>
+                  <h2 className="section-title mb-4">Zona booth</h2>
                   <div className="space-y-3">
                     {(event.zones || []).map((zone) => (
                       <div key={zone.name} className="flex items-center gap-3 p-3 rounded-xl bg-foreground/3">
@@ -337,8 +342,10 @@ function EventDetailContent() {
                     ))}
                   </div>
                 </div>
+                )}
+                {(event.highlights || []).length > 0 && (
                 <div className="card-base p-6">
-                  <h2 className="text-lg font-semibold mb-4">Highlights Acara</h2>
+                  <h2 className="section-title mb-4">Sorotan acara</h2>
                   <ul className="space-y-2">
                     {(event.highlights || []).map((h) => (
                       <li key={h} className="flex items-center gap-2 text-sm text-muted">
@@ -348,17 +355,18 @@ function EventDetailContent() {
                     ))}
                   </ul>
                 </div>
+                )}
               </div>
               <div className="space-y-6">
                 <div className="card-base p-6">
-                  <h2 className="text-lg font-semibold mb-4">Penyelenggara</h2>
+                  <h2 className="section-title mb-4">Penyelenggara</h2>
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center text-secondary font-bold">
                       {event.organizer.slice(0, 2).toUpperCase()}
                     </div>
                     <div>
                       <p className="font-medium text-sm">{event.organizer}</p>
-                      <p className="text-xs text-muted-foreground">Official Organizer</p>
+                      <p className="text-xs text-muted-foreground">Organizer event</p>
                     </div>
                   </div>
                   <button
@@ -367,11 +375,11 @@ function EventDetailContent() {
                     className="btn btn-secondary btn-sm w-full"
                     id="btn-contact-organizer"
                   >
-                    Hubungi Organizer
+                    Hubungi organizer
                   </button>
                 </div>
                 <div className="card-base p-6">
-                  <h2 className="text-lg font-semibold mb-4">Ketersediaan Booth</h2>
+                  <h2 className="section-title mb-4">Ketersediaan booth</h2>
                   <div className="text-center mb-4">
                     <div className="text-4xl font-bold gradient-text">
                       {Math.max(0, booths.length - takenBooths.length)}
@@ -387,7 +395,7 @@ function EventDetailContent() {
                     />
                   </div>
                   <button onClick={() => setActiveTab("booths")} className="btn btn-primary w-full" id="goto-booth-picker">
-                    Pilih &amp; Sewa Booth Sekarang
+                    Pilih &amp; sewa booth
                   </button>
                 </div>
                 <Link
@@ -395,15 +403,15 @@ function EventDetailContent() {
                   className="btn btn-secondary w-full"
                   id="btn-goto-visitor-guide"
                 >
-                  Buka Panduan Digital
+                  Buka panduan pengunjung
                 </Link>
               </div>
-            </div>
+            </TabPanel>
           )}
 
           {/* Tab 2: Pilih Booth (Denah Hasil Desain Floor Plan Builder) */}
           {activeTab === "booths" && (
-            <div className="animate-fade-in">
+            <TabPanel idPrefix="event" tabKey="booths">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Denah Booth Interaktif */}
                 <div className="lg:col-span-2">
@@ -411,16 +419,15 @@ function EventDetailContent() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                       <div>
                         <h2 className="text-lg font-semibold flex items-center gap-2">
-                          Denah Interaktif Event
-                          <span className="badge badge-primary text-[10px]">Real-Time Sync</span>
+                          Denah booth
                         </h2>
                         <p className="text-xs text-muted-foreground">
-                          Tata letak booth ini dirancang oleh organizer melalui Interactive Floor Plan Builder.
+                          Klik booth yang tersedia untuk memilihnya. Kamu bisa memilih lebih dari satu booth.
                         </p>
                       </div>
                       <div className="flex items-center gap-2 text-xs">
-                        <span className="badge badge-secondary">{booths.length} Total Booth</span>
-                        <span className="badge badge-accent">{booths.length - takenBooths.length} Tersedia</span>
+                        <span className="badge badge-secondary">{booths.length} booth</span>
+                        <span className="badge badge-accent">{booths.length - takenBooths.length} tersedia</span>
                       </div>
                     </div>
 
@@ -432,11 +439,11 @@ function EventDetailContent() {
                       </div>
                       <div className="flex items-center gap-1.5">
                         <div className="w-4 h-4 bg-primary/25 border-2 border-foreground" />
-                        <span>Dipilih Anda</span>
+                        <span>Dipilih</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <div className="w-4 h-4 rounded bg-foreground/10 border border-foreground/5 opacity-50" />
-                        <span>Sudah Terisi</span>
+                        <span>Sudah terisi</span>
                       </div>
                     </div>
 
@@ -510,10 +517,10 @@ function EventDetailContent() {
                 {/* Sidebar Ringkasan Booking */}
                 <div>
                   <div className="card-base p-6 sticky top-24">
-                    <h3 className="font-semibold mb-4 text-lg">Ringkasan Sewa Booth</h3>
+                    <h3 className="section-title mb-4">Ringkasan sewa booth</h3>
                     {selectedBoothsData.length === 0 ? (
                       <div className="py-10 text-center border border-dashed border-border rounded-xl">
-                        <p className="text-sm font-medium mb-1">Belum Ada Booth Dipilih</p>
+                        <p className="text-sm font-medium mb-1">Belum ada booth dipilih</p>
                         <p className="text-xs text-muted-foreground px-4">
                           Klik booth yang berstatus &quot;Tersedia&quot; pada denah di samping untuk memilih.
                         </p>
@@ -539,9 +546,15 @@ function EventDetailContent() {
                           ))}
                         </div>
 
+                        <details className="text-xs">
+                          <summary className="cursor-pointer font-medium">Fasilitas yang termasuk sewa</summary>
+                          <div className="mt-3">
+                            <FacilityList included={event.facilitiesIncluded} excluded={event.facilitiesExcluded} compact />
+                          </div>
+                        </details>
                         <hr className="border-border" />
                         <div className="flex items-center justify-between font-bold">
-                          <span className="text-sm text-muted-foreground">Total Biaya Sewa:</span>
+                          <span className="text-sm text-muted-foreground">Total biaya sewa</span>
                           <span className="gradient-text text-xl">
                             Rp {subtotalPrice.toLocaleString("id-ID")}
                           </span>
@@ -553,8 +566,8 @@ function EventDetailContent() {
                           id="proceed-checkout"
                         >
                           {!user || user.role === "guest"
-                            ? `Masuk untuk Menyewa (${selectedBoothsData.length} Booth)`
-                            : `Lanjut ke Pembayaran (${selectedBoothsData.length} Booth)`}
+                            ? `Masuk untuk menyewa (${selectedBoothsData.length} booth)`
+                            : `Lanjut ke pembayaran (${selectedBoothsData.length} booth)`}
                         </button>
                         {checkoutNotice ? (
                           <p className="text-xs text-error leading-relaxed" role="alert">
@@ -570,35 +583,35 @@ function EventDetailContent() {
                   </div>
                 </div>
               </div>
-            </div>
+            </TabPanel>
           )}
 
           {/* Tab 3: Daftar Tenant Resmi */}
           {activeTab === "tenants" && user?.role !== "tenant" && (
-            <div className="animate-fade-in">
+            <TabPanel idPrefix="event" tabKey="tenants">
               <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold">Tenant Resmi Terdaftar</h2>
+                  <h2 className="section-title">Tenant terdaftar</h2>
                   <p className="text-xs text-muted-foreground">
-                    Daftar brand yang telah resmi mengonfirmasi penyewaan booth di event ini.
+                    Brand yang sudah menyewa booth di event ini.
                   </p>
                 </div>
                 <Link
                   href={`/events/${eventId}/guide`}
                   className="btn btn-secondary btn-sm text-xs"
                 >
-                  Lihat Tampilan Panduan Pengunjung
+                  Lihat panduan pengunjung
                 </Link>
               </div>
 
               {registeredTenantsList.length === 0 ? (
                 <div className="text-center py-12 card-base border border-dashed border-border rounded-xl">
-                  <p className="font-semibold text-sm mb-1">Belum Ada Tenant Terdaftar</p>
+                  <p className="font-semibold text-sm mb-1">Belum ada tenant terdaftar</p>
                   <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto">
-                    Jadilah brand pertama yang menyewa booth di event bergengsi ini!
+                    Jadilah brand pertama yang menyewa booth di event ini.
                   </p>
                   <button onClick={() => setActiveTab("booths")} className="btn btn-primary btn-sm">
-                    Pilih Booth Sekarang
+                    Pilih booth
                   </button>
                 </div>
               ) : (
@@ -622,26 +635,26 @@ function EventDetailContent() {
                         href={`/events/${eventId}/guide`}
                         className="btn btn-ghost btn-sm text-xs w-full justify-center"
                       >
-                        Buka Katalog / Menu
+                        Buka katalog / menu
                       </Link>
                     </div>
                   ))}
                 </div>
               )}
-            </div>
+            </TabPanel>
           )}
         </div>
 
         {/* Modal Hubungi Organizer */}
         {showContactModal && (
-          <div className="modal-overlay">
+          <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="contact-modal-title">
             <div className="card-base max-w-lg w-full p-6 relative border-2 border-foreground shadow-2xl">
               <button
                 type="button"
                 onClick={() => { setShowContactModal(false); setContactSent(false); }}
                 className="absolute top-4 right-4 text-muted-foreground hover:text-foreground text-xl p-1"
                 id="close-contact-modal"
-                aria-label="Tutup modal"
+                aria-label="Tutup"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
               </button>
@@ -651,13 +664,13 @@ function EventDetailContent() {
                   {event.organizer.slice(0, 2).toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">{event.organizer}</h3>
+                  <h3 className="text-lg font-semibold" id="contact-modal-title">{event.organizer}</h3>
                   <p className="text-xs text-muted-foreground">Penyelenggara {event.title}</p>
                 </div>
               </div>
 
               <p className="text-sm text-muted-foreground mb-5">
-                Ada pertanyaan seputar pemilihan booth, fasilitas listrik, atau syarat &amp; ketentuan event? Hubungi tim organizer secara langsung:
+                Ada pertanyaan soal booth, fasilitas, atau aturan event? Hubungi organizer langsung:
               </p>
 
               {/* Quick Contact Buttons */}
@@ -672,7 +685,7 @@ function EventDetailContent() {
                   id="contact-whatsapp"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                  Chat WhatsApp
+                  WhatsApp
                 </a>
                 )}
                 {event.organizerEmail && (
@@ -682,7 +695,7 @@ function EventDetailContent() {
                   id="contact-email"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                  Kirim Email
+                  Email
                 </a>
                 )}
               </div>
@@ -690,12 +703,11 @@ function EventDetailContent() {
 
               {/* In-app Message Form */}
               <div className="pt-4 border-t border-border">
-                <p className="text-xs font-semibold text-foreground mb-3">Atau kirim pesan langsung di platform:</p>
+                <p className="text-sm font-semibold text-foreground mb-3">Atau kirim pesan lewat Boothify</p>
                 {contactSent ? (
-                  <div className="p-4 rounded-xl bg-primary/10 border border-primary/30 text-center animate-fade-in">
-                    <p className="text-primary-light font-semibold text-sm mb-1">Pesan terkirim.</p>
-                    <p className="text-xs text-muted-foreground">Penyelenggara akan membalas pertanyaan Anda secepatnya di inbox organizer.</p>
-                  </div>
+                  <Notice tone="ok" title="Pesan terkirim">
+                    Organizer akan membalas lewat email atau WhatsApp yang kamu isi.
+                  </Notice>
                 ) : (
                   <form
                     onSubmit={async (e) => {
@@ -721,42 +733,23 @@ function EventDetailContent() {
                     }}
                     className="space-y-3"
                   >
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="text"
-                        required
-                        placeholder="Nama Anda / Brand"
-                        value={contactForm.name}
-                        onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
-                        className="input-base text-xs py-2"
-                      />
-                      <input
-                        type="email"
-                        required
-                        placeholder="Email aktif"
-                        value={contactForm.email}
-                        onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                        className="input-base text-xs py-2"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <Field label="Nama / brand" required id="contact-name">
+                        {(id) => <input id={id} type="text" required value={contactForm.name} onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })} className="input-base" />}
+                      </Field>
+                      <Field label="Email" required id="contact-email-input">
+                        {(id) => <input id={id} type="email" required value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} className="input-base" />}
+                      </Field>
                     </div>
-                    <input
-                      type="tel"
-                      placeholder="Nomor WhatsApp"
-                      value={contactForm.phone}
-                      onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
-                      className="input-base text-xs py-2"
-                    />
-                    <textarea
-                      required
-                      rows={3}
-                      placeholder="Tuliskan pertanyaan seputar booth atau fasilitas..."
-                      value={contactForm.message}
-                      onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
-                      className="input-base text-xs resize-none"
-                    />
-                    {contactError && <p className="text-xs text-error" role="alert">{contactError}</p>}
+                    <Field label="Nomor WhatsApp" optional id="contact-phone">
+                      {(id) => <input id={id} type="tel" value={contactForm.phone} onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })} className="input-base" />}
+                    </Field>
+                    <Field label="Pertanyaan" required id="contact-message">
+                      {(id) => <textarea id={id} required rows={3} placeholder="Contoh: Apakah listrik 900 watt sudah termasuk sewa?" value={contactForm.message} onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })} className="input-base resize-none" />}
+                    </Field>
+                    {contactError && <Notice tone="error">{contactError}</Notice>}
                     <button type="submit" className="btn btn-primary btn-sm w-full" id="submit-contact-form" disabled={contactSending}>
-                      {contactSending ? "Mengirim..." : "Kirim Pesan ke Organizer"}
+                      {contactSending ? "Mengirim..." : "Kirim pesan"}
                     </button>
                   </form>
                 )}

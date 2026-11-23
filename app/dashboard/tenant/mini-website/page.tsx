@@ -103,7 +103,7 @@ function MiniWebsiteContent() {
       )}
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">Mini Website Builder</h1>
+        <h1 className="page-header-title mb-1">Mini Website</h1>
         <p className="text-sm text-muted-foreground">
           Halaman branding yang terbuka saat pengunjung mengetuk booth kamu di panduan digital.
         </p>
@@ -123,7 +123,7 @@ function MiniWebsiteContent() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <label className="btn btn-secondary btn-sm cursor-pointer">
-                  {uploading ? "Mengunggah..." : config.logo ? "Ganti Logo" : "Upload Logo"}
+                  {uploading ? "Mengunggah..." : config.logo ? "Ganti logo" : "Unggah logo"}
                   <input
                     type="file"
                     accept="image/*"
@@ -145,7 +145,7 @@ function MiniWebsiteContent() {
             </div>
           </div>
           <div>
-            <label htmlFor="mw-headline" className="field-label">Headline Brand</label>
+            <label htmlFor="mw-headline" className="field-label">Headline brand</label>
             <input id="mw-headline" type="text" className="input-base" value={config.headline} onChange={(e) => setConfig({ ...config, headline: e.target.value })} />
           </div>
           <div>
@@ -153,11 +153,11 @@ function MiniWebsiteContent() {
             <input id="mw-tagline" type="text" className="input-base" value={config.tagline} onChange={(e) => setConfig({ ...config, tagline: e.target.value })} />
           </div>
           <div>
-            <label htmlFor="mw-about" className="field-label">Tentang Brand</label>
+            <label htmlFor="mw-about" className="field-label">Tentang brand</label>
             <textarea id="mw-about" className="input-base min-h-[96px] resize-y" rows={4} value={config.aboutText} onChange={(e) => setConfig({ ...config, aboutText: e.target.value })} />
           </div>
           <div>
-            <label htmlFor="mw-color-text" className="field-label">Warna Brand</label>
+            <label htmlFor="mw-color-text" className="field-label">Warna brand</label>
             <div className="flex items-center gap-3">
               <input
                 type="color"
@@ -181,7 +181,7 @@ function MiniWebsiteContent() {
               />
             </div>
             <div>
-              <label htmlFor="mw-website" className="field-label">Website Resmi</label>
+              <label htmlFor="mw-website" className="field-label">Website resmi</label>
               <input
                 id="mw-website"
                 type="url"
@@ -197,7 +197,7 @@ function MiniWebsiteContent() {
         </form>
 
         <div>
-          <p className="field-label">Preview di panduan pengunjung</p>
+          <p className="field-label">Pratinjau di panduan pengunjung</p>
           <div className="card-base overflow-hidden">
             <div className="mini-preview-head" style={{ background: config.primaryColor }}>
               <div className="mini-preview-logo">

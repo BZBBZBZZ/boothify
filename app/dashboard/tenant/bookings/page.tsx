@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Notice, Tabs } from "@/app/components/ui";
 import Link from "next/link";
 import { useAuth } from "../../../components/AuthContext";
 
@@ -83,45 +84,26 @@ export default function TenantBookingsAndOrdersPage() {
       {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold mb-1">Pesanan Pengunjung &amp; Kelola Booth</h1>
+          <h1 className="page-header-title mb-1">Pesanan Pengunjung &amp; Kelola Booth</h1>
           <p className="text-muted-foreground text-sm">
             Pantau antrean pesanan digital pengunjung dan kelola booth resmi brand kamu.
           </p>
         </div>
       </div>
 
-      {loadError && (
-        <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-sm text-error" role="alert">{loadError}</div>
-      )}
+      {loadError && <Notice tone="error" className="mb-6">{loadError}</Notice>}
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-border mb-6">
-        <button
-          onClick={() => setActiveTab("orders")}
-          className={`pb-3 px-4 font-semibold text-sm transition relative ${
-            activeTab === "orders" ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"
-          }`}
-          id="tab-orders"
-        >
-          <span className="flex items-center gap-2">
-            Pesanan Masuk Pengunjung
-            {orders.length > 0 && (
-              <span className="badge badge-primary text-[10px]">{orders.length}</span>
-            )}
-          </span>
-        </button>
-        <button
-          onClick={() => setActiveTab("booths")}
-          className={`pb-3 px-4 font-semibold text-sm transition relative ${
-            activeTab === "booths" ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"
-          }`}
-          id="tab-booths"
-        >
-          <span className="flex items-center gap-2">
-            Booth Saya ({bookings.length})
-          </span>
-        </button>
-      </div>
+      <Tabs<"orders" | "booths">
+        label="Bagian pesanan dan booth"
+        idPrefix="bookings"
+        active={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { key: "orders", label: "Pesanan pengunjung", count: orders.length },
+          { key: "booths", label: "Booth saya", count: bookings.length },
+        ]}
+      />
 
       {/* ========== TAB 1: VISITOR ORDERS MANAGER ========== */}
       {activeTab === "orders" && (
@@ -280,7 +262,7 @@ export default function TenantBookingsAndOrdersPage() {
                         {currentStatus === "making" && (
                           <button
                             onClick={() => updateOrderStatus(order.id, "ready")}
-                            className="btn btn-sm w-full text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                            className="btn btn-primary btn-sm w-full"
                             id={`btn-ready-${order.id}`}
                           >
                             Tandai Siap Diambil
@@ -370,7 +352,7 @@ export default function TenantBookingsAndOrdersPage() {
                       className="btn btn-primary btn-sm w-full text-xs flex items-center justify-center gap-1"
                       id={`open-pass-${booking.booth}`}
                     >
-                      Lihat E-Pass Booth
+                      Lihat kartu tenant
                     </button>
                   </div>
                 </div>
@@ -382,7 +364,7 @@ export default function TenantBookingsAndOrdersPage() {
 
       {/* ========== MODAL E-PASS BOOTH ========== */}
       {selectedPass && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedPass(null)}>
+        <div className="modal-overlay" onClick={() => setSelectedPass(null)}>
           <div className="card-base max-w-sm w-full p-6 text-center border-primary/30 shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setSelectedPass(null)}
@@ -392,16 +374,16 @@ export default function TenantBookingsAndOrdersPage() {
               <Icon name="x" size={20} />
             </button>
 
-            <span className="badge badge-primary text-[10px] mb-2">Official tenant pass</span>
+            <span className="badge badge-primary text-[10px] mb-2">Kartu tenant resmi</span>
             <h3 className="font-bold text-lg text-foreground mb-1">{selectedPass.event}</h3>
             <p className="text-xs text-muted-foreground mb-4">{selectedPass.date}</p>
 
             <div className="p-6 rounded-2xl bg-foreground/[0.03] border border-foreground/10 my-4 inline-block w-full">
-              <div className="w-20 h-20 rounded-2xl gradient-primary mx-auto flex items-center justify-center text-3xl font-black text-secondary shadow-xl mb-3">
+              <div className="w-20 h-20 rounded-2xl gradient-primary mx-auto flex items-center justify-center text-3xl font-semibold text-secondary shadow-xl mb-3">
                 {selectedPass.booth}
               </div>
               <p className="text-xs font-semibold text-foreground">
-                Booth Number: {selectedPass.booth}
+                Nomor booth: {selectedPass.booth}
               </p>
               <p className="text-[11px] text-emerald-700 font-medium mt-1">
                 Terverifikasi &amp; Lunas
@@ -412,14 +394,14 @@ export default function TenantBookingsAndOrdersPage() {
             </div>
 
             <p className="text-[11px] text-muted-foreground mb-4">
-              Tunjukkan E-Pass ini kepada panitia saat Check-in &amp; Loading In perlengkapan booth di lokasi acara.
+              Tunjukkan kartu ini ke panitia saat registrasi ulang dan saat memasukkan perlengkapan booth di lokasi acara.
             </p>
 
             <button
               onClick={() => setSelectedPass(null)}
               className="btn btn-primary btn-sm w-full"
             >
-              Tutup E-Pass
+              Tutup
             </button>
           </div>
         </div>

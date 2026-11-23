@@ -107,7 +107,7 @@ function TenantProfilePageContent() {
       )}
 
       <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-1">Profil Brand</h1>
+        <h1 className="page-header-title mb-1">Profil Brand</h1>
         <p className="text-sm text-muted-foreground">Kelola identitas usaha, kontak, dan profil toko untuk pameran</p>
       </div>
 
@@ -145,8 +145,8 @@ function TenantProfilePageContent() {
         className="card-base p-6 space-y-5"
       >
         <div>
-          <label className="block text-sm font-medium mb-2">Nama Brand / Toko</label>
-          <input
+          <label htmlFor="profile-nama-brand-toko" className="field-label">Nama brand / toko</label>
+          <input id="profile-nama-brand-toko"
             type="text"
             required
             className="input-base"
@@ -155,8 +155,8 @@ function TenantProfilePageContent() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Kategori Usaha</label>
-          <select
+          <label htmlFor="profile-kategori-usaha" className="field-label">Kategori usaha</label>
+          <select id="profile-kategori-usaha"
             className="input-base"
             value={profile.category}
             onChange={(e) => setProfile({ ...profile, category: e.target.value })}
@@ -170,8 +170,8 @@ function TenantProfilePageContent() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Email Akun</label>
-            <input
+            <label htmlFor="profile-email-akun" className="field-label">Email akun</label>
+            <input id="profile-email-akun"
               type="email"
               className="input-base"
               value={profile.email}
@@ -181,8 +181,8 @@ function TenantProfilePageContent() {
             <p id="tenant-email-note" className="text-xs text-muted-foreground mt-1">Email dipakai untuk masuk dan tidak bisa diubah di sini.</p>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Nomor Telepon / WhatsApp</label>
-            <input
+            <label htmlFor="profile-nomor-telepon-whatsapp" className="field-label">Nomor telepon / WhatsApp</label>
+            <input id="profile-nomor-telepon-whatsapp"
               type="tel"
               className="input-base"
               value={profile.phone}
@@ -191,8 +191,8 @@ function TenantProfilePageContent() {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-2">Deskripsi Brand</label>
-          <textarea
+          <label htmlFor="profile-deskripsi-brand" className="field-label">Deskripsi brand</label>
+          <textarea id="profile-deskripsi-brand"
             className="input-base min-h-[100px] resize-y"
             value={profile.description}
             onChange={(e) => setProfile({ ...profile, description: e.target.value })}
@@ -201,8 +201,8 @@ function TenantProfilePageContent() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Website</label>
-            <input
+            <label htmlFor="profile-website" className="field-label">Website</label>
+            <input id="profile-website"
               type="url"
               className="input-base"
               value={profile.website}
@@ -210,8 +210,8 @@ function TenantProfilePageContent() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2">Instagram</label>
-            <input
+            <label htmlFor="profile-instagram" className="field-label">Instagram</label>
+            <input id="profile-instagram"
               type="text"
               className="input-base"
               value={profile.instagram}

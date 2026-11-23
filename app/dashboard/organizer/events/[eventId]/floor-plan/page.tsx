@@ -377,7 +377,7 @@ function FloorPlanContent() {
         <div className="card-base p-8">
           <h2 className="text-xl font-bold mb-2">{loadError ? "Denah gagal dimuat" : "Event tidak ditemukan"}</h2>
           <p className="text-sm text-muted-foreground mb-6">{loadError || "Event ini tidak ada atau bukan milik akun kamu."}</p>
-          <Link href="/dashboard/organizer" className="btn btn-primary btn-sm text-xs">Dashboard Organizer</Link>
+          <Link href="/dashboard/organizer" className="btn btn-primary btn-sm text-xs">Dasbor Organizer</Link>
         </div>
       </div>
     );
@@ -412,7 +412,7 @@ function FloorPlanContent() {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-foreground/[0.08]">
         <div>
           <div className="flex flex-wrap items-center gap-2 mb-1.5">
-            <h1 className="text-2xl font-bold tracking-tight">Interactive Floor Plan Builder</h1>
+            <h1 className="page-header-title">Denah booth</h1>
             {isDraft && (
               <span className="badge badge-secondary text-xs shrink-0">Draft, belum tampil di publik</span>
             )}
@@ -472,7 +472,7 @@ function FloorPlanContent() {
             </button>
             {openPanels.booth && <div className="space-y-3 mt-3">
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Zona Kategori</label>
+                <label htmlFor="zone-selector" className="field-label">Zona booth baru</label>
                 <select
                   className="input-base text-sm"
                   value={activeZone}
@@ -600,37 +600,37 @@ function FloorPlanContent() {
               {openPanels.editBooth && (
                 <div className="space-y-3 mt-3">
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Label</label>
-                    <input type="text" className="input-base text-sm" value={selectedBooth.label} onChange={(e) => updateBooth(selectedBooth.id, { label: e.target.value })} />
+                    <label htmlFor="floor-plan-label" className="field-label">Kode booth</label>
+                    <input id="floor-plan-label" type="text" className="input-base text-sm" value={selectedBooth.label} onChange={(e) => updateBooth(selectedBooth.id, { label: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Zona</label>
-                    <select className="input-base text-sm" value={selectedBooth.zone} onChange={(e) => updateBooth(selectedBooth.id, { zone: e.target.value })}>
+                    <label htmlFor="floor-plan-zona" className="field-label">Zona</label>
+                    <select id="floor-plan-zona" className="input-base text-sm" value={selectedBooth.zone} onChange={(e) => updateBooth(selectedBooth.id, { zone: e.target.value })}>
                       {zones.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">Lebar (px)</label>
-                      <input type="number" className="input-base text-sm" value={selectedBooth.width} onChange={(e) => updateBooth(selectedBooth.id, { width: Number(e.target.value) })} />
+                      <label htmlFor="floor-plan-lebar-px" className="field-label">Lebar di denah (px)</label>
+                      <input id="floor-plan-lebar-px" type="number" className="input-base text-sm" value={selectedBooth.width} onChange={(e) => updateBooth(selectedBooth.id, { width: Number(e.target.value) })} />
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">Tinggi (px)</label>
-                      <input type="number" className="input-base text-sm" value={selectedBooth.height} onChange={(e) => updateBooth(selectedBooth.id, { height: Number(e.target.value) })} />
+                      <label htmlFor="floor-plan-tinggi-px" className="field-label">Tinggi di denah (px)</label>
+                      <input id="floor-plan-tinggi-px" type="number" className="input-base text-sm" value={selectedBooth.height} onChange={(e) => updateBooth(selectedBooth.id, { height: Number(e.target.value) })} />
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Harga Sewa (Rp)</label>
-                    <input type="number" className="input-base text-sm" value={selectedBooth.price} onChange={(e) => updateBooth(selectedBooth.id, { price: Number(e.target.value) })} />
+                    <label htmlFor="floor-plan-harga-sewa-rp" className="field-label">Harga sewa (Rp)</label>
+                    <input id="floor-plan-harga-sewa-rp" type="number" className="input-base text-sm" value={selectedBooth.price} onChange={(e) => updateBooth(selectedBooth.id, { price: Number(e.target.value) })} />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Ukuran Asli Booth (cm)</label>
-                    <input type="text" className="input-base text-sm" placeholder="Contoh: 300 x 300 cm" value={selectedBooth.sizeCm || ""} onChange={(e) => updateBooth(selectedBooth.id, { sizeCm: e.target.value })} />
+                    <label htmlFor="floor-plan-ukuran-asli-booth-cm" className="field-label">Ukuran asli booth</label>
+                    <input id="floor-plan-ukuran-asli-booth-cm" type="text" className="input-base text-sm" placeholder="Contoh: 300 x 300 cm" value={selectedBooth.sizeCm || ""} onChange={(e) => updateBooth(selectedBooth.id, { sizeCm: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Rotasi Booth</label>
+                    <label htmlFor="floor-plan-rotasi-booth" className="field-label">Rotasi booth</label>
                     <div className="flex items-center gap-2">
-                      <input type="range" min="0" max="359" step="15" className="w-full accent-[var(--primary)]" value={selectedBooth.rotation || 0} onChange={(e) => updateBooth(selectedBooth.id, { rotation: Number(e.target.value) })} />
+                      <input id="floor-plan-rotasi-booth" type="range" min="0" max="359" step="15" className="w-full accent-[var(--primary)]" value={selectedBooth.rotation || 0} onChange={(e) => updateBooth(selectedBooth.id, { rotation: Number(e.target.value) })} />
                       <span className="text-xs w-12 text-right">{selectedBooth.rotation || 0}°</span>
                     </div>
                   </div>
@@ -686,7 +686,7 @@ function FloorPlanContent() {
         <div className="lg:col-span-3">
           <div className="card-base p-4">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <p className="text-xs text-muted-foreground">Drag booth untuk memindahkan • Klik untuk edit booth</p>
+              <p className="text-xs text-muted-foreground">Seret booth untuk memindahkan • Klik booth untuk mengubah detailnya</p>
               <div className="flex items-center gap-2">
                 <button onClick={() => saveFloorPlan(false)} className="btn btn-secondary btn-sm" id="save-floor-plan" disabled={saving}>
                   {saving && !publishing ? "Menyimpan..." : saved ? "Tersimpan" : isDraft ? "Simpan Draft" : "Simpan Perubahan"}

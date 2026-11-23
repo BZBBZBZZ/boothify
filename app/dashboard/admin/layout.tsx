@@ -34,7 +34,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <div className="w-16 h-16 mx-auto mb-4 bg-foreground text-primary flex items-center justify-center">
             <Icon name="lock" size={32} />
           </div>
-          <h1 className="text-xl font-bold mb-2">Akses Khusus Super Admin</h1>
+          <h1 className="page-header-title mb-2">Akses Khusus Super Admin</h1>
           <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
             Halaman ini berada di tingkat tertinggi platform dan hanya dapat diakses oleh Administrator resmi untuk mengelola Campaign Master dan kurasi event organizer.
           </p>

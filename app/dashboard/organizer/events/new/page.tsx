@@ -9,6 +9,14 @@ import { uploadImage } from "@/app/lib/file-upload";
 import { setActiveOrganizerEventId } from "@/app/lib/event-defaults";
 import { ASIA_LOCATIONS } from "@/app/lib/asia-locations";
 import FreshOnNavigate from "../../../../components/FreshOnNavigate";
+import { FacilityPicker, type Facilities } from "../../../../components/BoothFacilities";
+import { Field, Notice, PageHeader, Stepper } from "../../../../components/ui";
+
+/* Creating an event is split in steps so each screen asks for one kind of information.
+   The last step (the booth floor plan) lives on its own page. */
+const STEPS = ["Info event", "Waktu & lokasi", "Fasilitas & aturan", "Denah booth"];
+
+type Step = 0 | 1 | 2;
 
 function CreateEventPageContent() {
   const router = useRouter();
@@ -17,9 +25,11 @@ function CreateEventPageContent() {
   const organizerName = user?.businessName || user?.name || "";
 
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  const [step, setStep] = useState<Step>(0);
   const [bannerUrl, setBannerUrl] = useState("");
   const [bannerUploading, setBannerUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [facilities, setFacilities] = useState<Facilities>({ included: [], excluded: [] });
   const [formData, setFormData] = useState({
     name: "",
     date_start: "",
@@ -39,9 +49,10 @@ function CreateEventPageContent() {
 
   const [formError, setFormError] = useState("");
 
+  const realCategories = formData.categories.filter((category) => category !== "all");
+
   // A new event stays a private draft until the organizer publishes it from the floor plan builder
   const saveDraft = async (): Promise<string | null> => {
-    const categories = formData.categories.filter((category) => category !== "all");
     try {
       const id = await createEvent({
         title: formData.name.trim(),
@@ -52,11 +63,13 @@ function CreateEventPageContent() {
         province: formData.province,
         city: formData.city,
         address: formData.address.trim(),
-        category: categories.join(", ") || "Umum",
-        categories,
+        category: realCategories.join(", ") || "Umum",
+        categories: realCategories,
         description: formData.description.trim(),
         theme: formData.theme.trim(),
         guidelines: formData.guidelines.trim(),
+        facilitiesIncluded: facilities.included,
+        facilitiesExcluded: facilities.excluded,
         image: bannerUrl,
         organizer: organizerName,
         organizerEmail,
@@ -69,10 +82,26 @@ function CreateEventPageContent() {
     }
   };
 
+  /** Checks the fields of one step; returns an error message or "". */
+  const validate = (which: Step): string => {
+    if (which === 0) {
+      if (!formData.name.trim()) return "Isi nama event.";
+      if (realCategories.length === 0) return "Pilih minimal satu kategori event.";
+    }
+    if (which === 1) {
+      if (!formData.date_start || !formData.date_end) return "Isi tanggal mulai dan tanggal selesai.";
+      if (formData.date_end < formData.date_start) return "Tanggal selesai tidak boleh sebelum tanggal mulai.";
+      if (!formData.location.trim()) return "Isi nama venue.";
+      if (!formData.country || !formData.province || !formData.city) return "Pilih negara, provinsi, dan kota.";
+    }
+    return "";
+  };
+
   const handleSaveDraft = async () => {
     if (submitting || bannerUploading) return;
     setFormError("");
     if (!formData.name.trim()) {
+      setStep(0);
       setFormError("Isi nama event dulu sebelum menyimpan draft.");
       return;
     }
@@ -86,13 +115,24 @@ function CreateEventPageContent() {
     e.preventDefault();
     if (submitting || bannerUploading) return;
     setFormError("");
-    if (formData.date_end && formData.date_start && formData.date_end < formData.date_start) {
-      setFormError("Tanggal selesai tidak boleh sebelum tanggal mulai.");
+    const problem = validate(step);
+    if (problem) {
+      setFormError(problem);
       return;
     }
-    if (formData.categories.filter((category) => category !== "all").length === 0) {
-      setFormError("Pilih minimal satu kategori event.");
+    if (step < 2) {
+      setStep((s) => (s + 1) as Step);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
+    }
+    // Final check of every step before saving
+    for (const s of [0, 1] as Step[]) {
+      const p = validate(s);
+      if (p) {
+        setStep(s);
+        setFormError(p);
+        return;
+      }
     }
     setSubmitting(true);
     const id = await saveDraft();
@@ -117,202 +157,192 @@ function CreateEventPageContent() {
     setFormData((prev) => ({ ...prev, [key]: value }));
 
   return (
-    <div className="animate-fade-in" id="create-event-page">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-1">Buat Event Baru</h1>
-        <p className="text-sm text-muted-foreground">
-          Langkah 1 dari 2: isi detail acara. Langkah berikutnya menata denah booth, lalu event diterbitkan.
-        </p>
-      </div>
+    <div className="animate-fade-in max-w-3xl" id="create-event-page">
+      <PageHeader
+        title="Buat event baru"
+        description="Event disimpan sebagai draft dan belum tampil di publik sampai kamu menerbitkannya dari halaman denah booth."
+      />
 
-      <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
-        <div className="card-base p-6 space-y-5">
-          <h2 className="font-semibold flex items-center gap-2">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-            Detail Event
-          </h2>
+      <Stepper steps={STEPS} current={step} />
 
-          <div>
-            <label htmlFor="event-name" className="block text-sm font-medium mb-2">Nama Event *</label>
-            <input id="event-name" type="text" className="input-base" placeholder="Green Fashion Expo 2026" value={formData.name} onChange={(e) => update("name", e.target.value)} required />
-          </div>
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+        {/* STEP 1: what the event is */}
+        {step === 0 && (
+          <div className="space-y-6 animate-fade-in">
+            <section className="card-base p-6 space-y-5">
+              <div>
+                <h2 className="section-title">Info event</h2>
+                <p className="section-desc">Nama, kategori, dan deskripsi ini tampil di halaman publik event.</p>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="event-date-start" className="block text-sm font-medium mb-2">Tanggal Mulai *</label>
-              <input id="event-date-start" type="date" className="input-base" value={formData.date_start} onChange={(e) => update("date_start", e.target.value)} required />
-            </div>
-            <div>
-              <label htmlFor="event-date-end" className="block text-sm font-medium mb-2">Tanggal Selesai *</label>
-              <input id="event-date-end" type="date" className="input-base" value={formData.date_end} onChange={(e) => update("date_end", e.target.value)} required />
-            </div>
-          </div>
+              <Field label="Nama event" required id="event-name">
+                {(id) => <input id={id} type="text" className="input-base" placeholder="Contoh: Green Fashion Expo 2026" value={formData.name} onChange={(e) => update("name", e.target.value)} required />}
+              </Field>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="event-time-start" className="block text-sm font-medium mb-2">Waktu Buka</label>
-              <input id="event-time-start" type="time" className="input-base" value={formData.time_start} onChange={(e) => update("time_start", e.target.value)} />
-            </div>
-            <div>
-              <label htmlFor="event-time-end" className="block text-sm font-medium mb-2">Waktu Tutup</label>
-              <input id="event-time-end" type="time" className="input-base" value={formData.time_end} onChange={(e) => update("time_end", e.target.value)} />
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="event-location" className="block text-sm font-medium mb-2">Nama Venue *</label>
-            <input id="event-location" type="text" className="input-base" placeholder="Jakarta Convention Center, Hall A" value={formData.location} onChange={(e) => update("location", e.target.value)} required />
-          </div>
-
-          <fieldset>
-            <legend className="block text-sm font-medium mb-2">Kategori Event *</legend>
-            <label className="flex items-center gap-2 p-3 rounded-xl border border-primary/30 bg-primary/5 cursor-pointer mb-3">
-              <input type="checkbox" checked={formData.categories.includes("all")} onChange={(e) => update("categories", e.target.checked ? ["all", ...EVENT_CATEGORY_OPTIONS.map((category) => category.label)] : [])} />
-              <span className="text-sm font-semibold">All (semua kategori)</span>
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {EVENT_CATEGORY_OPTIONS.map((category) => (
-                <label key={category.value} className="flex items-start gap-2 p-3 rounded-xl border border-border hover:border-primary/40 cursor-pointer text-xs leading-relaxed">
-                  <input
-                    type="checkbox"
-                    checked={formData.categories.includes("all") || formData.categories.includes(category.label)}
-                    onChange={(e) => setFormData((prev) => {
-                      const next = e.target.checked ? [...prev.categories.filter((item) => item !== "all"), category.label] : prev.categories.filter((item) => item !== category.label && item !== "all");
-                      return { ...prev, categories: next };
-                    })}
-                  />
-                  <span>{category.label}</span>
+              <fieldset>
+                <legend className="field-label">Kategori event <span className="text-error" aria-hidden="true">*</span></legend>
+                <p className="field-hint mt-0 mb-3">Tenant dengan kategori yang sama akan direkomendasikan event ini.</p>
+                <label className="flex items-center gap-2 p-3 rounded-lg border border-border cursor-pointer mb-2 font-medium text-sm">
+                  <input type="checkbox" checked={formData.categories.includes("all")} onChange={(e) => update("categories", e.target.checked ? ["all", ...EVENT_CATEGORY_OPTIONS.map((category) => category.label)] : [])} />
+                  Semua kategori
                 </label>
-              ))}
-            </div>
-          </fieldset>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {EVENT_CATEGORY_OPTIONS.map((category) => (
+                    <label key={category.value} className="flex items-start gap-2 p-3 rounded-lg border border-border hover:border-foreground cursor-pointer text-sm leading-snug">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={formData.categories.includes("all") || formData.categories.includes(category.label)}
+                        onChange={(e) => setFormData((prev) => {
+                          const next = e.target.checked ? [...prev.categories.filter((item) => item !== "all"), category.label] : prev.categories.filter((item) => item !== category.label && item !== "all");
+                          return { ...prev, categories: next };
+                        })}
+                      />
+                      <span>{category.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
 
-          <fieldset className="space-y-4">
-            <legend className="block text-sm font-medium">Lokasi Event di Asia *</legend>
-            <p className="text-xs text-muted-foreground -mt-2">Pilih negara, provinsi atau wilayah, lalu kota. Pilihan berikutnya akan menyesuaikan lokasi sebelumnya.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="event-country" className="block text-xs font-medium mb-2">Negara</label>
-                <select
-                  id="event-country"
-                  className="input-base"
-                  value={formData.country}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, country: e.target.value, province: "", city: "" }))}
-                  required
-                >
-                  <option value="">Pilih negara</option>
-                  {Object.keys(ASIA_LOCATIONS).map((country) => <option key={country} value={country}>{country}</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="event-province" className="block text-xs font-medium mb-2">Provinsi / Wilayah</label>
-                <select
-                  id="event-province"
-                  className="input-base"
-                  value={formData.province}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, province: e.target.value, city: "" }))}
-                  disabled={!formData.country}
-                  required
-                >
-                  <option value="">Pilih provinsi</option>
-                  {Object.keys(ASIA_LOCATIONS[formData.country] || {}).map((province) => <option key={province} value={province}>{province}</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="event-city" className="block text-xs font-medium mb-2">Kota</label>
-                <select
-                  id="event-city"
-                  className="input-base"
-                  value={formData.city}
-                  onChange={(e) => update("city", e.target.value)}
-                  disabled={!formData.province}
-                  required
-                >
-                  <option value="">Pilih kota</option>
-                  {(ASIA_LOCATIONS[formData.country]?.[formData.province] || []).map((city) => <option key={city} value={city}>{city}</option>)}
-                </select>
-              </div>
-            </div>
-          </fieldset>
+              <Field label="Deskripsi event" optional id="event-desc" hint="Ceritakan konsep acara, target pengunjung, dan keunikannya.">
+                {(id) => <textarea id={id} className="input-base min-h-[120px] resize-y" value={formData.description} onChange={(e) => update("description", e.target.value)} rows={5} />}
+              </Field>
 
-          <div>
-            <label htmlFor="event-address" className="block text-sm font-medium mb-2">Alamat Lengkap</label>
-            <input id="event-address" type="text" className="input-base" placeholder="Jl. Jend. Gatot Subroto, Senayan, Jakarta" value={formData.address} onChange={(e) => update("address", e.target.value)} />
+              <Field label="Tema / campaign" optional id="event-theme" hint="Setelah event dibuat, buka Ide Campaign di menu samping untuk rekomendasi tema.">
+                {(id) => <input id={id} type="text" className="input-base" placeholder="Contoh: Sustainable Fashion" value={formData.theme} onChange={(e) => update("theme", e.target.value)} />}
+              </Field>
+            </section>
+
+            <section className="card-base p-6">
+              <h2 className="section-title">Banner event <span className="field-tag">Opsional</span></h2>
+              <p className="section-desc mb-4">Gambar utama di halaman event. Ukuran ideal 1200×400 px (JPG, PNG, atau WebP).</p>
+              <input
+                type="file"
+                ref={bannerInputRef}
+                className="visually-hidden"
+                accept="image/*"
+                id="event-banner"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (file) handleBanner(file);
+                }}
+              />
+              <button type="button" onClick={() => bannerInputRef.current?.click()} className={`upload-drop w-full ${bannerUploading ? "is-busy" : ""}`}>
+                {bannerUploading ? (
+                  <span className="text-sm">Mengunggah banner...</span>
+                ) : bannerUrl ? (
+                  <>
+                    <img src={bannerUrl} alt="Pratinjau banner event" className="w-full max-h-48 object-cover rounded-lg" />
+                    <span className="text-xs text-muted-foreground">Klik untuk mengganti banner</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="text-muted-foreground" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                    <span className="text-sm font-medium">Klik untuk mengunggah banner</span>
+                  </>
+                )}
+              </button>
+            </section>
           </div>
-
-          <div>
-            <label htmlFor="event-desc" className="block text-sm font-medium mb-2">Deskripsi Event</label>
-            <textarea id="event-desc" className="input-base min-h-[120px] resize-y" placeholder="Ceritakan tentang event kamu, tema, dan keunikannya..." value={formData.description} onChange={(e) => update("description", e.target.value)} rows={5} />
-          </div>
-
-          <div>
-            <label htmlFor="event-theme" className="block text-sm font-medium mb-2">Tema / Campaign</label>
-            <input id="event-theme" type="text" className="input-base" placeholder="Sustainable Fashion, Green Living, dll." value={formData.theme} onChange={(e) => update("theme", e.target.value)} />
-            <p className="text-xs text-muted-foreground mt-1">
-              Setelah event dibuat, buka Ide Campaign di menu samping untuk rekomendasi tema.
-            </p>
-          </div>
-
-          <div>
-            <label htmlFor="event-guidelines" className="block text-sm font-medium mb-2">Panduan untuk Tenant</label>
-            <textarea id="event-guidelines" className="input-base min-h-[80px] resize-y" placeholder="Aturan dan panduan khusus untuk tenant yang berpartisipasi..." value={formData.guidelines} onChange={(e) => update("guidelines", e.target.value)} rows={3} />
-          </div>
-        </div>
-
-        {/* Banner upload */}
-        <div className="card-base p-6">
-          <h2 className="font-semibold mb-4 flex items-center gap-2">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
-            Banner Event
-          </h2>
-          <input
-            type="file"
-            ref={bannerInputRef}
-            className="hidden"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              if (file) handleBanner(file);
-            }}
-          />
-          <div
-            onClick={() => bannerInputRef.current?.click()}
-            className="border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-primary/50 transition cursor-pointer"
-          >
-            {bannerUploading ? (
-              <p className="text-sm text-muted-foreground">Mengunggah banner...</p>
-            ) : bannerUrl ? (
-              <div>
-                <img src={bannerUrl} alt="Banner event" className="w-full max-h-48 object-cover rounded-xl mb-2" />
-                <p className="text-xs text-muted-foreground">Klik untuk mengganti banner</p>
-              </div>
-            ) : (
-              <>
-                <svg className="mx-auto mb-3 text-muted-foreground" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-                <p className="text-sm text-muted-foreground">Drag &amp; drop atau <span className="text-primary-light font-medium">klik untuk upload banner</span></p>
-                <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WebP. Ukuran ideal 1200×400px</p>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Actions */}
-        {formError && (
-          <p className="text-sm text-error" role="alert">{formError}</p>
         )}
+
+        {/* STEP 2: when and where */}
+        {step === 1 && (
+          <section className="card-base p-6 space-y-5 animate-fade-in">
+            <div>
+              <h2 className="section-title">Waktu & lokasi</h2>
+              <p className="section-desc">Tenant memakai tanggal dan lokasi ini untuk memutuskan ikut atau tidak.</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Tanggal mulai" required id="event-date-start">
+                {(id) => <input id={id} type="date" className="input-base" value={formData.date_start} onChange={(e) => update("date_start", e.target.value)} required />}
+              </Field>
+              <Field label="Tanggal selesai" required id="event-date-end">
+                {(id) => <input id={id} type="date" className="input-base" min={formData.date_start || undefined} value={formData.date_end} onChange={(e) => update("date_end", e.target.value)} required />}
+              </Field>
+              <Field label="Jam buka" id="event-time-start">
+                {(id) => <input id={id} type="time" className="input-base" value={formData.time_start} onChange={(e) => update("time_start", e.target.value)} />}
+              </Field>
+              <Field label="Jam tutup" id="event-time-end">
+                {(id) => <input id={id} type="time" className="input-base" value={formData.time_end} onChange={(e) => update("time_end", e.target.value)} />}
+              </Field>
+            </div>
+
+            <Field label="Nama venue" required id="event-location">
+              {(id) => <input id={id} type="text" className="input-base" placeholder="Contoh: Jakarta Convention Center, Hall A" value={formData.location} onChange={(e) => update("location", e.target.value)} required />}
+            </Field>
+
+            <fieldset>
+              <legend className="field-label">Wilayah <span className="text-error" aria-hidden="true">*</span></legend>
+              <p className="field-hint mt-0 mb-3">Pilih negara dulu, lalu provinsi, lalu kota.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Field label="Negara" id="event-country">
+                  {(id) => (
+                    <select id={id} className="input-base" value={formData.country} onChange={(e) => setFormData((prev) => ({ ...prev, country: e.target.value, province: "", city: "" }))} required>
+                      <option value="">Pilih negara</option>
+                      {Object.keys(ASIA_LOCATIONS).map((country) => <option key={country} value={country}>{country}</option>)}
+                    </select>
+                  )}
+                </Field>
+                <Field label="Provinsi / wilayah" id="event-province">
+                  {(id) => (
+                    <select id={id} className="input-base" value={formData.province} onChange={(e) => setFormData((prev) => ({ ...prev, province: e.target.value, city: "" }))} disabled={!formData.country} required>
+                      <option value="">Pilih provinsi</option>
+                      {Object.keys(ASIA_LOCATIONS[formData.country] || {}).map((province) => <option key={province} value={province}>{province}</option>)}
+                    </select>
+                  )}
+                </Field>
+                <Field label="Kota" id="event-city">
+                  {(id) => (
+                    <select id={id} className="input-base" value={formData.city} onChange={(e) => update("city", e.target.value)} disabled={!formData.province} required>
+                      <option value="">Pilih kota</option>
+                      {(ASIA_LOCATIONS[formData.country]?.[formData.province] || []).map((city) => <option key={city} value={city}>{city}</option>)}
+                    </select>
+                  )}
+                </Field>
+              </div>
+            </fieldset>
+
+            <Field label="Alamat lengkap" optional id="event-address">
+              {(id) => <input id={id} type="text" className="input-base" placeholder="Contoh: Jl. Jend. Gatot Subroto, Senayan, Jakarta" value={formData.address} onChange={(e) => update("address", e.target.value)} />}
+            </Field>
+          </section>
+        )}
+
+        {/* STEP 3: what a booth includes, and the rules */}
+        {step === 2 && (
+          <div className="space-y-6 animate-fade-in">
+            <section className="card-base p-6">
+              <h2 className="section-title">Fasilitas booth</h2>
+              <p className="section-desc mb-5">
+                Tandai fasilitas yang sudah termasuk harga sewa dan yang harus dibawa sendiri oleh tenant. Ini tampil di halaman event sebelum tenant menyewa.
+              </p>
+              <FacilityPicker value={facilities} onChange={setFacilities} />
+            </section>
+
+            <section className="card-base p-6">
+              <Field label="Panduan untuk tenant" optional id="event-guidelines" hint="Aturan khusus, misalnya jam loading barang, larangan, atau dress code.">
+                {(id) => <textarea id={id} className="input-base min-h-[100px] resize-y" placeholder="Contoh: Loading barang H-1 pukul 15.00–20.00. Dilarang memakai kompor gas." value={formData.guidelines} onChange={(e) => update("guidelines", e.target.value)} rows={4} />}
+              </Field>
+            </section>
+          </div>
+        )}
+
+        {formError && <Notice tone="error">{formError}</Notice>}
+
         <div className="flex flex-wrap items-center gap-3">
-          <button type="submit" className="btn btn-primary btn-lg" id="create-event-submit" disabled={submitting}>
-            {submitting ? "Menyimpan..." : "Lanjut ke Denah Booth"}
+          {step > 0 && (
+            <button type="button" className="btn btn-ghost btn-lg" onClick={() => { setFormError(""); setStep((s) => (s - 1) as Step); }}>
+              Kembali
+            </button>
+          )}
+          <button type="submit" className="btn btn-primary btn-lg" id="create-event-submit" disabled={submitting || bannerUploading}>
+            {submitting ? "Menyimpan..." : step < 2 ? `Lanjut: ${STEPS[step + 1]}` : "Simpan & lanjut ke denah booth"}
           </button>
-          <button
-            type="button"
-            onClick={handleSaveDraft}
-            className="btn btn-secondary btn-lg"
-            id="save-event-draft"
-            disabled={submitting}
-          >
-            Simpan sebagai Draft
+          <button type="button" onClick={handleSaveDraft} className="btn btn-secondary btn-lg ml-auto" id="save-event-draft" disabled={submitting || bannerUploading}>
+            Simpan sebagai draft
           </button>
         </div>
       </form>

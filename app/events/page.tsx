@@ -86,9 +86,9 @@ export default function EventsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-10">
-            <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight mb-4">Jelajahi Event</h1>
+            <h1 className="text-4xl sm:text-6xl font-semibold tracking-tight mb-4">Jelajahi Event</h1>
             <p className="text-muted max-w-xl">
-              Temukan pameran, bazar, dan event di seluruh Indonesia. Booking booth sekarang!
+              Temukan pameran, bazar, dan event di seluruh Indonesia. Sewa booth sekarang.
             </p>
           </div>
 
@@ -120,7 +120,7 @@ export default function EventsPage() {
 
           {/* Results count */}
           {loadError ? (
-            <div className="mb-6 p-4 rounded-xl bg-error/10 border border-error/20 text-sm text-error" role="alert">{loadError}</div>
+            <div className="notice notice--error mb-6" role="alert">{loadError}</div>
           ) : (
             <p className="text-sm text-muted-foreground mb-6">{loading ? "Memuat event..." : `${filtered.length} event ditemukan`}</p>
           )}
@@ -147,7 +147,7 @@ export default function EventsPage() {
                     <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1 items-start">
                       <span className="badge event-cover-tag">
                         <Icon name="star" size={16} />
-                        <span>Official Campaign</span>
+                        <span>Partner resmi</span>
                       </span>
                     </div>
                   )}
@@ -161,8 +161,8 @@ export default function EventsPage() {
                       </span>
                     )}
                     {isHighlight && (
-                      <span className="absolute bottom-2 right-2 badge bg-success text-white">
-                        Free Tax 0%
+                      <span className="absolute bottom-2 right-2 badge bg-success/15 text-success">
+                        Bebas pajak
                       </span>
                     )}
                   </div>

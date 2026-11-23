@@ -44,10 +44,10 @@ export const NAV_ICONS = {
 /** Tenant sidebar, Dashboard first. */
 export function tenantNav(pathname: string): NavItem[] {
   return [
-    { href: "/dashboard/tenant", label: "Dashboard", icon: NAV_ICONS.dashboard, isActive: pathname === "/dashboard/tenant" },
+    { href: "/dashboard/tenant", label: "Dasbor", icon: NAV_ICONS.dashboard, isActive: pathname === "/dashboard/tenant" },
     { href: "/dashboard/tenant/events", label: "Cari Event", icon: NAV_ICONS.search, isActive: pathname.startsWith("/dashboard/tenant/events") },
     { href: "/dashboard/tenant/catalog", label: "Katalog Produk", icon: NAV_ICONS.catalog, isActive: pathname.startsWith("/dashboard/tenant/catalog") },
-    { href: "/dashboard/tenant/mini-website", label: "Mini Website Builder", icon: NAV_ICONS.website, isActive: pathname.startsWith("/dashboard/tenant/mini-website") },
+    { href: "/dashboard/tenant/mini-website", label: "Mini Website", icon: NAV_ICONS.website, isActive: pathname.startsWith("/dashboard/tenant/mini-website") },
     { href: "/dashboard/tenant/bookings", label: "Pesanan & Booth", icon: NAV_ICONS.orders, isActive: pathname.startsWith("/dashboard/tenant/bookings") },
     { href: "/dashboard/tenant/profile", label: "Profil", icon: NAV_ICONS.profile, isActive: pathname.startsWith("/dashboard/tenant/profile") },
   ];
@@ -61,12 +61,12 @@ export function organizerNav(pathname: string, activeEventId: string, hasEvent: 
   const tool = (name: string) =>
     hasEvent && activeEventId ? `/dashboard/organizer/events/${activeEventId}/${name}` : `/dashboard/organizer/no-event/${name}`;
   return [
-    { href: "/dashboard/organizer", label: "Dashboard", icon: NAV_ICONS.dashboard, isActive: pathname === "/dashboard/organizer" },
+    { href: "/dashboard/organizer", label: "Dasbor", icon: NAV_ICONS.dashboard, isActive: pathname === "/dashboard/organizer" },
     { href: "/dashboard/organizer/events/new", label: "Buat Event", icon: NAV_ICONS.create, isActive: pathname === "/dashboard/organizer/events/new" },
-    { href: tool("floor-plan"), label: "Floor Plan", icon: NAV_ICONS.floorPlan, isActive: pathname.includes("/floor-plan") },
+    { href: tool("floor-plan"), label: "Denah Booth", icon: NAV_ICONS.floorPlan, isActive: pathname.includes("/floor-plan") },
     { href: tool("ai-campaign"), label: "Ide Campaign", icon: NAV_ICONS.campaign, isActive: pathname.includes("/ai-campaign") },
     { href: tool("qr-code"), label: "QR Code", icon: NAV_ICONS.qr, isActive: pathname.includes("/qr-code") },
-    { href: "/dashboard/organizer/campaigns", label: "Campaign Admin", icon: NAV_ICONS.star, isActive: pathname.startsWith("/dashboard/organizer/campaigns"), badge: "Free Tax" },
+    { href: "/dashboard/organizer/campaigns", label: "Program Campaign", icon: NAV_ICONS.star, isActive: pathname.startsWith("/dashboard/organizer/campaigns"), badge: "PPN 0%" },
     { href: "/dashboard/organizer/messages", label: "Pesan Masuk", icon: NAV_ICONS.mail, isActive: pathname === "/dashboard/organizer/messages" },
     { href: "/dashboard/organizer/profile", label: "Profil", icon: NAV_ICONS.profile, isActive: pathname === "/dashboard/organizer/profile" },
   ];

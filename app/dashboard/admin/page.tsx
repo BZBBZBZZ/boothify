@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Tabs } from "@/app/components/ui";
 import Link from "next/link";
 import type { AdminCampaign, CampaignApplication } from "@/app/lib/admin-campaigns";
 import {
@@ -80,14 +81,14 @@ function AdminDashboardPageContent() {
 
   const handleReview = (id: string, status: "approved" | "rejected") => {
     setProcessingId(id);
-    const note = reviewNotes[id] || (status === "approved" ? "Konsep terverifikasi selaras dengan misi campaign. Disetujui masuk campaign dengan benefit Free Tax dan Highlight." : "Konsep pameran belum memenuhi kriteria keselarasan tema campaign.");
+    const note = reviewNotes[id] || (status === "approved" ? "Konsep terverifikasi selaras dengan misi campaign. Disetujui masuk campaign dengan benefit bebas pajak dan sorotan di beranda." : "Konsep pameran belum memenuhi kriteria keselarasan tema campaign.");
 
     reviewApplication(id, status, note)
       .then(async () => {
         await refreshData();
         showNotification(
           status === "approved"
-            ? "Event disetujui. Highlight dan bebas pajak kini aktif untuk tenant."
+            ? "Event disetujui. Sorotan di beranda dan bebas pajak kini aktif untuk tenant."
             : "Pengajuan event ditolak dengan catatan evaluasi."
         );
       })
@@ -168,7 +169,7 @@ function AdminDashboardPageContent() {
     <div className="space-y-8 animate-fade-in" id="admin-dashboard-page">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-purple-600 text-white shadow-2xl border border-purple-400/40 text-xs font-semibold flex items-center gap-2 animate-bounce">
+        <div className="page-toast" role="status">
           <span><Icon name="shield" size={16} /></span>
           <span>{toastMessage}</span>
         </div>
@@ -184,11 +185,11 @@ function AdminDashboardPageContent() {
               </span>
               <span className="text-xs text-muted-foreground">Admin di atas Organizer</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Manajemen Master Campaign &amp; Kurasi Penyelarasan Event
+            <h1 className="page-header-title">
+              Kelola campaign &amp; kurasi event
             </h1>
             <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
-              Buat campaign induk untuk diikuti event organizer, kurasi keselarasan nilai pameran, dan berikan benefit otomatis berupa <strong>Bebas Pajak (Free Tax 0%)</strong> bagi tenant serta <strong>Highlight Prioritas</strong>.
+              Buat campaign induk untuk diikuti event organizer, kurasi keselarasan nilai pameran, dan berikan benefit otomatis berupa <strong>Bebas pajak (PPN 0%)</strong> bagi tenant serta <strong>Sorotan di beranda</strong>.
             </p>
           </div>
 
@@ -196,7 +197,7 @@ function AdminDashboardPageContent() {
             <button
               type="button"
               onClick={() => setActiveTab("create")}
-              className="btn btn-primary btn-sm text-xs py-2 px-3.5 flex items-center gap-1.5 shadow-md bg-purple-600 hover:bg-purple-500 border-none text-white"
+              className="btn btn-primary btn-sm flex items-center gap-1.5"
               id="admin-create-campaign-btn"
             >
               <span><Icon name="plus" size={16} /></span>
@@ -213,7 +214,7 @@ function AdminDashboardPageContent() {
             <span>Campaign Aktif</span>
             <span className="text-base"><Icon name="target" size={20} /></span>
           </div>
-          <div className="text-2xl font-black text-info">{totalCampaigns}</div>
+          <div className="text-2xl font-semibold text-info">{totalCampaigns}</div>
           <p className="text-[11px] text-muted-foreground mt-1">Program induk siap diikuti</p>
         </div>
 
@@ -222,7 +223,7 @@ function AdminDashboardPageContent() {
             <span>Butuh Kurasi</span>
             <span className="text-base"><Icon name="clock" size={20} /></span>
           </div>
-          <div className="text-2xl font-black text-primary-light">{pendingApps}</div>
+          <div className="text-2xl font-semibold text-primary-light">{pendingApps}</div>
           <p className="text-[11px] text-muted-foreground mt-1">Pengajuan organizer pending</p>
         </div>
 
@@ -231,66 +232,32 @@ function AdminDashboardPageContent() {
             <span>Event Tergabung</span>
             <span className="text-base"><Icon name="check-circle" size={20} /></span>
           </div>
-          <div className="text-2xl font-black text-success">{approvedApps}</div>
+          <div className="text-2xl font-semibold text-success">{approvedApps}</div>
           <p className="text-[11px] text-muted-foreground mt-1">Lolos kurasi keselarasan</p>
         </div>
 
         <div className="card-base p-4 border border-teal-500/20">
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-            <span>Benefit Free Tax</span>
+            <span>Benefit bebas pajak</span>
             <span className="text-base"><Icon name="gift" size={20} /></span>
           </div>
-          <div className="text-2xl font-black text-success">0% PPN</div>
+          <div className="text-2xl font-semibold text-success">0% PPN</div>
           <p className="text-[11px] text-muted-foreground mt-1">Aktif untuk tenant pameran</p>
         </div>
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center border-b border-border/80 gap-2">
-        <button
-          type="button"
-          onClick={() => setActiveTab("curation")}
-          className={`py-3 px-4 text-xs font-semibold border-b-2 transition flex items-center gap-2 cursor-pointer ${
-            activeTab === "curation"
-              ? "border-purple-500 text-info"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-          id="tab-curation"
-        >
-          <span>Kurasi Keselarasan Pengajuan</span>
-          {pendingApps > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/20 text-primary-light font-bold border border-amber-500/30">
-              {pendingApps}
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("campaigns")}
-          className={`py-3 px-4 text-xs font-semibold border-b-2 transition flex items-center gap-2 cursor-pointer ${
-            activeTab === "campaigns"
-              ? "border-purple-500 text-info"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-          id="tab-campaigns"
-        >
-          <span>Daftar Master Campaign ({campaigns.length})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("create")}
-          className={`py-3 px-4 text-xs font-semibold border-b-2 transition flex items-center gap-2 cursor-pointer ${
-            activeTab === "create"
-              ? "border-purple-500 text-info"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-          id="tab-create"
-        >
-          <span>Buat Campaign Baru</span>
-        </button>
-      </div>
+      <Tabs<"curation" | "campaigns" | "create">
+        label="Bagian admin"
+        idPrefix="admin"
+        active={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { key: "curation", label: "Kurasi pengajuan", count: pendingApps },
+          { key: "campaigns", label: "Daftar campaign", count: campaigns.length },
+          { key: "create", label: "Buat campaign" },
+        ]}
+      />
 
       {/* ========================================================================= */}
       {/* TAB 1: KURASI KESELARASAN PENGAJUAN ORGANIZER                              */}
@@ -306,7 +273,7 @@ function AdminDashboardPageContent() {
             </div>
 
             {/* Filter pills */}
-            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-white/5 border border-white/10 self-start sm:self-auto">
+            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-foreground/[0.04] border border-border self-start sm:self-auto">
               {[
                 { id: "pending", label: "Menunggu Kurasi", count: pendingApps },
                 { id: "approved", label: "Disetujui", count: approvedApps },
@@ -319,7 +286,7 @@ function AdminDashboardPageContent() {
                   onClick={() => setSelectedFilter(f.id as typeof selectedFilter)}
                   className={`text-[11px] font-medium py-1 px-2.5 rounded-lg transition ${
                     selectedFilter === f.id
-                      ? "bg-purple-600 text-white shadow-sm font-semibold"
+                      ? "bg-foreground text-background font-semibold"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -330,7 +297,7 @@ function AdminDashboardPageContent() {
           </div>
 
           {filteredApps.length === 0 ? (
-            <div className="card-base p-12 text-center border border-white/10 space-y-3">
+            <div className="card-base p-12 text-center border border-border space-y-3">
               <span className="text-3xl"><Icon name="inbox" size={32} /></span>
               <p className="text-sm font-semibold">Tidak ada pengajuan pada filter ini</p>
               <p className="text-xs text-muted-foreground">
@@ -357,7 +324,7 @@ function AdminDashboardPageContent() {
                     }`}
                   >
                     {/* Header info */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-white/10">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-border">
                       <div>
                         <div className="flex flex-wrap items-center gap-2 mb-1">
                           <span
@@ -385,11 +352,11 @@ function AdminDashboardPageContent() {
                       </div>
 
                       {/* Skor keselarasan badge */}
-                      <div className="flex items-center gap-3 self-start md:self-auto p-2.5 rounded-xl bg-white/5 border border-white/10">
+                      <div className="flex items-center gap-3 self-start md:self-auto p-2.5 rounded-xl bg-foreground/[0.04] border border-border">
                         <div className="text-right">
                           <div className="text-[10px] text-muted-foreground font-semibold">Skor Keselarasan</div>
                           <div
-                            className={`text-xl font-black ${
+                            className={`text-xl font-semibold ${
                               app.alignmentScore >= 80
                                 ? "text-success"
                                 : app.alignmentScore >= 60
@@ -414,7 +381,7 @@ function AdminDashboardPageContent() {
                           <h4 className="text-xs font-semibold text-info mb-1 flex items-center gap-1.5">
                             <span>Uraian Keselarasan Konsep (Pitch Organizer):</span>
                           </h4>
-                          <p className="text-xs text-foreground/90 bg-white/[0.02] p-3 rounded-xl border border-white/5 leading-relaxed italic">
+                          <p className="text-xs text-foreground/90 bg-foreground/[0.03] p-3 rounded-xl border border-border leading-relaxed italic">
                             &ldquo;{app.submissionPitch}&rdquo;
                           </p>
                         </div>
@@ -440,7 +407,7 @@ function AdminDashboardPageContent() {
                       </div>
 
                       {/* Right: Rincian pilar keselarasan otomatis */}
-                      <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-2.5 text-xs">
+                      <div className="p-3.5 rounded-xl bg-foreground/[0.03] border border-border space-y-2.5 text-xs">
                         <h4 className="font-semibold text-foreground flex items-center justify-between">
                           <span>Evaluasi Parameter:</span>
                           <span className="text-[10px] text-muted-foreground">Automated Analysis</span>
@@ -453,7 +420,7 @@ function AdminDashboardPageContent() {
                               {app.alignmentBreakdown?.categoryMatch || 90}%
                             </span>
                           </div>
-                          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-1.5 w-full bg-foreground/[0.06] rounded-full overflow-hidden">
                             <div
                               className="h-full bg-emerald-500 rounded-full"
                               style={{ width: `${app.alignmentBreakdown?.categoryMatch || 90}%` }}
@@ -468,7 +435,7 @@ function AdminDashboardPageContent() {
                               {app.alignmentBreakdown?.themeMatch || 85}%
                             </span>
                           </div>
-                          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-1.5 w-full bg-foreground/[0.06] rounded-full overflow-hidden">
                             <div
                               className="h-full bg-teal-500 rounded-full"
                               style={{ width: `${app.alignmentBreakdown?.themeMatch || 85}%` }}
@@ -483,7 +450,7 @@ function AdminDashboardPageContent() {
                               {app.alignmentBreakdown?.scaleMatch || 85}%
                             </span>
                           </div>
-                          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-1.5 w-full bg-foreground/[0.06] rounded-full overflow-hidden">
                             <div
                               className="h-full bg-purple-500 rounded-full"
                               style={{ width: `${app.alignmentBreakdown?.scaleMatch || 85}%` }}
@@ -491,23 +458,23 @@ function AdminDashboardPageContent() {
                           </div>
                         </div>
 
-                        <div className="pt-2 border-t border-white/5 text-[11px] text-muted-foreground">
+                        <div className="pt-2 border-t border-border text-[11px] text-muted-foreground">
                           {isApproved ? (
                             <span className="text-success flex items-center gap-1 font-medium">
-                              <span><Icon name="gift" size={16} /></span> Benefit aktif: Free Tax tenant &amp; status Highlight katalog publik.
+                              <span><Icon name="gift" size={16} /></span> Benefit aktif: bebas pajak untuk tenant &amp; sorotan di beranda.
                             </span>
                           ) : (
-                            <span>Persetujuan admin akan otomatis mengaktifkan benefit Free Tax dan Highlight.</span>
+                            <span>Persetujuan admin akan otomatis mengaktifkan benefit bebas pajak dan sorotan di beranda.</span>
                           )}
                         </div>
                       </div>
                     </div>
 
                     {/* Admin Actions Bar */}
-                    <div className="pt-4 border-t border-white/10 space-y-3">
+                    <div className="pt-4 border-t border-border space-y-3">
                       <div>
-                        <label htmlFor={`notes-${app.id}`} className="block text-xs font-medium text-muted-foreground mb-1">
-                          Catatan Evaluasi Kurator Admin:
+                        <label htmlFor={`notes-${app.id}`} className="field-label">
+                          Catatan evaluasi kurator admin:
                         </label>
                         <input
                           id={`notes-${app.id}`}
@@ -550,7 +517,7 @@ function AdminDashboardPageContent() {
                                 type="button"
                                 disabled={processingId === app.id}
                                 onClick={() => handleReview(app.id, "approved")}
-                                className="btn btn-primary btn-sm text-xs py-1.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white border-none shadow-sm cursor-pointer"
+                                className="btn btn-primary btn-sm"
                               >
                                 {processingId === app.id ? "Memproses..." : "Setujui & Berikan Benefit"}
                               </button>
@@ -590,7 +557,7 @@ function AdminDashboardPageContent() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold">Daftar Master Campaign Resmi Boothify</h2>
+              <h2 className="text-base font-bold">Daftar campaign Boothify</h2>
               <p className="text-xs text-muted-foreground">
                 Campaign ini dapat dilihat dan diikuti oleh para organizer melalui dashboard mereka.
               </p>
@@ -598,7 +565,7 @@ function AdminDashboardPageContent() {
             <button
               type="button"
               onClick={() => setActiveTab("create")}
-              className="btn btn-primary btn-sm text-xs py-1.5 px-3 bg-purple-600 hover:bg-purple-500 text-white border-none"
+              className="btn btn-primary btn-sm"
             >
               Buat Campaign
             </button>
@@ -626,7 +593,7 @@ function AdminDashboardPageContent() {
                             className={`text-xs font-bold px-2 py-0.5 border ${
                               camp.status === "active"
                                 ? "bg-emerald-500/15 text-success border-emerald-500/30"
-                                : "bg-white/5 text-muted-foreground border-white/10"
+                                : "bg-foreground/[0.04] text-muted-foreground border-border"
                             }`}
                           >
                             {camp.status === "active" ? "Aktif Berjalan" : "Ditutup"}
@@ -650,7 +617,7 @@ function AdminDashboardPageContent() {
                         {camp.targetCategories.map((cat, i) => (
                           <span
                             key={i}
-                            className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10"
+                            className="text-[10px] px-2 py-0.5 rounded-full bg-foreground/[0.04] border border-border"
                           >
                             {cat}
                           </span>
@@ -665,7 +632,7 @@ function AdminDashboardPageContent() {
                           <span><Icon name="gift" size={16} /></span> Benefit Resmi Campaign
                         </span>
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-success border border-emerald-500/30 font-bold">
-                          Free Tax 0%
+                          Bebas pajak
                         </span>
                       </div>
                       <p className="text-[11px] text-muted-foreground">
@@ -674,7 +641,7 @@ function AdminDashboardPageContent() {
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs">
+                  <div className="pt-4 border-t border-border flex items-center justify-between text-xs">
                     <div className="text-muted-foreground">
                       <span>Event Tergabung: </span>
                       <strong className="text-success font-bold">{joinedCount}</strong>
@@ -703,20 +670,20 @@ function AdminDashboardPageContent() {
       {/* ========================================================================= */}
       {activeTab === "create" && (
         <div className="max-w-3xl mx-auto card-base p-6 sm:p-8 border border-purple-500/30 space-y-6">
-          <div className="border-b border-white/10 pb-4">
+          <div className="border-b border-border pb-4">
             <div className="flex items-center gap-2 text-xs text-info font-semibold mb-1">
               <span>Form Pembuatan Program Induk</span>
             </div>
-            <h2 className="text-lg font-bold">Buat Master Campaign untuk Organizer</h2>
+            <h2 className="text-lg font-bold">Buat campaign untuk organizer</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Campaign yang Anda buat akan langsung tampil di dashboard seluruh organizer untuk diajukan.
+              Campaign yang kamu buat akan langsung tampil di dashboard seluruh organizer untuk diajukan.
             </p>
           </div>
 
           <form onSubmit={handleCreateCampaign} className="space-y-4 text-xs">
             <div>
-              <label htmlFor="camp-title" className="block font-semibold mb-1 text-foreground">
-                Judul Campaign Master *
+              <label htmlFor="camp-title" className="field-label">
+                Judul campaign master *
               </label>
               <input
                 id="camp-title"
@@ -731,8 +698,8 @@ function AdminDashboardPageContent() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label htmlFor="camp-tagline" className="block font-semibold mb-1 text-foreground">
-                  Tagline Ringkas
+                <label htmlFor="camp-tagline" className="field-label">
+                  Tagline ringkas
                 </label>
                 <input
                   id="camp-tagline"
@@ -745,8 +712,8 @@ function AdminDashboardPageContent() {
               </div>
 
               <div>
-                <label htmlFor="camp-theme" className="block font-semibold mb-1 text-foreground">
-                  Pilar / Tema Pokok
+                <label htmlFor="camp-theme" className="field-label">
+                  Pilar / tema pokok
                 </label>
                 <input
                   id="camp-theme"
@@ -760,8 +727,8 @@ function AdminDashboardPageContent() {
             </div>
 
             <div>
-              <label htmlFor="camp-desc" className="block font-semibold mb-1 text-foreground">
-                Deskripsi Lengkap Misi Campaign *
+              <label htmlFor="camp-desc" className="field-label">
+                Deskripsi lengkap misi campaign *
               </label>
               <textarea
                 id="camp-desc"
@@ -775,8 +742,8 @@ function AdminDashboardPageContent() {
             </div>
 
             <div>
-              <label className="block font-semibold mb-1 text-foreground">
-                Pilih Target Kategori Industri:
+              <label className="field-label">
+                Pilih target kategori industri:
               </label>
               <div className="flex flex-wrap gap-2 pt-1">
                 {["Fashion", "Kuliner", "Kriya", "Teknologi", "Gaya Hidup", "Edukasi", "Multi-Industri"].map((cat) => {
@@ -788,8 +755,8 @@ function AdminDashboardPageContent() {
                       onClick={() => toggleCategory(cat)}
                       className={`text-xs py-1.5 px-3 rounded-lg border transition cursor-pointer ${
                         selected
-                          ? "bg-purple-600 border-purple-500 text-white font-semibold"
-                          : "bg-white/5 border-white/10 text-muted-foreground hover:text-white"
+                          ? "bg-foreground border-foreground text-background font-semibold"
+                          : "bg-foreground/[0.04] border-border text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       {selected ? "" : "+ "}
@@ -801,8 +768,8 @@ function AdminDashboardPageContent() {
             </div>
 
             <div>
-              <label htmlFor="camp-criteria" className="block font-semibold mb-1 text-foreground">
-                Kriteria Keselarasan Kurasi (1 baris per kriteria):
+              <label htmlFor="camp-criteria" className="field-label">
+                Kriteria keselarasan kurasi (1 baris per kriteria):
               </label>
               <textarea
                 id="camp-criteria"
@@ -816,8 +783,8 @@ function AdminDashboardPageContent() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label htmlFor="camp-start" className="block font-semibold mb-1 text-foreground">
-                  Tanggal Mulai
+                <label htmlFor="camp-start" className="field-label">
+                  Tanggal mulai
                 </label>
                 <input
                   id="camp-start"
@@ -830,8 +797,8 @@ function AdminDashboardPageContent() {
               </div>
 
               <div>
-                <label htmlFor="camp-end" className="block font-semibold mb-1 text-foreground">
-                  Tanggal Selesai
+                <label htmlFor="camp-end" className="field-label">
+                  Tanggal selesai
                 </label>
                 <input
                   id="camp-end"
@@ -853,15 +820,15 @@ function AdminDashboardPageContent() {
               </div>
               <ul className="list-disc list-inside space-y-1 text-muted-foreground text-[11px]">
                 <li>
-                  <strong className="text-success">Free Tax (Pajak 0%)</strong>: Otomatis membebaskan pajak/PPN saat tenant checkout menyewa booth.
+                  <strong className="text-success">Bebas pajak (PPN 0%)</strong>: Otomatis membebaskan pajak/PPN saat tenant checkout menyewa booth.
                 </li>
                 <li>
-                  <strong className="text-info">Highlight Prioritas</strong>: Event organizer berhak atas lencana <em>Official Admin Campaign</em> dan sorotan utama di halaman Jelajahi Event.
+                  <strong className="text-info">Sorotan di beranda</strong>: Event organizer berhak atas lencana <em>Campaign resmi admin</em> dan sorotan utama di halaman Jelajahi Event.
                 </li>
               </ul>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
               <button
                 type="button"
                 onClick={() => setActiveTab("campaigns")}
@@ -871,7 +838,7 @@ function AdminDashboardPageContent() {
               </button>
               <button
                 type="submit"
-                className="btn btn-primary btn-sm text-xs py-2 px-5 bg-purple-600 hover:bg-purple-500 text-white border-none shadow-md"
+                className="btn btn-primary btn-sm"
                 id="btn-submit-new-campaign"
               >
                 Luncurkan Campaign Master

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import { FacilityList } from "@/app/components/BoothFacilities";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/app/components/AuthContext";
@@ -43,6 +44,7 @@ function CheckoutContent() {
   const [eventTitle, setEventTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventLocation, setEventLocation] = useState("");
+  const [facilities, setFacilities] = useState<{ included: string[]; excluded: string[] }>({ included: [], excluded: [] });
   const [campaign, setCampaign] = useState<AdminCampaign | null>(null);
   const [payError, setPayError] = useState("");
 
@@ -57,6 +59,7 @@ function CheckoutContent() {
           setEventTitle(ev.title);
           setEventDate(ev.date);
           setEventLocation(ev.location);
+          setFacilities({ included: ev.facilitiesIncluded || [], excluded: ev.facilitiesExcluded || [] });
         }
         setCampaign(camp);
         const picked = booths.filter((b) => wanted.includes(b.label));
@@ -78,7 +81,7 @@ function CheckoutContent() {
   }, [eventId, boothParam]);
 
   if (user && user.role !== "tenant") {
-    return <div className="card-base p-8 text-center"><h1 className="text-xl font-bold mb-2">Akses khusus tenant</h1><p className="text-sm text-muted-foreground">Silakan masuk menggunakan akun tenant untuk menyewa booth.</p><Link href="/events" className="btn btn-primary btn-sm mt-5">Kembali ke Event</Link></div>;
+    return <div className="card-base p-8 text-center"><h1 className="page-header-title mb-2">Akses khusus tenant</h1><p className="text-sm text-muted-foreground">Silakan masuk menggunakan akun tenant untuk menyewa booth.</p><Link href="/events" className="btn btn-primary btn-sm mt-5">Kembali ke Event</Link></div>;
   }
 
   if (loading) {
@@ -86,7 +89,7 @@ function CheckoutContent() {
   }
 
   if (!success && (!user || items.length === 0)) {
-    return <div className="card-base p-8 text-center"><h1 className="text-xl font-bold mb-2">Belum ada booth dipilih</h1><p className="text-sm text-muted-foreground mb-5">{payError || "Pilih booth dari halaman event sebelum melanjutkan pembayaran."}</p><Link href={`/events/${eventId}?tab=booths`} className="btn btn-primary btn-sm">Pilih Booth</Link></div>;
+    return <div className="card-base p-8 text-center"><h1 className="page-header-title mb-2">Belum ada booth dipilih</h1><p className="text-sm text-muted-foreground mb-5">{payError || "Pilih booth dari halaman event sebelum melanjutkan pembayaran."}</p><Link href={`/events/${eventId}?tab=booths`} className="btn btn-primary btn-sm">Pilih Booth</Link></div>;
   }
 
   const subtotal = items.reduce((s, i) => s + i.price, 0);
@@ -117,7 +120,7 @@ function CheckoutContent() {
     return (
       <div className="animate-fade-in-up text-center py-16 max-w-md mx-auto" id="checkout-success">
         <div className="text-7xl mb-6"><Icon name="check-circle" size={40} /></div>
-        <h1 className="text-2xl font-bold mb-3">Pembayaran Berhasil!</h1>
+        <h1 className="page-header-title mb-3">Pembayaran Berhasil!</h1>
         <p className="text-muted-foreground mb-1">Booth kamu telah resmi terkonfirmasi untuk</p>
         <p className="font-semibold text-lg text-primary-light mb-6">{eventTitle}</p>
         <div className="card-base p-4 mb-6 text-left space-y-2">
@@ -144,7 +147,7 @@ function CheckoutContent() {
             Lihat Booth Kamu di Panduan Pengunjung
           </Link>
           <Link href="/dashboard/tenant" className="btn btn-ghost text-xs">
-            Kembali ke Dashboard Tenant
+            Kembali ke Dasbor Tenant
           </Link>
         </div>
       </div>
@@ -154,7 +157,7 @@ function CheckoutContent() {
   return (
     <div className="animate-fade-in" id="checkout-page">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">Pembayaran</h1>
+        <h1 className="page-header-title mb-1">Pembayaran</h1>
         <p className="text-sm text-muted-foreground">Selesaikan pembayaran sewa booth</p>
       </div>
 
@@ -163,7 +166,7 @@ function CheckoutContent() {
         <div className="lg:col-span-2 space-y-6">
           {/* Order summary */}
           <div className="card-base p-6">
-            <h2 className="font-semibold mb-4">Detail Pesanan</h2>
+            <h2 className="section-title mb-4">Detail pesanan</h2>
             <div className="space-y-3">
               <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5">
                 <span className="text-2xl"><Icon name="leaf" size={24} /></span>
@@ -187,9 +190,16 @@ function CheckoutContent() {
             </div>
           </div>
 
+          {/* What the rent includes, so nothing is a surprise on site */}
+          <section className="card-base p-6">
+            <h2 className="section-title">Fasilitas booth</h2>
+            <p className="section-desc mb-4">Pastikan kamu membawa sendiri fasilitas yang tidak disediakan organizer.</p>
+            <FacilityList included={facilities.included} excluded={facilities.excluded} />
+          </section>
+
           {/* Payment Method */}
           <div className="card-base p-6">
-            <h2 className="font-semibold mb-4">Metode Pembayaran</h2>
+            <h2 className="section-title mb-4">Metode pembayaran</h2>
             <div className="space-y-2">
               {[
                 { id: "qris", label: "QRIS (Scan)" },
@@ -222,7 +232,7 @@ function CheckoutContent() {
                     paymentMethod === method.id ? "border-primary bg-primary" : "border-border"
                   }`}>
                     {paymentMethod === method.id && (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1e2a4a" strokeWidth="4"><polyline points="20 6 9 17 4 12" /></svg>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12" /></svg>
                     )}
                   </div>
                 </label>
@@ -233,14 +243,14 @@ function CheckoutContent() {
 
         {/* Summary */}
         <div className="card-base p-6 h-fit sticky top-24">
-          <h3 className="font-semibold mb-4">Ringkasan Pembayaran</h3>
+          <h3 className="section-title mb-4">Ringkasan pembayaran</h3>
 
           {/* Campaign Free Tax Highlight Banner */}
           {isFreeTax && (
             <div className="p-3.5 rounded-xl bg-success/10 border border-emerald-500/30 text-xs mb-4 space-y-1">
               <div className="flex items-center justify-between font-bold text-success">
                 <span className="flex items-center gap-1.5">
-                  <span><Icon name="gift" size={16} /></span> Bebas Pajak (Free Tax 0%)
+                  <span><Icon name="gift" size={16} /></span> Bebas pajak (PPN 0%)
                 </span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40">
                   Resmi Admin
@@ -265,7 +275,7 @@ function CheckoutContent() {
                   <span className="line-through text-xs text-muted-foreground mr-1.5">
                     Rp {standardTax.toLocaleString("id-ID")}
                   </span>
-                  <span className="font-bold text-success">Rp 0 (Free Tax)</span>
+                  <span className="font-bold text-success">Rp 0 (bebas pajak)</span>
                 </div>
               ) : (
                 <span>Rp {appliedTax.toLocaleString("id-ID")}</span>
@@ -344,8 +354,8 @@ function CheckoutContent() {
 
       {/* Modal Syarat & Ketentuan */}
       {showTermsModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="card-base max-w-lg w-full p-6 relative border border-border/80 shadow-2xl max-h-[85vh] overflow-y-auto">
+        <div className="modal-overlay">
+          <div className="card-base max-w-lg w-full p-6 relative border border-border shadow-2xl max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
               <h3 className="text-lg font-bold">Syarat &amp; Ketentuan Sewa Booth</h3>
               <button
@@ -383,8 +393,8 @@ function CheckoutContent() {
 
       {/* Modal Kebijakan Pembatalan */}
       {showCancelModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="card-base max-w-lg w-full p-6 relative border border-border/80 shadow-2xl max-h-[85vh] overflow-y-auto">
+        <div className="modal-overlay">
+          <div className="card-base max-w-lg w-full p-6 relative border border-border shadow-2xl max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-border">
               <h3 className="text-lg font-bold">Kebijakan Pembatalan &amp; Pengembalian Dana</h3>
               <button
