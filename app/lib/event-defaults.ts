@@ -15,6 +15,8 @@ export type FloorPlanBooth = {
   zone: string;
   price: number;
   isBooked?: boolean;
+  /** Held by a tenant whose payment is still open (also counted in isBooked). */
+  isReserved?: boolean;
 };
 
 export type EventZone = {

@@ -5,7 +5,8 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../components/AuthContext";
 import Navbar from "../../../components/Navbar";
 import type { FloorPlanBooth, EventTenantInfo, EventDetail } from "../../../lib/event-defaults";
-import { getEvent, getBooths, getEventTenants, placeOrder, getOrder, errorMessage } from "@/app/lib/db";
+import { getEvent, getBooths, getEventTenants, getOrder, errorMessage, PAYMENT_STATUS_LABEL } from "@/app/lib/db";
+import { startVisitorOrderPayment, fetchPaymentStatus, openSnap } from "@/app/lib/payments-client";
 import Icon from "../../../components/Icon";
 import { openStoredFile } from "../../../lib/file-upload";
 import CategoryPopover from "../../../components/CategoryPopover";
@@ -44,6 +45,21 @@ const EMPTY_EVENT: EventDetail = {
 
 const orderKey = (eventId: string) => `boothify_order_${eventId}`;
 
+/** The visitor's latest order at this event: its code, plus the secret that lets a guest read its payment status. */
+function readStoredOrder(eventId: string): { id: string; token: string } {
+  try {
+    const raw = localStorage.getItem(orderKey(eventId)) || "";
+    if (!raw) return { id: "", token: "" };
+    if (raw.startsWith("{")) {
+      const parsed = JSON.parse(raw) as { id?: string; token?: string };
+      return { id: parsed.id || "", token: parsed.token || "" };
+    }
+    return { id: raw, token: "" };
+  } catch {
+    return { id: "", token: "" };
+  }
+}
+
 function EventGuideContent() {
   const router = useRouter();
   const params = useParams();
@@ -76,7 +92,10 @@ function EventGuideContent() {
   >(null);
 
   const [orderCode, setOrderCode] = useState<string>("");
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("QRIS");
+  const [orderToken, setOrderToken] = useState("");
+  // Snap token that can still finish an unpaid order, handed out by the server
+  const [resumeToken, setResumeToken] = useState<string | null>(null);
+  const [payNotice, setPayNotice] = useState("");
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Semua");
@@ -84,7 +103,10 @@ function EventGuideContent() {
 
   const [activeOrder, setActiveOrder] = useState<{
     id: string;
+    /** Kitchen status of the order. */
     status?: string;
+    /** Payment status, as confirmed by the server. */
+    paymentStatus?: string;
     items?: { name: string; qty: number }[];
     total?: number;
   } | null>(null);
@@ -172,32 +194,38 @@ function EventGuideContent() {
 
   const totalCart = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
 
-  // Send the order to the booth; the database prices it from the tenant's menu
+  // Create the order unpaid, then open Midtrans. The server prices it from the tenant's menu,
+  // and the kitchen only sees it after the server confirms payment.
   const handleConfirmPayment = async () => {
     if (cart.length === 0 || placing) return;
     setOrderError("");
+    setPayNotice("");
     setPlacing(true);
     try {
-      const code = await placeOrder({
+      const session = await startVisitorOrderPayment({
         eventId,
         booth: cart[0].boothId,
         items: cart.map((i) => ({ name: i.name, qty: i.qty })),
         customerName: user?.name || guestName || "Pengunjung",
         customerPhone: user?.phone || guestPhone || "",
-        paymentMethod: selectedPaymentMethod,
       });
       try {
-        localStorage.setItem(orderKey(eventId), code);
+        localStorage.setItem(orderKey(eventId), JSON.stringify({ id: session.orderId, token: session.accessToken }));
       } catch { /* ignore */ }
+      setOrderToken(session.accessToken);
+      setResumeToken(session.snapToken);
       setActiveOrder({
-        id: code,
+        id: session.orderId,
         status: "pending",
+        paymentStatus: "pending",
         items: cart.map((i) => ({ name: i.name, qty: i.qty })),
-        total: totalCart,
+        total: session.amount,
       });
-      setOrderCode(code);
+      setOrderCode(session.orderId);
       setCart([]);
       setShowCheckout(false);
+      // Snap's own callbacks are not trusted; the tracker below follows what the server reports
+      openSnap(session.snapToken, {}).catch((err) => setPayNotice(errorMessage(err, "Jendela pembayaran gagal dibuka.")));
     } catch (err) {
       setOrderError(errorMessage(err, "Pesanan gagal dibuat."));
     } finally {
@@ -205,32 +233,46 @@ function EventGuideContent() {
     }
   };
 
+  const handleResumePayment = () => {
+    if (!resumeToken) return;
+    setPayNotice("");
+    openSnap(resumeToken, {}).catch((err) => setPayNotice(errorMessage(err, "Jendela pembayaran gagal dibuka.")));
+  };
+
   // Follow the status of this visitor's latest order at this event
   useEffect(() => {
     let code = orderCode;
+    let token = orderToken;
     if (!code) {
-      try {
-        code = localStorage.getItem(orderKey(eventId)) || "";
-      } catch { /* ignore */ }
+      const stored = readStoredOrder(eventId);
+      code = stored.id;
+      token = stored.token;
     }
     if (!code) return;
 
     let stopped = false;
-    const checkOrder = () => {
-      getOrder(code)
-        .then((found) => {
-          if (stopped || !found) return;
-          setActiveOrder({ id: found.id, status: found.status, items: found.items, total: found.total });
-        })
-        .catch(() => {});
+    const checkOrder = async () => {
+      try {
+        let found = await getOrder(code);
+        if (stopped || !found) return;
+        if (found.paymentStatus === "pending" && token) {
+          // The server asks Midtrans if the webhook is late; the browser never decides on payment
+          const info = await fetchPaymentStatus(code, token).catch(() => null);
+          if (stopped) return;
+          setResumeToken(info && info.status === "pending" ? info.snapToken : null);
+          if (info && info.status !== "pending") found = (await getOrder(code)) || found;
+        }
+        if (stopped) return;
+        setActiveOrder({ id: found.id, status: found.status, paymentStatus: found.paymentStatus, items: found.items, total: found.total });
+      } catch { /* try again on the next tick */ }
     };
-    checkOrder();
+    void checkOrder();
     const interval = setInterval(checkOrder, 5000);
     return () => {
       stopped = true;
       clearInterval(interval);
     };
-  }, [orderCode, eventId]);
+  }, [orderCode, orderToken, eventId]);
 
   // Filtered tenants for directory
   const allTenantsList = Object.values(tenantsMap);
@@ -305,8 +347,42 @@ function EventGuideContent() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 pt-5">
+        {/* Payment status: the kitchen only starts after the server confirms payment */}
+        {activeOrder && activeOrder.paymentStatus !== "paid" && (
+          <div className="p-4 rounded-2xl mb-6 border bg-amber-500/10 border-amber-500/30 animate-fade-in" id="visitor-payment-tracker" role="status">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <p className="text-[10px] font-semibold text-muted-foreground">Pesanan #{activeOrder.id}</p>
+              <span className="badge badge-accent text-[10px]">
+                {PAYMENT_STATUS_LABEL[(activeOrder.paymentStatus || "unpaid") as keyof typeof PAYMENT_STATUS_LABEL] || activeOrder.paymentStatus}
+              </span>
+            </div>
+            <p className="text-sm font-bold text-foreground">
+              {activeOrder.paymentStatus === "pending"
+                ? "Menunggu konfirmasi pembayaran"
+                : activeOrder.paymentStatus === "refunded"
+                ? "Pembayaran dikembalikan"
+                : activeOrder.paymentStatus === "unpaid"
+                ? "Pesanan ini belum dibayar"
+                : "Pembayaran tidak selesai, pesanan dibatalkan"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {activeOrder.paymentStatus === "pending"
+                ? "Tenant baru memproses pesanan setelah pembayaran dikonfirmasi Midtrans. Halaman ini diperbarui otomatis."
+                : activeOrder.paymentStatus === "refunded"
+                ? "Hubungi tenant jika ada pertanyaan."
+                : "Silakan buat pesanan baru dari menu tenant."}
+            </p>
+            {payNotice && <p className="text-xs text-error mt-2" role="alert">{payNotice}</p>}
+            {activeOrder.paymentStatus === "pending" && resumeToken && (
+              <button onClick={handleResumePayment} className="btn btn-primary btn-sm mt-3" id="resume-payment-btn">
+                Lanjutkan Pembayaran
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Live Order Tracker Banner */}
-        {activeOrder && (
+        {activeOrder && activeOrder.paymentStatus === "paid" && (
           <div
             className={`p-4 rounded-2xl mb-6 border transition-colors animate-fade-in ${
               activeOrder.status === "making"
@@ -938,25 +1014,10 @@ function EventGuideContent() {
             <p className="text-xs text-muted-foreground mb-4">Total: Rp {totalCart.toLocaleString("id-ID")}</p>
 
             <div className="p-4 rounded-xl bg-foreground/[0.03] border border-foreground/5 mb-4 text-xs space-y-3 text-left">
-              <div>
-                <label className="field-label">Metode pembayaran</label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {["QRIS", "GoPay", "ShopeePay", "Tunai"].map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setSelectedPaymentMethod(m)}
-                      className={`p-2 rounded-lg text-center font-medium border text-xs transition ${
-                        selectedPaymentMethod === m
-                          ? "bg-primary/20 border-primary text-primary-light"
-                          : "bg-foreground/[0.02] border-foreground/5 text-muted-foreground hover:bg-foreground/[0.05]"
-                      }`}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <p className="text-muted-foreground leading-relaxed">
+                Pilih QRIS, e-wallet, atau transfer bank di jendela Midtrans. Pesanan diteruskan ke tenant setelah pembayaran dikonfirmasi.
+                Mode uji (Sandbox): tidak ada uang sungguhan yang dipindahkan.
+              </p>
               <div className="flex justify-between pt-1 border-t border-foreground/5">
                 <span className="text-muted-foreground">Nama Pemesan</span>
                 <span className="font-semibold">{user?.name || guestName || "Pengunjung"}</span>
@@ -970,7 +1031,7 @@ function EventGuideContent() {
               id="confirm-pay-btn"
               disabled={placing}
             >
-              {placing ? "Mengirim pesanan..." : "Konfirmasi Pesanan"}
+              {placing ? "Menyiapkan pembayaran..." : "Bayar dengan Midtrans"}
             </button>
             <button onClick={() => setShowCheckout(false)} className="btn btn-ghost btn-sm w-full text-xs">
               Batal

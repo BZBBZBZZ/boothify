@@ -29,6 +29,9 @@ function friendly(error: NonNullable<PgError>, fallback: string): string {
   if (/facilities_(included|excluded)/.test(text)) {
     return "Kolom fasilitas booth belum ada di database. Jalankan supabase/migrations/20261123_event_facilities.sql di Supabase SQL Editor.";
   }
+  if (/payment_status|reserved_until|payment_id|create_booth_payment|create_visitor_order_payment/.test(text)) {
+    return "Database belum punya fitur pembayaran. Jalankan supabase/migrations/20261123_midtrans_sandbox_payments.sql di Supabase SQL Editor.";
+  }
   if (error.code === "PGRST205" || /schema cache|does not exist/i.test(text)) {
     return "Database belum disiapkan. Jalankan supabase/schema.sql di Supabase SQL Editor.";
   }
@@ -43,6 +46,40 @@ function friendly(error: NonNullable<PgError>, fallback: string): string {
 
 function check(error: PgError, fallback: string): void {
   if (error) throw new DbError(friendly(error, fallback));
+}
+
+// ============================================================================
+// Payment status (set by the server from Midtrans; never written by the browser)
+// ============================================================================
+
+/** Kept apart from order processing: a paid order can still be "pending" in the kitchen. */
+export type PaymentStatus = "unpaid" | "pending" | "paid" | "failed" | "expired" | "cancelled" | "refunded";
+
+export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
+  unpaid: "Belum dibayar",
+  pending: "Menunggu pembayaran",
+  paid: "Lunas",
+  failed: "Gagal",
+  expired: "Kedaluwarsa",
+  cancelled: "Dibatalkan",
+  refunded: "Dikembalikan",
+};
+
+/** Midtrans payment_type to a readable name. Unknown types are shown as sent. */
+export function paymentTypeLabel(type?: string): string {
+  if (!type) return "";
+  const known: Record<string, string> = {
+    qris: "QRIS",
+    gopay: "GoPay",
+    shopeepay: "ShopeePay",
+    bank_transfer: "Transfer Bank (VA)",
+    echannel: "Mandiri Bill",
+    credit_card: "Kartu Kredit/Debit",
+    cstore: "Gerai Retail",
+    akulaku: "Akulaku",
+    Midtrans: "Midtrans",
+  };
+  return known[type] || type;
 }
 
 // ============================================================================
@@ -313,24 +350,30 @@ type BoothRow = {
   rotation: number | string | null;
   size_cm: string | null;
   is_booked: boolean;
+  reserved_until?: string | null;
 };
 
 export async function getBooths(eventId: string): Promise<FloorPlanBooth[]> {
   const { data, error } = await supabase.from("booths").select("*").eq("event_id", eventId).order("label");
   check(error, "Denah booth gagal dimuat.");
-  return (data as BoothRow[]).map((b) => ({
-    id: b.label,
-    label: b.label,
-    zone: b.zone,
-    price: Number(b.price) || 0,
-    x: Number(b.x),
-    y: Number(b.y),
-    width: Number(b.width),
-    height: Number(b.height),
-    rotation: Number(b.rotation || 0),
-    sizeCm: b.size_cm || undefined,
-    isBooked: Boolean(b.is_booked),
-  }));
+  return (data as BoothRow[]).map((b) => {
+    // A booth held for an unfinished payment is not available to anyone else until the hold ends
+    const held = !b.is_booked && !!b.reserved_until && new Date(b.reserved_until).getTime() > Date.now();
+    return {
+      id: b.label,
+      label: b.label,
+      zone: b.zone,
+      price: Number(b.price) || 0,
+      x: Number(b.x),
+      y: Number(b.y),
+      width: Number(b.width),
+      height: Number(b.height),
+      rotation: Number(b.rotation || 0),
+      sizeCm: b.size_cm || undefined,
+      isBooked: Boolean(b.is_booked) || held,
+      isReserved: held,
+    };
+  });
 }
 
 /** Save the whole layout. Booked booths keep their tenant; publishing makes the event public. */
@@ -435,9 +478,11 @@ export type Booking = {
   serviceFee: number;
   total: number;
   isFreeTax: boolean;
-  status: "confirmed" | "cancelled";
-  payment: "paid" | "unpaid";
+  /** "pending" = booth held while waiting for payment; "confirmed" only after the server confirms payment. */
+  status: "pending" | "confirmed" | "cancelled";
+  payment: PaymentStatus;
   paymentMethod?: string;
+  reservedUntil?: string;
   tenantId: string;
   tenantName: string;
   createdAt: string;
@@ -457,8 +502,9 @@ type BookingRow = {
   service_fee: number | string;
   is_free_tax: boolean;
   payment_method: string | null;
-  status: "confirmed" | "cancelled";
-  payment: "paid" | "unpaid";
+  status: "pending" | "confirmed" | "cancelled";
+  payment: PaymentStatus;
+  reserved_until: string | null;
   created_at: string;
 };
 
@@ -481,21 +527,25 @@ const mapBooking = (b: BookingRow): Booking => {
     status: b.status,
     payment: b.payment,
     paymentMethod: b.payment_method || undefined,
+    reservedUntil: b.reserved_until || undefined,
     tenantId: b.tenant_id,
     tenantName: b.tenant_name,
     createdAt: b.created_at,
   };
 };
 
-/** Rent booths for the signed-in tenant. Availability and prices are checked by the database. */
-export async function bookBooths(eventId: string, labels: string[], paymentMethod: string): Promise<Booking[]> {
-  const { data, error } = await supabase.rpc("book_booths", {
-    p_event_id: eventId,
-    p_labels: labels,
-    p_payment_method: paymentMethod,
-  });
-  check(error, "Pembayaran gagal diproses.");
-  return ((data as BookingRow[]) || []).map(mapBooking);
+/** Booths this tenant holds while payment is still open (hold not yet expired). */
+export async function listTenantPendingBookings(tenantId: string): Promise<Booking[]> {
+  if (!tenantId) return [];
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("status", "pending")
+    .gt("reserved_until", new Date().toISOString())
+    .order("created_at", { ascending: false });
+  check(error, "Booking gagal dimuat.");
+  return (data as BookingRow[]).map(mapBooking);
 }
 
 export async function listTenantBookings(tenantId: string): Promise<Booking[]> {
@@ -727,7 +777,10 @@ export type VisitorOrder = {
   customer: string;
   phone?: string;
   method: string;
+  /** Kitchen status: pending, making, ready, done. Not the payment status. */
   status: OrderStatus;
+  /** Payment status, confirmed by the server from Midtrans. */
+  paymentStatus: PaymentStatus;
   tenantName?: string;
   createdAt: string;
 };
@@ -743,6 +796,7 @@ type OrderRow = {
   customer_phone: string | null;
   payment_method: string;
   status: OrderStatus;
+  payment_status: PaymentStatus;
   tenant_name: string | null;
   created_at: string;
 };
@@ -758,32 +812,13 @@ const mapOrder = (o: OrderRow): VisitorOrder => ({
   phone: o.customer_phone || undefined,
   method: o.payment_method,
   status: o.status,
+  paymentStatus: o.payment_status,
   tenantName: o.tenant_name || undefined,
   createdAt: o.created_at,
 });
 
-export async function placeOrder(input: {
-  eventId: string;
-  booth: string;
-  items: Array<{ name: string; qty: number }>;
-  customerName: string;
-  customerPhone: string;
-  paymentMethod: string;
-}): Promise<string> {
-  const { data, error } = await supabase.rpc("place_visitor_order", {
-    p_event_id: input.eventId,
-    p_booth: input.booth,
-    p_items: input.items,
-    p_customer_name: input.customerName,
-    p_customer_phone: input.customerPhone,
-    p_payment_method: input.paymentMethod,
-  });
-  check(error, "Pesanan gagal dibuat.");
-  return String(data);
-}
-
 /** A visitor's own order, looked up by its order code. */
-export async function getOrder(id: string): Promise<{ id: string; booth: string; items: VisitorOrder["items"]; total: number; status: OrderStatus; tenantName?: string } | null> {
+export async function getOrder(id: string): Promise<{ id: string; booth: string; items: VisitorOrder["items"]; total: number; status: OrderStatus; paymentStatus: PaymentStatus; tenantName?: string } | null> {
   const { data, error } = await supabase.rpc("get_visitor_order", { p_id: id });
   check(error, "Status pesanan gagal dimuat.");
   const row = Array.isArray(data) ? data[0] : null;
@@ -794,6 +829,7 @@ export async function getOrder(id: string): Promise<{ id: string; booth: string;
     items: row.items || [],
     total: Number(row.total) || 0,
     status: row.status,
+    paymentStatus: row.payment_status,
     tenantName: row.tenant_name || undefined,
   };
 }

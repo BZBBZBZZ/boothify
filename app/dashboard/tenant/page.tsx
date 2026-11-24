@@ -18,7 +18,7 @@ import { calculateEventTenantMatch, tenantProfileFromUser } from "@/app/lib/tena
 import { isUpcomingEvent } from "@/app/lib/tenant-events";
 import Icon from "../../components/Icon";
 import OnboardingGuide from "../../components/OnboardingGuide";
-import { Notice, PageHeader } from "../../components/ui";
+import { Notice, PageHeader, PaymentBadge } from "../../components/ui";
 import CategoryPopover from "../../components/CategoryPopover";
 
 type OrderView = VisitorOrder & { time: string };
@@ -88,7 +88,11 @@ export default function TenantDashboard() {
   }, [user]);
 
   const uniqueEventsCount = new Set(bookings.map((b) => b.eventId)).size;
-  const totalSpent = bookings.reduce((sum, b) => sum + b.total, 0);
+  // Only booths the server has confirmed as paid count as spending
+  const totalSpent = bookings.filter((b) => b.payment === "paid").reduce((sum, b) => sum + b.total, 0);
+  // The kitchen queue holds paid orders only; unpaid ones wait until the server confirms payment
+  const paidOrders = visitorOrders.filter((o) => o.paymentStatus === "paid");
+  const awaitingPaymentCount = visitorOrders.filter((o) => o.paymentStatus === "pending").length;
 
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     const previous = visitorOrders;
@@ -185,7 +189,7 @@ export default function TenantDashboard() {
             <span className="text-2xl"><Icon name="package" size={24} /></span>
             <span className="text-[11px] text-secondary-light font-medium">Langsung dari pengunjung</span>
           </div>
-          <div className="text-2xl font-bold mb-1">{visitorOrders.length}</div>
+          <div className="text-2xl font-bold mb-1">{paidOrders.length}</div>
           <div className="text-xs text-muted-foreground">Pesanan Masuk</div>
         </div>
       </div>
@@ -229,9 +233,7 @@ export default function TenantDashboard() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className={`badge text-[10px] ${booking.payment === "paid" ? "badge-primary" : "badge-accent"}`}>
-                        {booking.payment === "paid" ? "Lunas" : "Pending"}
-                      </span>
+                      <PaymentBadge status={booking.payment} />
                       <Link
                         href={`/events/${booking.eventId}/guide`}
                         className="btn btn-ghost btn-sm text-xs text-primary-light"
@@ -254,17 +256,18 @@ export default function TenantDashboard() {
                 <h2 className="font-semibold text-foreground">Pesanan masuk dari pengunjung</h2>
               </div>
               <div className="flex items-center gap-2">
-                <span className="badge badge-primary text-[10px]">{visitorOrders.length} Pesanan</span>
+                <span className="badge badge-primary text-[10px]">{paidOrders.length} Pesanan</span>
                 <Link href="/dashboard/tenant/bookings" className="btn btn-ghost btn-sm text-[11px] text-primary-light">
                   Buka KDS Penuh
                 </Link>
               </div>
             </div>
             <p className="text-xs text-muted-foreground mb-4">
-              Pesanan yang dibuat oleh pengunjung melalui QR Code / panduan pengunjung. Ubah status pesanan di sini.
+              Pesanan yang dibuat oleh pengunjung melalui QR Code / panduan pengunjung. Pesanan masuk setelah pembayarannya dikonfirmasi.
+              {awaitingPaymentCount > 0 && ` ${awaitingPaymentCount} pesanan masih menunggu pembayaran.`}
             </p>
 
-            {visitorOrders.length === 0 ? (
+            {paidOrders.length === 0 ? (
               <div className="p-6 rounded-xl bg-foreground/[0.02] border border-dashed border-foreground/10 text-center">
                 <span className="text-3xl block mb-2"><Icon name="clipboard" size={32} /></span>
                 <p className="font-semibold text-xs text-foreground mb-1">Belum Ada Pesanan Masuk</p>
@@ -274,7 +277,7 @@ export default function TenantDashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {visitorOrders.slice(0, 5).map((order) => {
+                {paidOrders.slice(0, 5).map((order) => {
                   const status = order.status || "pending";
                   const boothLabel = order.booth || order.items[0]?.boothId || "-";
                   return (
@@ -296,6 +299,7 @@ export default function TenantDashboard() {
                           <span className="badge badge-secondary text-[10px] font-semibold">
                             Booth {boothLabel}
                           </span>
+                          <PaymentBadge status={order.paymentStatus} />
                           <span className="badge badge-secondary text-[9px]">{order.method}</span>
                           <span className="text-[10px] text-muted-foreground">{order.time}</span>
                           {status === "pending" && (

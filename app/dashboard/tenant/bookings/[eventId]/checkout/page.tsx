@@ -6,7 +6,8 @@ import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/app/components/AuthContext";
 import type { AdminCampaign } from "@/app/lib/admin-campaigns";
-import { getEvent, getBooths, getEventCampaign, bookBooths, errorMessage } from "@/app/lib/db";
+import { getEvent, getBooths, getEventCampaign, listTenantPendingBookings, errorMessage } from "@/app/lib/db";
+import { startBoothPayment, fetchPaymentStatus, openSnap } from "@/app/lib/payments-client";
 import Icon from "../../../../../components/Icon";
 import FreshOnNavigate from "../../../../../components/FreshOnNavigate";
 
@@ -34,7 +35,6 @@ function CheckoutContent() {
   const { user } = useAuth();
   const [items, setItems] = useState<CheckoutItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [paymentMethod, setPaymentMethod] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -47,13 +47,20 @@ function CheckoutContent() {
   const [facilities, setFacilities] = useState<{ included: string[]; excluded: string[] }>({ included: [], excluded: [] });
   const [campaign, setCampaign] = useState<AdminCampaign | null>(null);
   const [payError, setPayError] = useState("");
+  // Order code of a payment that was started and is waiting for the server to confirm it
+  const [awaitingOrder, setAwaitingOrder] = useState<string | null>(null);
 
   // The booths come from the link; their prices and availability come from the database
   useEffect(() => {
     let cancelled = false;
     const wanted = boothParam.split(",").map((b) => decodeURIComponent(b).trim()).filter(Boolean);
-    Promise.all([getEvent(eventId), getBooths(eventId), getEventCampaign(eventId).catch(() => null)])
-      .then(([ev, booths, camp]) => {
+    Promise.all([
+      getEvent(eventId),
+      getBooths(eventId),
+      getEventCampaign(eventId).catch(() => null),
+      user?.id ? listTenantPendingBookings(user.id).catch(() => []) : Promise.resolve([]),
+    ])
+      .then(([ev, booths, camp, myHolds]) => {
         if (cancelled) return;
         if (ev) {
           setEventTitle(ev.title);
@@ -63,11 +70,13 @@ function CheckoutContent() {
         }
         setCampaign(camp);
         const picked = booths.filter((b) => wanted.includes(b.label));
-        const taken = picked.filter((b) => b.isBooked).map((b) => b.label);
+        // Booths this tenant is already holding for an unfinished payment can be paid for again
+        const mine = new Set(myHolds.filter((h) => h.eventId === eventId).map((h) => h.booth));
+        const taken = picked.filter((b) => b.isBooked && !mine.has(b.label)).map((b) => b.label);
         if (taken.length > 0) {
           setPayError(`Booth ${taken.join(", ")} sudah disewa tenant lain dan dihapus dari pesanan ini.`);
         }
-        setItems(picked.filter((b) => !b.isBooked).map((b) => ({ booth: b.label, zone: getZoneDisplay(b.zone), price: b.price })));
+        setItems(picked.filter((b) => !b.isBooked || mine.has(b.label)).map((b) => ({ booth: b.label, zone: getZoneDisplay(b.zone), price: b.price })));
       })
       .catch((err) => {
         if (!cancelled) setPayError(errorMessage(err, "Data pesanan gagal dimuat."));
@@ -78,7 +87,48 @@ function CheckoutContent() {
     return () => {
       cancelled = true;
     };
-  }, [eventId, boothParam]);
+  }, [eventId, boothParam, user?.id]);
+
+  // After Snap is opened, only the server can say whether the payment went through
+  useEffect(() => {
+    if (!awaitingOrder) return;
+    let stopped = false;
+    let ticks = 0;
+    const check = async () => {
+      try {
+        const info = await fetchPaymentStatus(awaitingOrder);
+        if (stopped) return;
+        if (info.status === "paid") {
+          stopped = true;
+          setPaidTotal(info.amount);
+          setSuccess(true);
+          setAwaitingOrder(null);
+        } else if (info.status === "failed" || info.status === "expired" || info.status === "cancelled") {
+          stopped = true;
+          setPayError(
+            info.status === "expired"
+              ? "Waktu pembayaran habis dan booth dilepas kembali. Silakan pilih booth lagi."
+              : "Pembayaran tidak berhasil. Booth dilepas kembali, silakan coba lagi."
+          );
+          setAwaitingOrder(null);
+        }
+      } catch {
+        // A single failed check is fine; the next one retries
+      }
+      ticks += 1;
+      if (!stopped && ticks >= 100) {
+        stopped = true;
+        setAwaitingOrder(null);
+        setPayError("Konfirmasi pembayaran belum diterima. Cek status di halaman Booth Saya beberapa saat lagi.");
+      }
+    };
+    void check();
+    const timer = setInterval(check, 3000);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [awaitingOrder]);
 
   if (user && user.role !== "tenant") {
     return <div className="card-base p-8 text-center"><h1 className="page-header-title mb-2">Akses khusus tenant</h1><p className="text-sm text-muted-foreground">Silakan masuk menggunakan akun tenant untuk menyewa booth.</p><Link href="/events" className="btn btn-primary btn-sm mt-5">Kembali ke Event</Link></div>;
@@ -101,14 +151,17 @@ function CheckoutContent() {
   const total = subtotal + appliedTax + serviceFee;
 
   const handlePay = async () => {
-    if (!paymentMethod || !agreed || processing) return;
+    if (!agreed || processing) return;
     setPayError("");
     setProcessing(true);
     try {
-      // The database re-checks every booth, so two tenants can never rent the same one
-      const booked = await bookBooths(eventId, items.map((i) => i.booth), paymentMethod);
-      setPaidTotal(booked.reduce((sum, b) => sum + b.total, 0));
-      setSuccess(true);
+      // The server checks the tenant, holds the booths, and computes every amount from the database
+      const session = await startBoothPayment(eventId, items.map((i) => i.booth));
+      setAwaitingOrder(session.orderId);
+      // Snap's callbacks are only hints. The page moves on when the server confirms payment.
+      await openSnap(session.snapToken, {
+        onError: () => setPayError("Pembayaran tidak berhasil di Midtrans. Silakan coba lagi."),
+      });
     } catch (err) {
       setPayError(errorMessage(err, "Pembayaran gagal diproses."));
     } finally {
@@ -197,47 +250,14 @@ function CheckoutContent() {
             <FacilityList included={facilities.included} excluded={facilities.excluded} />
           </section>
 
-          {/* Payment Method */}
+          {/* Payment method is chosen inside Midtrans Snap */}
           <div className="card-base p-6">
-            <h2 className="section-title mb-4">Metode pembayaran</h2>
-            <div className="space-y-2">
-              {[
-                { id: "qris", label: "QRIS (Scan)" },
-                { id: "gopay", label: "GoPay" },
-                { id: "ovo", label: "OVO" },
-                { id: "shopeepay", label: "ShopeePay" },
-                { id: "bca", label: "Transfer Bank BCA" },
-                { id: "mandiri", label: "Transfer Bank Mandiri" },
-                { id: "cc", label: "Kartu Kredit / Debit" },
-              ].map((method) => (
-                <label
-                  key={method.id}
-                  className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-colors ${
-                    paymentMethod === method.id
-                      ? "bg-primary/5 border-2 border-primary"
-                      : "bg-foreground/[0.02] border-2 border-transparent hover:bg-foreground/[0.04]"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value={method.id}
-                    checked={paymentMethod === method.id}
-                    onChange={() => setPaymentMethod(method.id)}
-                    className="sr-only"
-                  />
-                  <Icon name={method.id === "qris" ? "phone" : method.id === "cc" ? "card" : method.id === "bca" || method.id === "mandiri" ? "bank" : "wallet"} size={20} />
-                  <span className="text-sm font-medium">{method.label}</span>
-                  <div className={`ml-auto w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    paymentMethod === method.id ? "border-primary bg-primary" : "border-border"
-                  }`}>
-                    {paymentMethod === method.id && (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12" /></svg>
-                    )}
-                  </div>
-                </label>
-              ))}
-            </div>
+            <h2 className="section-title mb-2">Metode pembayaran</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Pilih QRIS, e-wallet, transfer bank, atau kartu langsung di jendela pembayaran Midtrans setelah menekan Bayar Sekarang.
+              Booth kamu ditahan selama 30 menit sambil menunggu pembayaran.
+            </p>
+            <p className="text-xs text-muted-foreground mt-3">Mode uji (Midtrans Sandbox): tidak ada uang sungguhan yang dipindahkan.</p>
           </div>
         </div>
 
@@ -332,22 +352,29 @@ function CheckoutContent() {
             </div>
           )}
 
+          {awaitingOrder && (
+            <div className="mt-4 p-3 rounded-lg bg-primary/5 text-xs text-muted-foreground leading-relaxed" role="status">
+              Menunggu konfirmasi pembayaran dari server. Halaman ini berubah otomatis setelah Midtrans mengonfirmasi.
+              Jika jendela pembayaran tertutup, tekan tombol di bawah untuk membukanya lagi.
+            </div>
+          )}
+
           <button
             onClick={handlePay}
-            disabled={!paymentMethod || !agreed || processing}
-            className={`btn btn-primary w-full btn-lg mt-4 ${(!paymentMethod || !agreed || processing) ? "opacity-50 cursor-not-allowed" : ""}`}
+            disabled={!agreed || processing}
+            className={`btn btn-primary w-full btn-lg mt-4 ${(!agreed || processing) ? "opacity-50 cursor-not-allowed" : ""}`}
             id="pay-now-btn"
           >
             {processing ? (
               <><svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 11-6.219-8.56" /></svg> Memproses...</>
             ) : (
-              "Bayar Sekarang"
+              awaitingOrder ? "Buka Pembayaran Midtrans" : "Bayar Sekarang"
             )}
           </button>
 
           <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
-            Pembayaran aman & terenkripsi
+            Diproses oleh Midtrans (Sandbox)
           </div>
         </div>
       </div>

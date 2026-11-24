@@ -31,7 +31,9 @@ import {
   listBookingsForEvents,
   listOrganizerMessages,
   errorMessage,
+  PAYMENT_STATUS_LABEL,
   type InboxMessage,
+  type PaymentStatus,
 } from "@/app/lib/db";
 import Icon from "../../components/Icon";
 import OnboardingGuide from "../../components/OnboardingGuide";
@@ -99,7 +101,8 @@ export default function OrganizerDashboard() {
 
   // Dynamic metrics calculation
   const totalBoothsFilled = events.reduce((sum, e) => sum + (e.boothsFilled || 0), 0);
-  const totalRevenueNumber = bookings.reduce((sum, b) => sum + b.price, 0);
+  // Revenue counts only bookings the server has confirmed as paid
+  const totalRevenueNumber = bookings.filter((b) => b.status === "paid").reduce((sum, b) => sum + b.price, 0);
   const formattedRevenue = `Rp ${(totalRevenueNumber / 1000000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} Jt`;
 
   return (
@@ -317,7 +320,7 @@ export default function OrganizerDashboard() {
                     <div className="text-right">
                       <p className="text-xs font-semibold">{booking.amount}</p>
                       <span className={`text-[10px] ${booking.status === "paid" ? "text-emerald-700" : "text-amber-700"}`}>
-                        {booking.status === "paid" ? "Terbayar" : "Pending"}
+                        {booking.status === "paid" ? "Terbayar" : PAYMENT_STATUS_LABEL[booking.status as PaymentStatus] || booking.status}
                       </span>
                     </div>
                   </div>

@@ -7,6 +7,7 @@
 
 import { useId, type ReactNode } from "react";
 import Icon from "./Icon";
+import { PAYMENT_STATUS_LABEL, type PaymentStatus } from "@/app/lib/db";
 
 /* ---------------------------------------------------------------- PageHeader */
 
@@ -192,4 +193,18 @@ export function Stepper({ steps, current }: { steps: string[]; current: number }
       ))}
     </ol>
   );
+}
+
+/* -------------------------------------------------------------- PaymentBadge */
+
+/** Payment status as reported by the server. Never shown as paid unless the database says so. */
+export function PaymentBadge({ status, className = "" }: { status?: string; className?: string }) {
+  const key = (status && status in PAYMENT_STATUS_LABEL ? status : "unpaid") as PaymentStatus;
+  const tone =
+    key === "paid"
+      ? "badge-primary"
+      : key === "pending" || key === "unpaid"
+      ? "badge-accent"
+      : "bg-error/10 text-error";
+  return <span className={`badge text-[10px] ${tone} ${className}`}>{PAYMENT_STATUS_LABEL[key]}</span>;
 }

@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Notice, Tabs } from "@/app/components/ui";
+import { Notice, Tabs, PaymentBadge } from "@/app/components/ui";
 import Link from "next/link";
 import { useAuth } from "../../../components/AuthContext";
 
 import {
   listTenantBookings,
+  listTenantPendingBookings,
   listTenantOrders,
   updateOrderStatus as saveOrderStatus,
   errorMessage,
@@ -27,6 +28,8 @@ export default function TenantBookingsAndOrdersPage() {
   const [activeTab, setActiveTab] = useState<"orders" | "booths">("orders");
   const [orders, setOrders] = useState<VisitorOrder[]>([]);
   const [bookings, setBookings] = useState<BookingItem[]>([]);
+  // Booths held while a payment is still open
+  const [holds, setHolds] = useState<BookingItem[]>([]);
   const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
   const [selectedPass, setSelectedPass] = useState<BookingItem | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -43,6 +46,12 @@ export default function TenantBookingsAndOrdersPage() {
       .catch((err) => {
         if (!cancelled) setLoadError(errorMessage(err, "Booking gagal dimuat."));
       });
+
+    listTenantPendingBookings(tenantId)
+      .then((list) => {
+        if (!cancelled) setHolds(list);
+      })
+      .catch(() => {});
 
     const loadOrders = () =>
       listTenantOrders(tenantId)
@@ -72,12 +81,22 @@ export default function TenantBookingsAndOrdersPage() {
     }
   };
 
-  const filteredOrders = statusFilter === "all" ? orders : orders.filter((o) => (o.status || "pending") === statusFilter);
+  // The kitchen queue only holds orders the server has confirmed as paid; unpaid ones wait outside it
+  const paidOrders = orders.filter((o) => o.paymentStatus === "paid");
+  const awaitingPaymentCount = orders.filter((o) => o.paymentStatus === "pending").length;
+  const filteredOrders = statusFilter === "all" ? paidOrders : paidOrders.filter((o) => (o.status || "pending") === statusFilter);
 
-  const pendingCount = orders.filter((o) => (o.status || "pending") === "pending").length;
-  const makingCount = orders.filter((o) => o.status === "making").length;
-  const readyCount = orders.filter((o) => o.status === "ready").length;
-  const doneCount = orders.filter((o) => o.status === "done").length;
+  const pendingCount = paidOrders.filter((o) => (o.status || "pending") === "pending").length;
+  const makingCount = paidOrders.filter((o) => o.status === "making").length;
+  const readyCount = paidOrders.filter((o) => o.status === "ready").length;
+  const doneCount = paidOrders.filter((o) => o.status === "done").length;
+
+  const holdGroups = Object.values(
+    holds.reduce<Record<string, BookingItem[]>>((acc, h) => {
+      (acc[h.eventId] ||= []).push(h);
+      return acc;
+    }, {})
+  );
 
   return (
     <div className="animate-fade-in" id="tenant-orders-and-booths">
@@ -100,7 +119,7 @@ export default function TenantBookingsAndOrdersPage() {
         active={activeTab}
         onChange={setActiveTab}
         items={[
-          { key: "orders", label: "Pesanan pengunjung", count: orders.length },
+          { key: "orders", label: "Pesanan pengunjung", count: paidOrders.length },
           { key: "booths", label: "Booth saya", count: bookings.length },
         ]}
       />
@@ -114,7 +133,7 @@ export default function TenantBookingsAndOrdersPage() {
               onClick={() => setStatusFilter("all")}
               className={`btn btn-sm ${statusFilter === "all" ? "btn-primary" : "btn-secondary"}`}
             >
-              Semua ({orders.length})
+              Semua ({paidOrders.length})
             </button>
             <button
               onClick={() => setStatusFilter("pending")}
@@ -141,6 +160,12 @@ export default function TenantBookingsAndOrdersPage() {
               Selesai ({doneCount})
             </button>
           </div>
+
+          {awaitingPaymentCount > 0 && (
+            <Notice tone="info" className="mb-4">
+              {awaitingPaymentCount} pesanan menunggu pembayaran dan belum masuk antrean. Pesanan muncul di sini setelah pembayaran dikonfirmasi server.
+            </Notice>
+          )}
 
           {filteredOrders.length === 0 ? (
             <div className="card-base p-12 text-center text-muted-foreground">
@@ -179,6 +204,7 @@ export default function TenantBookingsAndOrdersPage() {
                           <span className="badge badge-secondary text-[10px] font-semibold">
                             Booth {order.booth || order.items[0]?.boothId || "-"}
                           </span>
+                          <PaymentBadge status={order.paymentStatus} />
                         </div>
                         {currentStatus === "pending" && (
                           <span className="badge text-[10px] bg-amber-500/15 text-amber-700 border border-amber-500/30">
@@ -298,6 +324,31 @@ export default function TenantBookingsAndOrdersPage() {
       {/* ========== TAB 2: BOOTH SAYA & RIWAYAT SEWA ========== */}
       {activeTab === "booths" && (
         <div className="space-y-6">
+          {holdGroups.map((group) => {
+            const eventId = group[0].eventId;
+            const labels = group.map((h) => h.booth);
+            const until = group[0].reservedUntil ? new Date(group[0].reservedUntil).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "";
+            return (
+              <div key={eventId} className="card-base p-5 border border-amber-500/30 bg-amber-500/[0.03] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <PaymentBadge status="pending" />
+                    <span className="font-semibold text-sm">{group[0].event}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Booth {labels.join(", ")} ditahan{until ? ` sampai ${until}` : ""}. Booth baru menjadi milikmu setelah pembayaran dikonfirmasi.
+                  </p>
+                </div>
+                <Link
+                  href={`/dashboard/tenant/bookings/${eventId}/checkout?booths=${labels.map(encodeURIComponent).join(",")}`}
+                  className="btn btn-primary btn-sm"
+                >
+                  Lanjutkan Pembayaran
+                </Link>
+              </div>
+            );
+          })}
+
           {bookings.length === 0 ? (
             <div className="card-base p-8 text-center border-dashed border-foreground/10">
               <span className="text-4xl block mb-2"><Icon name="store" size={32} /></span>
@@ -318,9 +369,7 @@ export default function TenantBookingsAndOrdersPage() {
                       <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center font-bold text-secondary text-base">
                         {booking.booth}
                       </div>
-                      <span className={`badge text-[10px] ${booking.payment === "paid" ? "badge-primary" : "badge-accent"}`}>
-                        {booking.payment === "paid" ? "Lunas" : "Pending"}
-                      </span>
+                      <PaymentBadge status={booking.payment} />
                     </div>
 
                     <h3 className="font-bold text-base text-foreground mb-1">{booking.event}</h3>
@@ -385,8 +434,8 @@ export default function TenantBookingsAndOrdersPage() {
               <p className="text-xs font-semibold text-foreground">
                 Nomor booth: {selectedPass.booth}
               </p>
-              <p className="text-[11px] text-emerald-700 font-medium mt-1">
-                Terverifikasi &amp; Lunas
+              <p className={`text-[11px] font-medium mt-1 ${selectedPass.payment === "paid" ? "text-emerald-700" : "text-amber-700"}`}>
+                {selectedPass.payment === "paid" ? "Terverifikasi & Lunas" : "Pembayaran belum terverifikasi"}
               </p>
               <p className="text-[11px] text-muted-foreground mt-1 font-mono">
                 Kode booking: {selectedPass.id.slice(0, 8).toUpperCase()}
