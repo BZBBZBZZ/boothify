@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { listPublishedEvents, approvedCampaignsByEvent, errorMessage } from "@/app/lib/db";
+import { listPublishedEvents, errorMessage } from "@/app/lib/db";
 import Icon from "../components/Icon";
 import CategoryPopover from "../components/CategoryPopover";
 
@@ -26,7 +26,6 @@ export default function EventsPage() {
   const [search, setSearch] = useState("");
 
   const [loadError, setLoadError] = useState("");
-  const [campaignEvents, setCampaignEvents] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -55,29 +54,17 @@ export default function EventsPage() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-    // Events in an approved campaign are listed first
-    approvedCampaignsByEvent()
-      .then((byEvent) => {
-        if (!cancelled) setCampaignEvents(new Set(Object.keys(byEvent)));
-      })
-      .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const filtered = eventsList
-    .filter((event) => {
-      const matchesSearch =
-        event.title.toLowerCase().includes(search.toLowerCase()) ||
-        event.location.toLowerCase().includes(search.toLowerCase());
-      return matchesSearch;
-    })
-    .sort((a, b) => {
-      const aCamp = campaignEvents.has(a.id) ? 1 : 0;
-      const bCamp = campaignEvents.has(b.id) ? 1 : 0;
-      return bCamp - aCamp;
-    });
+  const filtered = eventsList.filter((event) => {
+    const matchesSearch =
+      event.title.toLowerCase().includes(search.toLowerCase()) ||
+      event.location.toLowerCase().includes(search.toLowerCase());
+    return matchesSearch;
+  });
 
   return (
     <>
@@ -128,41 +115,20 @@ export default function EventsPage() {
           {/* Events Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filtered.map((event, i) => {
-              const isHighlight = campaignEvents.has(event.id);
-
               return (
                 <Link
                   key={event.id}
                   href={`/events/${event.id}`}
-                  className={`card-interactive p-0 overflow-hidden animate-fade-in-up opacity-0 relative transition-colors ${
-                    isHighlight
-                      ? "outline outline-2 outline-offset-2 outline-info"
-                      : ""
-                  }`}
+                  className="card-interactive p-0 overflow-hidden animate-fade-in-up opacity-0 relative transition-colors"
                   style={{ animationDelay: `${Math.min(i, 6) * 50}ms` }}
                   id={`event-listing-${event.id}`}
                 >
-                  {/* Highlight Campaign Badge */}
-                  {isHighlight && (
-                    <div className="absolute top-2.5 left-2.5 z-10 flex flex-col gap-1 items-start">
-                      <span className="badge event-cover-tag">
-                        <Icon name="star" size={16} />
-                        <span>Partner resmi</span>
-                      </span>
-                    </div>
-                  )}
-
                   <div className="event-cover event-cover--card h-36 relative overflow-hidden">
                     {event.image ? (
                       <img src={event.image} alt="" className="absolute inset-0 w-full h-full object-cover" />
                     ) : (
                       <span className="event-cover-mark" aria-hidden="true">
                         {event.title.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
-                      </span>
-                    )}
-                    {isHighlight && (
-                      <span className="absolute bottom-2 right-2 badge bg-success/15 text-success">
-                        Bebas pajak
                       </span>
                     )}
                   </div>

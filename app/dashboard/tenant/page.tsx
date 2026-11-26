@@ -8,6 +8,7 @@ import {
   listTenantBookings,
   listTenantOrders,
   listPublishedEvents,
+  getTenantMenu,
   updateOrderStatus as saveOrderStatus,
   errorMessage,
   type Booking,
@@ -16,12 +17,65 @@ import {
 } from "@/app/lib/db";
 import { calculateEventTenantMatch, tenantProfileFromUser } from "@/app/lib/tenant-match";
 import { isUpcomingEvent } from "@/app/lib/tenant-events";
+import { loadTenantEventOptions } from "@/app/lib/tenant-active-event";
 import Icon from "../../components/Icon";
 import OnboardingGuide from "../../components/OnboardingGuide";
 import { Notice, PageHeader, PaymentBadge } from "../../components/ui";
 import CategoryPopover from "../../components/CategoryPopover";
 
 type OrderView = VisitorOrder & { time: string };
+
+/** One product at one event, matched with what visitors ordered. */
+type SalesRow = {
+  key: string;
+  eventId: string;
+  event: string;
+  product: string;
+  price: number;
+  stock: number | null;
+  sold: number;
+  revenue: number;
+  inMenu: boolean;
+};
+
+const productKey = (eventId: string, name: string) => `${eventId}::${name.trim().toLowerCase()}`;
+
+/**
+ * Matches each event's menu with the paid orders from that event, so the dashboard shows
+ * what is on sale next to what was ordered. Ordered products no longer in the menu still appear.
+ */
+function buildSalesRows(menus: Array<{ eventId: string; event: string; items: Array<{ name: string; price: number | string; stock?: number | string }> }>, paidOrders: VisitorOrder[]): SalesRow[] {
+  const rows = new Map<string, SalesRow>();
+  menus.forEach((m) =>
+    m.items.forEach((item) => {
+      if (!item.name) return;
+      rows.set(productKey(m.eventId, item.name), {
+        key: productKey(m.eventId, item.name),
+        eventId: m.eventId,
+        event: m.event,
+        product: item.name,
+        price: Number(item.price) || 0,
+        stock: item.stock === undefined || item.stock === "" ? null : Number(item.stock) || 0,
+        sold: 0,
+        revenue: 0,
+        inMenu: true,
+      });
+    })
+  );
+  paidOrders.forEach((order) =>
+    (order.items || []).forEach((it) => {
+      const key = productKey(order.eventId, it.name);
+      const row =
+        rows.get(key) ||
+        { key, eventId: order.eventId, event: order.event, product: it.name, price: Number(it.price) || 0, stock: null, sold: 0, revenue: 0, inMenu: false };
+      row.sold += Number(it.qty) || 0;
+      row.revenue += (Number(it.qty) || 0) * (Number(it.price) || 0);
+      rows.set(key, row);
+    })
+  );
+  // Grouped by event, best sellers first
+  return Array.from(rows.values()).sort((a, b) => a.event.localeCompare(b.event) || b.sold - a.sold || a.product.localeCompare(b.product));
+}
 
 const orderTime = (iso: string) =>
   iso ? new Date(iso).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
@@ -32,6 +86,31 @@ export default function TenantDashboard() {
   const [visitorOrders, setVisitorOrders] = useState<OrderView[]>([]);
   const [recommendedEvents, setRecommendedEvents] = useState<Array<{ id: string; title: string; date: string; location: string; match: string; categories?: string[]; category?: string }>>([]);
   const [loadError, setLoadError] = useState("");
+  // Menu of every event this tenant joins; the dashboard covers all events at once
+  const [menus, setMenus] = useState<Array<{ eventId: string; event: string; items: Array<{ name: string; price: number | string; stock?: number | string }> }>>([]);
+
+  useEffect(() => {
+    const tenantId = user?.id || "";
+    if (!tenantId || user?.role !== "tenant") return;
+    let cancelled = false;
+    loadTenantEventOptions(tenantId)
+      .then((events) =>
+        Promise.all(
+          events.map((e) =>
+            getTenantMenu(tenantId, e.id)
+              .then((items) => ({ eventId: e.id, event: e.title, items }))
+              .catch(() => ({ eventId: e.id, event: e.title, items: [] }))
+          )
+        )
+      )
+      .then((list) => {
+        if (!cancelled) setMenus(list);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   useEffect(() => {
     const tenantId = user?.id || "";
@@ -93,6 +172,8 @@ export default function TenantDashboard() {
   // The kitchen queue holds paid orders only; unpaid ones wait until the server confirms payment
   const paidOrders = visitorOrders.filter((o) => o.paymentStatus === "paid");
   const awaitingPaymentCount = visitorOrders.filter((o) => o.paymentStatus === "pending").length;
+  const salesRows = buildSalesRows(menus, paidOrders);
+  const salesRevenue = paidOrders.reduce((sum, o) => sum + (o.total || 0), 0);
 
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     const previous = visitorOrders;
@@ -110,7 +191,7 @@ export default function TenantDashboard() {
       {loadError && <Notice tone="error" className="mb-6">{loadError}</Notice>}
       <PageHeader
         title="Dasbor Tenant"
-        description="Kelola booth, produk, dan pantau pesanan pengunjung secara langsung."
+        description="Ringkasan semua event kamu dalam satu tempat: booth, produk yang dijual, dan pesanan pengunjung."
         actions={<Link href="/dashboard/tenant/events" className="btn btn-primary">Cari event</Link>}
       />
 
@@ -190,7 +271,7 @@ export default function TenantDashboard() {
             <span className="text-[11px] text-secondary-light font-medium">Langsung dari pengunjung</span>
           </div>
           <div className="text-2xl font-bold mb-1">{paidOrders.length}</div>
-          <div className="text-xs text-muted-foreground">Pesanan Masuk</div>
+          <div className="text-xs text-muted-foreground">Pesanan masuk · Rp {salesRevenue.toLocaleString("id-ID")}</div>
         </div>
       </div>
 
@@ -201,14 +282,9 @@ export default function TenantDashboard() {
           <div className="card-base p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold">Booth Saya</h2>
-              <div className="flex items-center gap-2">
-                <Link href="/dashboard/tenant/catalog" className="btn btn-secondary btn-sm">
-                  Kelola Menu &amp; Web
-                </Link>
-                <Link href="/dashboard/tenant/events" className="btn btn-primary btn-sm">
-                  Cari Event Baru
-                </Link>
-              </div>
+              <Link href="/dashboard/tenant/catalog" className="btn btn-secondary btn-sm">
+                Kelola menu
+              </Link>
             </div>
             {bookings.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground border border-dashed border-foreground/10 rounded-xl p-6">
@@ -258,7 +334,7 @@ export default function TenantDashboard() {
               <div className="flex items-center gap-2">
                 <span className="badge badge-primary text-[10px]">{paidOrders.length} Pesanan</span>
                 <Link href="/dashboard/tenant/bookings" className="btn btn-ghost btn-sm text-[11px] text-primary-light">
-                  Buka KDS Penuh
+                  Lihat semua pesanan
                 </Link>
               </div>
             </div>
@@ -297,7 +373,7 @@ export default function TenantDashboard() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold font-mono text-primary-light">{order.id}</span>
                           <span className="badge badge-secondary text-[10px] font-semibold">
-                            Booth {boothLabel}
+                            {order.event ? `${order.event} · ` : ""}Booth {boothLabel}
                           </span>
                           <PaymentBadge status={order.paymentStatus} />
                           <span className="badge badge-secondary text-[9px]">{order.method}</span>
@@ -364,6 +440,57 @@ export default function TenantDashboard() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+          {/* What is on sale vs what was ordered, every event */}
+          <div className="card-base p-6" id="tenant-sales-summary">
+            <h2 className="font-semibold mb-1">Produk &amp; penjualan (semua event)</h2>
+            <p className="text-xs text-muted-foreground mb-4">
+              Menu tiap event dicocokkan dengan pesanan yang sudah dibayar. Produk yang belum pernah dipesan tetap tampil dengan angka 0.
+            </p>
+            {salesRows.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Belum ada menu atau pesanan. Isi menu lewat{" "}
+                <Link href="/dashboard/tenant/catalog" className="text-primary-light font-semibold underline">Katalog Produk</Link>.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="ledger-table text-xs">
+                  <thead>
+                    <tr>
+                      <th scope="col">Produk</th>
+                      <th scope="col">Event</th>
+                      <th scope="col" className="text-right">Harga</th>
+                      <th scope="col" className="text-right">Stok</th>
+                      <th scope="col" className="text-right">Terjual</th>
+                      <th scope="col">Pendapatan</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {salesRows.map((row) => (
+                      <tr key={row.key} className="ledger-row">
+                        <td className="font-medium text-foreground">
+                          {row.product}
+                          {!row.inMenu && <span className="block text-[10px] text-amber-700 font-normal">Sudah tidak ada di menu</span>}
+                        </td>
+                        <td className="text-muted-foreground">{row.event}</td>
+                        <td className="text-right fig">Rp {row.price.toLocaleString("id-ID")}</td>
+                        <td className="text-right fig">{row.stock === null ? "-" : row.stock}</td>
+                        <td className="text-right fig font-semibold">{row.sold}</td>
+                        <td className="fig">Rp {row.revenue.toLocaleString("id-ID")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={4} className="pt-3 font-semibold">Total</td>
+                      <td className="pt-3 text-right fig font-semibold">{salesRows.reduce((s, r) => s + r.sold, 0)}</td>
+                      <td className="pt-3 fig font-semibold">Rp {salesRows.reduce((s, r) => s + r.revenue, 0).toLocaleString("id-ID")}</td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
             )}
           </div>

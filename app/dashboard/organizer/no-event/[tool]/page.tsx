@@ -9,10 +9,6 @@ const TOOLS: Record<string, { title: string; text: string }> = {
     title: "Floor Plan",
     text: "Silakan buat event terlebih dahulu untuk mengatur denah booth.",
   },
-  "ai-campaign": {
-    title: "Ide Campaign",
-    text: "Silakan buat event terlebih dahulu untuk membuat rekomendasi campaign.",
-  },
   "qr-code": {
     title: "QR Code",
     text: "Silakan buat event terlebih dahulu untuk melihat QR code.",

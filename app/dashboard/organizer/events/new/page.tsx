@@ -208,7 +208,7 @@ function CreateEventPageContent() {
                 {(id) => <textarea id={id} className="input-base min-h-[120px] resize-y" value={formData.description} onChange={(e) => update("description", e.target.value)} rows={5} />}
               </Field>
 
-              <Field label="Tema / campaign" optional id="event-theme" hint="Setelah event dibuat, buka Ide Campaign di menu samping untuk rekomendasi tema.">
+              <Field label="Tema event" optional id="event-theme" hint="Contoh: Kuliner Nusantara, Fashion Lokal Berkelanjutan.">
                 {(id) => <input id={id} type="text" className="input-base" placeholder="Contoh: Sustainable Fashion" value={formData.theme} onChange={(e) => update("theme", e.target.value)} />}
               </Field>
             </section>

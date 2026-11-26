@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { useTenantActiveEvent } from "@/app/lib/tenant-active-event";
 import { Notice, Tabs, PaymentBadge } from "@/app/components/ui";
 import Link from "next/link";
 import { useAuth } from "../../../components/AuthContext";
@@ -26,10 +28,24 @@ const orderTime = (iso: string) =>
 export default function TenantBookingsAndOrdersPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"orders" | "booths">("orders");
-  const [orders, setOrders] = useState<VisitorOrder[]>([]);
-  const [bookings, setBookings] = useState<BookingItem[]>([]);
+  // Everything for this tenant; the page shows the part for the event picked in the sidebar
+  const [allOrders, setOrders] = useState<VisitorOrder[]>([]);
+  const [allBookings, setBookings] = useState<BookingItem[]>([]);
   // Booths held while a payment is still open
-  const [holds, setHolds] = useState<BookingItem[]>([]);
+  const [allHolds, setHolds] = useState<BookingItem[]>([]);
+  const { eventId, event: activeEvent, events, loaded: eventsLoaded, setEventId } = useTenantActiveEvent(user?.role === "tenant" ? user.id : "");
+
+  // /dashboard/tenant/bookings/[eventId] opens with that event picked
+  const params = useParams();
+  const routeEventId = typeof params?.eventId === "string" ? params.eventId : "";
+  useEffect(() => {
+    if (routeEventId && eventsLoaded && events.some((e) => e.id === routeEventId)) setEventId(routeEventId);
+  }, [routeEventId, eventsLoaded, events, setEventId]);
+
+  const orders = allOrders.filter((o) => o.eventId === eventId);
+  const bookings = allBookings.filter((b) => b.eventId === eventId);
+  const holds = allHolds.filter((h) => h.eventId === eventId);
+  const otherEventHolds = allHolds.filter((h) => h.eventId !== eventId);
   const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
   const [selectedPass, setSelectedPass] = useState<BookingItem | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -71,7 +87,8 @@ export default function TenantBookingsAndOrdersPage() {
   }, [user]);
 
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
-    const previous = orders;
+    // Roll back to the full list (all events), not just the filtered one
+    const previous = allOrders;
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
     try {
       await saveOrderStatus(orderId, newStatus);
@@ -105,12 +122,28 @@ export default function TenantBookingsAndOrdersPage() {
         <div>
           <h1 className="page-header-title mb-1">Pesanan Pengunjung &amp; Kelola Booth</h1>
           <p className="text-muted-foreground text-sm">
-            Pantau antrean pesanan digital pengunjung dan kelola booth resmi brand kamu.
+            {activeEvent ? (
+              <>
+                Event: <span className="text-foreground font-semibold">{activeEvent.title}</span>
+                {activeEvent.date ? ` (${activeEvent.date})` : ""}. Ganti event lewat &quot;Event dipilih&quot; di menu samping.
+              </>
+            ) : eventsLoaded ? (
+              "Belum ada event. Sewa booth dulu lewat Cari Event."
+            ) : (
+              "Memuat event..."
+            )}
           </p>
         </div>
       </div>
 
       {loadError && <Notice tone="error" className="mb-6">{loadError}</Notice>}
+
+      {otherEventHolds.length > 0 && (
+        <Notice tone="info" className="mb-6">
+          Ada {otherEventHolds.length} booth di event lain yang masih menunggu pembayaran
+          ({Array.from(new Set(otherEventHolds.map((h) => h.event))).join(", ")}). Pilih event itu di menu samping untuk melanjutkan.
+        </Notice>
+      )}
 
       {/* Tabs */}
       <Tabs<"orders" | "booths">

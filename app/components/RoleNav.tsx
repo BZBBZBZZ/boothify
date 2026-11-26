@@ -7,6 +7,7 @@ import { useAuth } from "./AuthContext";
 import BrandMark from "./BrandMark";
 import { getActiveOrganizerEventId } from "../lib/event-defaults";
 import { listOrganizerEvents } from "../lib/db";
+import { useTenantActiveEvent } from "../lib/tenant-active-event";
 
 export type NavItem = {
   href: string;
@@ -31,9 +32,7 @@ export const NAV_ICONS = {
   profile: svg(<><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></>),
   create: svg(<><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></>),
   floorPlan: svg(<><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></>),
-  campaign: svg(<><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></>),
   qr: svg(<><rect x="2" y="2" width="8" height="8" rx="1" /><rect x="14" y="2" width="8" height="8" rx="1" /><rect x="2" y="14" width="8" height="8" rx="1" /><rect x="14" y="14" width="4" height="4" /><line x1="22" y1="18" x2="22" y2="22" /><line x1="18" y1="22" x2="22" y2="22" /></>),
-  star: svg(<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />),
   mail: svg(<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></>),
   features: svg(<><rect x="3" y="3" width="7" height="9" /><rect x="14" y="3" width="7" height="5" /><rect x="14" y="12" width="7" height="9" /><rect x="3" y="16" width="7" height="5" /></>),
   route: svg(<><circle cx="6" cy="19" r="3" /><path d="M9 19h8.5a3.5 3.5 0 000-7h-11a3.5 3.5 0 010-7H15" /><circle cx="18" cy="5" r="3" /></>),
@@ -41,16 +40,91 @@ export const NAV_ICONS = {
   menu: svg(<><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>),
 };
 
-/** Tenant sidebar, Dashboard first. */
+/**
+ * Tenant sidebar in three groups:
+ * - general: Dasbor (all events combined) and Cari Event
+ * - perEvent: pages that show only the event picked in "Event dipilih"
+ * - shared: settings that apply to every event
+ */
+export function tenantNavGroups(pathname: string): { general: NavItem[]; perEvent: NavItem[]; shared: NavItem[] } {
+  return {
+    general: [
+      { href: "/dashboard/tenant", label: "Dasbor", icon: NAV_ICONS.dashboard, isActive: pathname === "/dashboard/tenant" },
+      { href: "/dashboard/tenant/events", label: "Cari Event", icon: NAV_ICONS.search, isActive: pathname.startsWith("/dashboard/tenant/events") },
+    ],
+    perEvent: [
+      { href: "/dashboard/tenant/catalog", label: "Katalog Produk", icon: NAV_ICONS.catalog, isActive: pathname.startsWith("/dashboard/tenant/catalog") },
+      { href: "/dashboard/tenant/bookings", label: "Pesanan & Booth", icon: NAV_ICONS.orders, isActive: pathname.startsWith("/dashboard/tenant/bookings") },
+    ],
+    shared: [
+      { href: "/dashboard/tenant/mini-website", label: "Mini Website", icon: NAV_ICONS.website, isActive: pathname.startsWith("/dashboard/tenant/mini-website") },
+      { href: "/dashboard/tenant/profile", label: "Profil", icon: NAV_ICONS.profile, isActive: pathname.startsWith("/dashboard/tenant/profile") },
+    ],
+  };
+}
+
+/** All tenant links in sidebar order. */
 export function tenantNav(pathname: string): NavItem[] {
-  return [
-    { href: "/dashboard/tenant", label: "Dasbor", icon: NAV_ICONS.dashboard, isActive: pathname === "/dashboard/tenant" },
-    { href: "/dashboard/tenant/events", label: "Cari Event", icon: NAV_ICONS.search, isActive: pathname.startsWith("/dashboard/tenant/events") },
-    { href: "/dashboard/tenant/catalog", label: "Katalog Produk", icon: NAV_ICONS.catalog, isActive: pathname.startsWith("/dashboard/tenant/catalog") },
-    { href: "/dashboard/tenant/mini-website", label: "Mini Website", icon: NAV_ICONS.website, isActive: pathname.startsWith("/dashboard/tenant/mini-website") },
-    { href: "/dashboard/tenant/bookings", label: "Pesanan & Booth", icon: NAV_ICONS.orders, isActive: pathname.startsWith("/dashboard/tenant/bookings") },
-    { href: "/dashboard/tenant/profile", label: "Profil", icon: NAV_ICONS.profile, isActive: pathname.startsWith("/dashboard/tenant/profile") },
-  ];
+  const g = tenantNavGroups(pathname);
+  return [...g.general, ...g.perEvent, ...g.shared];
+}
+
+/** The event filter shown above "Katalog Produk". */
+export function TenantEventSwitch({ idSuffix = "" }: { idSuffix?: string }) {
+  const { user } = useAuth();
+  const { events, loaded, eventId, setEventId } = useTenantActiveEvent(user?.role === "tenant" ? user.id : "");
+  const selectId = `tenant-event-switch${idSuffix}`;
+
+  return (
+    <div className="sidebar-event-switch">
+      {loaded && events.length === 0 ? (
+        <>
+          <p className="sidebar-event-switch-label">Event dipilih</p>
+          <p className="text-xs" style={{ color: "var(--color-board-quiet)" }}>Belum ada event. Sewa booth dulu lewat Cari Event.</p>
+        </>
+      ) : (
+        <>
+          <label htmlFor={selectId} className="sidebar-event-switch-label">
+            Event dipilih
+          </label>
+          <select
+            id={selectId}
+            value={eventId}
+            onChange={(e) => setEventId(e.target.value)}
+            className="sidebar-event-switch-select"
+            disabled={!loaded}
+          >
+            {!loaded && <option value="">Memuat...</option>}
+            {events.map((ev) => (
+              <option key={ev.id} value={ev.id}>
+                {ev.title}
+                {!ev.upcoming ? " (selesai)" : ""}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Tenant sidebar links with the event filter between the general and per-event pages. */
+export function TenantSidebarNav({ pathname, onNavigate, idSuffix }: { pathname: string; onNavigate?: () => void; idSuffix?: string }) {
+  const g = tenantNavGroups(pathname);
+  return (
+    <>
+      <div className="space-y-1">
+        <NavLinks items={g.general} onNavigate={onNavigate} />
+      </div>
+      <SidebarSection title="Per event">
+        <TenantEventSwitch idSuffix={idSuffix} />
+        <NavLinks items={g.perEvent} onNavigate={onNavigate} />
+      </SidebarSection>
+      <SidebarSection title="Semua event">
+        <NavLinks items={g.shared} onNavigate={onNavigate} />
+      </SidebarSection>
+    </>
+  );
 }
 
 /**
@@ -64,9 +138,7 @@ export function organizerNav(pathname: string, activeEventId: string, hasEvent: 
     { href: "/dashboard/organizer", label: "Dasbor", icon: NAV_ICONS.dashboard, isActive: pathname === "/dashboard/organizer" },
     { href: "/dashboard/organizer/events/new", label: "Buat Event", icon: NAV_ICONS.create, isActive: pathname === "/dashboard/organizer/events/new" },
     { href: tool("floor-plan"), label: "Denah Booth", icon: NAV_ICONS.floorPlan, isActive: pathname.includes("/floor-plan") },
-    { href: tool("ai-campaign"), label: "Ide Campaign", icon: NAV_ICONS.campaign, isActive: pathname.includes("/ai-campaign") },
     { href: tool("qr-code"), label: "QR Code", icon: NAV_ICONS.qr, isActive: pathname.includes("/qr-code") },
-    { href: "/dashboard/organizer/campaigns", label: "Program Campaign", icon: NAV_ICONS.star, isActive: pathname.startsWith("/dashboard/organizer/campaigns"), badge: "PPN 0%" },
     { href: "/dashboard/organizer/messages", label: "Pesan Masuk", icon: NAV_ICONS.mail, isActive: pathname === "/dashboard/organizer/messages" },
     { href: "/dashboard/organizer/profile", label: "Profil", icon: NAV_ICONS.profile, isActive: pathname === "/dashboard/organizer/profile" },
   ];
@@ -181,7 +253,7 @@ export function PublicRoleShell({ role }: { role: "tenant" | "organizer" }) {
     };
   }, [role, user?.id]);
 
-  const main = role === "tenant" ? tenantNav(pathname) : organizerNav(pathname, eventContext.id, eventContext.has);
+  const main = organizerNav(pathname, eventContext.id, eventContext.has);
   const site = siteNav(role, pathname);
   const roleLabel = role === "tenant" ? "Tenant / brand" : "Organizer";
   const handleLogout = () => {
@@ -193,9 +265,13 @@ export function PublicRoleShell({ role }: { role: "tenant" | "organizer" }) {
     <>
       <SidebarBrand roleLabel={roleLabel} onNavigate={onNavigate} />
       <nav className="sidebar-nav" aria-label="Navigasi akun">
-        <div className="space-y-1">
-          <NavLinks items={main} onNavigate={onNavigate} />
-        </div>
+        {role === "tenant" ? (
+          <TenantSidebarNav pathname={pathname} onNavigate={onNavigate} idSuffix={onNavigate ? "-public-mobile" : "-public"} />
+        ) : (
+          <div className="space-y-1">
+            <NavLinks items={main} onNavigate={onNavigate} />
+          </div>
+        )}
         <SidebarSection title="Jelajahi">
           <NavLinks items={site} onNavigate={onNavigate} />
         </SidebarSection>

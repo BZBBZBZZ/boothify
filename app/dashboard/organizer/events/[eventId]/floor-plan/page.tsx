@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { setActiveOrganizerEventId, type EventDetail, type EventZone } from "@/app/lib/event-defaults";
 import { useAuth } from "@/app/components/AuthContext";
-import { getEvent, getBooths, listOrganizerEvents, saveFloorPlan as saveFloorPlanToDb, errorMessage } from "@/app/lib/db";
+import { getEvent, getBooths, saveFloorPlan as saveFloorPlanToDb, errorMessage } from "@/app/lib/db";
 import Icon from "../../../../../components/Icon";
 import CategoryPopover from "../../../../../components/CategoryPopover";
 
@@ -82,7 +82,6 @@ function FloorPlanContent() {
   const [loadError, setLoadError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [allEvents, setAllEvents] = useState<Array<{ id: string; title: string; category: string }>>([]);
   const [booths, setBooths] = useState<Booth[]>(INITIAL_BOOTHS);
   const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
@@ -101,17 +100,11 @@ function FloorPlanContent() {
   const [eventStatus, setEventStatus] = useState<string>("active");
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // Load the event, its saved layout and the organizer's other events
+  // Load the event and its saved layout
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
     setActiveOrganizerEventId(eventId);
-    listOrganizerEvents(user.id)
-      .then((list) => {
-        if (!cancelled) setAllEvents(list.map((e) => ({ id: e.id, title: e.title, category: e.category })));
-      })
-      .catch(() => {});
-
     Promise.all([getEvent(eventId), getBooths(eventId)])
       .then(([ev, saved]) => {
         if (cancelled) return;
@@ -397,7 +390,7 @@ function FloorPlanContent() {
               Lihat Halaman Publik Acara
             </Link>
             <Link href="/dashboard/organizer" className="btn btn-secondary btn-sm text-xs">
-              Dashboard Organizer
+              Dasbor Organizer
             </Link>
           </div>
         </div>
@@ -422,22 +415,7 @@ function FloorPlanContent() {
             {eventMeta.title} <span className="text-muted-foreground font-normal text-xs">({eventMeta.location} • {eventMeta.date})</span>
           </p>
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-2">
-            <span>Ganti Event yang Diedit:</span>
-            <select
-              value={eventId}
-              onChange={(e) => {
-                setActiveOrganizerEventId(e.target.value);
-                router.push(`/dashboard/organizer/events/${e.target.value}/floor-plan`);
-              }}
-              className="bg-card/90 border border-foreground/10 rounded-lg px-2.5 py-1 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:outline-none"
-            >
-              {allEvents.map((ev) => (
-                <option key={ev.id} value={ev.id}>
-                  {ev.title}
-                </option>
-              ))}
-            </select>
-            <span className="text-emerald-700 font-medium">● Perubahan denah langsung sinkron ke halaman Tenant & Pengunjung</span>
+            <span>Ganti event lewat &quot;Acara aktif&quot; di menu samping. Perubahan denah tampil ke tenant &amp; pengunjung setelah kamu tekan Simpan.</span>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -448,7 +426,7 @@ function FloorPlanContent() {
             id="btn-preview-tenant-view"
             title={`Lihat halaman pemesanan booth untuk ${eventMeta.title}`}
           >
-            <span>Tampilan Tenant (#{eventId})</span>
+            <span>Lihat sebagai tenant</span>
           </Link>
           <Link
             href={`/events/${eventId}/guide`}
@@ -457,7 +435,7 @@ function FloorPlanContent() {
             id="btn-preview-guide-view"
             title={`Lihat panduan digital pengunjung untuk ${eventMeta.title}`}
           >
-            <span>Panduan Pengunjung (#{eventId})</span>
+            <span>Lihat sebagai pengunjung</span>
           </Link>
         </div>
       </div>

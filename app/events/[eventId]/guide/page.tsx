@@ -138,6 +138,12 @@ function EventGuideContent() {
     };
   }, [eventId]);
 
+  // ?booth=A1 opens that tenant's booth straight away (link from the event page's tenant list)
+  const boothParam = searchParams.get("booth");
+  useEffect(() => {
+    if (loadState === "ready" && boothParam && tenantsMap[boothParam]) setSelectedBooth(tenantsMap[boothParam]);
+  }, [loadState, boothParam, tenantsMap]);
+
   const handleProceedToPayment = () => {
     if (!user) {
       setShowCart(false);
@@ -789,7 +795,7 @@ function EventGuideContent() {
             </p>
             <div className="flex flex-col gap-2">
               <button
-                onClick={() => router.push(`/events/${eventId}`)}
+                onClick={() => router.push(`/events/${eventId}?tab=booths`)}
                 className="btn btn-primary btn-sm"
               >
                 Sewa Booth Ini Sekarang

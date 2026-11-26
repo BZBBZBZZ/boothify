@@ -1,24 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import QRCode from "qrcode";
 import { setActiveOrganizerEventId } from "@/app/lib/event-defaults";
-import { getEvent, listOrganizerEvents } from "@/app/lib/db";
-import { useAuth } from "@/app/components/AuthContext";
+import { getEvent } from "@/app/lib/db";
 
 function QRCodeContent() {
-  const router = useRouter();
   const params = useParams();
   const eventId = (params?.eventId as string) || "";
-  const { user } = useAuth();
   const [copied, setCopied] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [eventTitle, setEventTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventStatus, setEventStatus] = useState<string>("");
-  const [allEvents, setAllEvents] = useState<Array<{ id: string; title: string }>>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const eventPath = `/events/${eventId}/guide`;
@@ -27,13 +23,6 @@ function QRCodeContent() {
   useEffect(() => {
     let cancelled = false;
     setActiveOrganizerEventId(eventId);
-    if (user?.id) {
-      listOrganizerEvents(user.id)
-        .then((list) => {
-          if (!cancelled) setAllEvents(list.map((e) => ({ id: e.id, title: e.title })));
-        })
-        .catch(() => {});
-    }
     getEvent(eventId)
       .then((meta) => {
         if (cancelled || !meta) return;
@@ -45,7 +34,7 @@ function QRCodeContent() {
     return () => {
       cancelled = true;
     };
-  }, [eventId, user?.id]);
+  }, [eventId]);
 
   useEffect(() => {
     // Set URL based on actual origin (works with port forwarding)
@@ -117,23 +106,6 @@ function QRCodeContent() {
           <p className="text-sm text-primary-light font-medium">
             {eventTitle} <span className="text-muted-foreground text-xs font-normal">({eventDate})</span>
           </p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
-            <span>Ganti Acara:</span>
-            <select
-              value={eventId}
-              onChange={(e) => {
-                setActiveOrganizerEventId(e.target.value);
-                router.push(`/dashboard/organizer/events/${e.target.value}/qr-code`);
-              }}
-              className="bg-card/90 border border-foreground/10 rounded-lg px-2 py-1 text-xs text-foreground font-medium focus:ring-1 focus:ring-primary focus:outline-none"
-            >
-              {allEvents.map((ev) => (
-                <option key={ev.id} value={ev.id}>
-                  {ev.title}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
         <div className="flex items-center gap-2">
           <Link

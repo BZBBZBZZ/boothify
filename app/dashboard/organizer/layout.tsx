@@ -66,7 +66,7 @@ function OrganizerSidebarBody({ onNavigate, onLogout }: { onNavigate?: () => voi
     setActiveOrganizerEventId(newEventId);
 
     // On an event tool page, open the same tool for the chosen event
-    for (const tool of ["floor-plan", "ai-campaign", "qr-code"]) {
+    for (const tool of ["floor-plan", "qr-code", "edit"]) {
       if (pathname.includes(`/${tool}`)) {
         router.push(`/dashboard/organizer/events/${newEventId}/${tool}`);
         break;
@@ -83,25 +83,33 @@ function OrganizerSidebarBody({ onNavigate, onLogout }: { onNavigate?: () => voi
 
       {/* Which event the tools below work on */}
       <div className="sidebar-event-switch">
-        <label htmlFor={onNavigate ? "organizer-event-switch-mobile" : "organizer-event-switch"} className="sidebar-event-switch-label">
-          Acara aktif
-        </label>
-        <select
-          id={onNavigate ? "organizer-event-switch-mobile" : "organizer-event-switch"}
-          value={eventsList.length === 0 ? "new" : activeEventId}
-          onChange={(e) => handleSwitchEvent(e.target.value)}
-          className="sidebar-event-switch-select"
-        >
-          {eventsList.length === 0 ? (
-            <option value="new">Buat acara pertama</option>
-          ) : (
-            eventsList.map((ev) => (
-              <option key={ev.id} value={ev.id}>
-                {ev.title}
-              </option>
-            ))
-          )}
-        </select>
+        {eventsList.length === 0 ? (
+          <>
+            {/* No event yet: a dropdown with one pre-selected option never fires onChange, so use a link */}
+            <p className="sidebar-event-switch-label">Acara aktif</p>
+            <Link href="/dashboard/organizer/events/new" onClick={onNavigate} className="sidebar-event-switch-select block">
+              + Buat acara pertama
+            </Link>
+          </>
+        ) : (
+          <>
+            <label htmlFor={onNavigate ? "organizer-event-switch-mobile" : "organizer-event-switch"} className="sidebar-event-switch-label">
+              Acara aktif
+            </label>
+            <select
+              id={onNavigate ? "organizer-event-switch-mobile" : "organizer-event-switch"}
+              value={activeEventId}
+              onChange={(e) => handleSwitchEvent(e.target.value)}
+              className="sidebar-event-switch-select"
+            >
+              {eventsList.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
 
       <nav className="sidebar-nav" aria-label="Navigasi organizer">

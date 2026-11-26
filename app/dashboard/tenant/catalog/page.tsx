@@ -6,7 +6,7 @@ import { useAuth } from "@/app/components/AuthContext";
 import Icon from "../../../components/Icon";
 import FreshOnNavigate from "../../../components/FreshOnNavigate";
 import { EmptyState, Field, PageHeader, TabPanel, Tabs } from "../../../components/ui";
-import { getTenantUpcomingEvents, type TenantEvent } from "@/app/lib/tenant-events";
+import { useTenantActiveEvent } from "@/app/lib/tenant-active-event";
 import { openStoredFile, uploadImage, uploadMediaFile } from "@/app/lib/file-upload";
 import { getTenantMenu, saveTenantMenu, errorMessage } from "@/app/lib/db";
 
@@ -123,9 +123,8 @@ function CatalogContent() {
   const { user, updateProfile } = useAuth();
   const tenantId = user?.id || "";
 
-  const [events, setEvents] = useState<TenantEvent[]>([]);
-  const [eventsLoaded, setEventsLoaded] = useState(false);
-  const [selectedEventId, setSelectedEventId] = useState("");
+  // The event is picked in the sidebar ("Event dipilih"), shared with Pesanan & Booth
+  const { events, loaded: eventsLoaded, error: eventsError, eventId: selectedEventId, event: selectedEvent } = useTenantActiveEvent(tenantId);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [menuLoading, setMenuLoading] = useState(false);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -146,26 +145,9 @@ function CatalogContent() {
     window.setTimeout(() => setToast(null), 3500);
   };
 
-  // Events the tenant takes part in that have not ended yet
   useEffect(() => {
-    if (!tenantId) return;
-    let cancelled = false;
-    getTenantUpcomingEvents(tenantId)
-      .then((list) => {
-        if (cancelled) return;
-        setEvents(list);
-        setSelectedEventId((current) => (current && list.some((e) => e.id === current) ? current : list[0]?.id || ""));
-      })
-      .catch((err) => {
-        if (!cancelled) showToast(errorMessage(err, "Event gagal dimuat."), "error");
-      })
-      .finally(() => {
-        if (!cancelled) setEventsLoaded(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [tenantId]);
+    if (eventsError) showToast(eventsError, "error");
+  }, [eventsError]);
 
   // Media is part of the tenant profile and shown at every event
   useEffect(() => {
@@ -318,8 +300,6 @@ function CatalogContent() {
     }
   };
 
-  const selectedEvent = events.find((e) => e.id === selectedEventId);
-
   return (
     <div className="animate-fade-in relative" id="catalog-page">
       {toast && (
@@ -331,7 +311,11 @@ function CatalogContent() {
 
       <PageHeader
         title="Katalog produk"
-        description="Menu diatur per event. Media promosi dipakai di semua event yang kamu ikuti."
+        description={
+          selectedEvent
+            ? <>Menu untuk <span className="text-foreground font-semibold">{selectedEvent.title}</span>. Ganti event lewat &quot;Event dipilih&quot; di menu samping. Media promosi berlaku di semua event.</>
+            : "Menu diatur per event. Pilih event lewat \"Event dipilih\" di menu samping. Media promosi berlaku di semua event."
+        }
       />
 
       <Tabs<"menu" | "media">
@@ -382,24 +366,17 @@ function CatalogContent() {
             />
           ) : (
             <>
-              <div className="mb-5 max-w-md">
-                <label htmlFor="catalog-event" className="field-label">Atur menu untuk event</label>
-                <select
-                  id="catalog-event"
-                  className="input-base"
-                  value={selectedEventId}
-                  onChange={(e) => setSelectedEventId(e.target.value)}
-                >
-                  {events.map((ev) => (
-                    <option key={ev.id} value={ev.id}>
-                      {ev.title}{ev.date ? ` (${ev.date})` : ""}
-                    </option>
-                  ))}
-                </select>
-                {selectedEvent && selectedEvent.booths.length > 0 && (
-                  <p className="text-xs text-muted-foreground mt-2">Booth kamu: {selectedEvent.booths.join(", ")}</p>
+              <div className="mb-5 text-xs text-muted-foreground space-y-1">
+                {selectedEvent && (
+                  <p>
+                    {selectedEvent.date && <>{selectedEvent.date} · </>}
+                    {selectedEvent.booths.length > 0 ? `Booth kamu: ${selectedEvent.booths.join(", ")}` : selectedEvent.heldBooths.length > 0 ? `Booth ${selectedEvent.heldBooths.join(", ")} menunggu pembayaran` : ""}
+                  </p>
                 )}
-                {menuLoading && <p className="text-xs text-muted-foreground mt-2">Memuat menu...</p>}
+                {selectedEvent && !selectedEvent.upcoming && (
+                  <p className="text-amber-700">Event ini sudah selesai. Menu masih bisa dilihat dan diubah untuk arsip.</p>
+                )}
+                {menuLoading && <p>Memuat menu...</p>}
               </div>
 
               {showAddMenu && (

@@ -17,7 +17,7 @@ const ROLES: {
     label: "Organizer",
     features: [
       { title: "Interactive Floor Plan", description: "Denah drag & drop, zona booth, ketersediaan real-time." },
-      { title: "Ide Campaign", description: "Susun tema campaign dan simpan langsung ke event." },
+      { title: "QR Code Event", description: "Satu QR untuk denah, daftar tenant, dan pesan makanan." },
     ],
     shot: {
       src: "/images/screens/organizer-dashboard-v2.png",

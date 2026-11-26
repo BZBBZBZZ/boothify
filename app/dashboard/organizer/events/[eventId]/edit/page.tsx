@@ -18,7 +18,7 @@ const TAB_FIELDS: Record<Exclude<TabKey, "facilities">, TextField[]> = {
   info: [
     { key: "title", label: "Nama event", required: true },
     { key: "description", label: "Deskripsi event", multiline: true, hint: "Tampil di tab Informasi Event pada halaman publik." },
-    { key: "theme", label: "Tema / campaign", placeholder: "Contoh: Sustainable Fashion" },
+    { key: "theme", label: "Tema event", placeholder: "Contoh: Sustainable Fashion" },
   ],
   place: [
     { key: "date", label: "Tanggal", hint: "Format: 2026-12-20 s/d 2026-12-22", placeholder: "2026-12-20 s/d 2026-12-22" },

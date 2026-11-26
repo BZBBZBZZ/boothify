@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/components/AuthContext";
-import { setActiveOrganizerEventId } from "@/app/lib/event-defaults";
+import { getActiveOrganizerEventId, setActiveOrganizerEventId } from "@/app/lib/event-defaults";
 
 type EventItem = {
   id: string;
@@ -47,6 +47,9 @@ export default function OrganizerDashboard() {
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [inbox, setInbox] = useState<InboxMessage[]>([]);
   const [loadError, setLoadError] = useState("");
+  // Event chosen in the sidebar ("Acara aktif"), read after mount because it lives in localStorage
+  const [storedEventId, setStoredEventId] = useState("");
+  useEffect(() => setStoredEventId(getActiveOrganizerEventId()), []);
 
   useEffect(() => {
     if (!organizerId) return;
@@ -105,6 +108,9 @@ export default function OrganizerDashboard() {
   const totalRevenueNumber = bookings.filter((b) => b.status === "paid").reduce((sum, b) => sum + b.price, 0);
   const formattedRevenue = `Rp ${(totalRevenueNumber / 1000000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} Jt`;
 
+  // Onboarding links follow the event chosen in the sidebar, not always the first one
+  const guideEvent = events.find((e) => e.id === storedEventId) || events[0];
+
   return (
     <div className="animate-fade-in" id="organizer-overview">
       {loadError && <Notice tone="error" className="mb-6">{loadError}</Notice>}
@@ -143,7 +149,7 @@ export default function OrganizerDashboard() {
             key: "publish",
             title: "Tata denah booth lalu terbitkan",
             text: "Gambar posisi booth, isi harga, lalu tekan Terbitkan agar event tampil di publik.",
-            href: events[0] ? `/dashboard/organizer/events/${events[0].id}/floor-plan` : "/dashboard/organizer/events/new",
+            href: guideEvent ? `/dashboard/organizer/events/${guideEvent.id}/floor-plan` : "/dashboard/organizer/events/new",
             cta: "Buka denah booth",
             done: events.some((e) => e.status === "active"),
           },
@@ -151,7 +157,7 @@ export default function OrganizerDashboard() {
             key: "qr",
             title: "Bagikan QR Code ke pengunjung",
             text: "Pengunjung memindai QR untuk melihat denah, daftar tenant, dan memesan makanan.",
-            href: events[0] ? `/dashboard/organizer/events/${events[0].id}/qr-code` : "/dashboard/organizer/no-event/qr-code",
+            href: guideEvent ? `/dashboard/organizer/events/${guideEvent.id}/qr-code` : "/dashboard/organizer/no-event/qr-code",
             cta: "Buka QR Code",
           },
         ]}
@@ -206,9 +212,6 @@ export default function OrganizerDashboard() {
           <div className="card-base p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold text-lg">Kelola Event</h2>
-              <Link href="/dashboard/organizer/events/new" className="btn btn-primary btn-sm">
-                + Buat Event
-              </Link>
             </div>
 
             {events.length === 0 ? (
@@ -263,6 +266,13 @@ export default function OrganizerDashboard() {
                         </>
                       ) : (
                         <>
+                          <Link
+                            href={`/dashboard/organizer/events/${event.id}/edit`}
+                            onClick={() => setActiveOrganizerEventId(event.id)}
+                            className="btn btn-ghost btn-sm text-xs"
+                          >
+                            Edit Info
+                          </Link>
                           <Link
                             href={`/events/${event.id}`}
                             onClick={() => setActiveOrganizerEventId(event.id)}

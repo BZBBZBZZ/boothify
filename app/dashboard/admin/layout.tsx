@@ -36,7 +36,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </div>
           <h1 className="page-header-title mb-2">Akses Khusus Super Admin</h1>
           <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-            Halaman ini berada di tingkat tertinggi platform dan hanya dapat diakses oleh Administrator resmi untuk mengelola Campaign Master dan kurasi event organizer.
+            Halaman ini hanya dapat diakses oleh administrator Boothify untuk memantau event dan organizer.
           </p>
           <div className="flex flex-col gap-2.5">
             <Link
@@ -79,7 +79,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   </span>
                 </div>
                 <p className="text-[10px] text-muted-foreground hidden sm:block">
-                  Pusat Kurasi Campaign &amp; Penyelarasan Event Organizer
+                  Pemantauan event &amp; organizer
                 </p>
               </div>
             </Link>

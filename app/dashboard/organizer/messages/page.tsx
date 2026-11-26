@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../../components/AuthContext";
 
@@ -74,9 +73,6 @@ export default function OrganizerMessagesPage() {
       )}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-8 pb-6 border-b border-border">
         <div>
-          <Link href="/dashboard/organizer" className="text-xs text-muted-foreground hover:text-primary-light transition inline-flex items-center gap-2 mb-4">
-            Kembali ke dashboard
-          </Link>
           <h1 className="page-header-title">Pesan masuk</h1>
           <p className="text-sm text-muted-foreground mt-2 max-w-xl">Kelola pertanyaan tenant dan pengunjung dari satu tempat.</p>
         </div>

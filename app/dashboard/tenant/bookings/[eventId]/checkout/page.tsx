@@ -5,8 +5,7 @@ import { FacilityList } from "@/app/components/BoothFacilities";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/app/components/AuthContext";
-import type { AdminCampaign } from "@/app/lib/admin-campaigns";
-import { getEvent, getBooths, getEventCampaign, listTenantPendingBookings, errorMessage } from "@/app/lib/db";
+import { getEvent, getBooths, listTenantPendingBookings, errorMessage } from "@/app/lib/db";
 import { startBoothPayment, fetchPaymentStatus, openSnap } from "@/app/lib/payments-client";
 import Icon from "../../../../../components/Icon";
 import FreshOnNavigate from "../../../../../components/FreshOnNavigate";
@@ -45,7 +44,6 @@ function CheckoutContent() {
   const [eventDate, setEventDate] = useState("");
   const [eventLocation, setEventLocation] = useState("");
   const [facilities, setFacilities] = useState<{ included: string[]; excluded: string[] }>({ included: [], excluded: [] });
-  const [campaign, setCampaign] = useState<AdminCampaign | null>(null);
   const [payError, setPayError] = useState("");
   // Order code of a payment that was started and is waiting for the server to confirm it
   const [awaitingOrder, setAwaitingOrder] = useState<string | null>(null);
@@ -57,10 +55,9 @@ function CheckoutContent() {
     Promise.all([
       getEvent(eventId),
       getBooths(eventId),
-      getEventCampaign(eventId).catch(() => null),
       user?.id ? listTenantPendingBookings(user.id).catch(() => []) : Promise.resolve([]),
     ])
-      .then(([ev, booths, camp, myHolds]) => {
+      .then(([ev, booths, myHolds]) => {
         if (cancelled) return;
         if (ev) {
           setEventTitle(ev.title);
@@ -68,7 +65,6 @@ function CheckoutContent() {
           setEventLocation(ev.location);
           setFacilities({ included: ev.facilitiesIncluded || [], excluded: ev.facilitiesExcluded || [] });
         }
-        setCampaign(camp);
         const picked = booths.filter((b) => wanted.includes(b.label));
         // Booths this tenant is already holding for an unfinished payment can be paid for again
         const mine = new Set(myHolds.filter((h) => h.eventId === eventId).map((h) => h.booth));
@@ -143,11 +139,9 @@ function CheckoutContent() {
   }
 
   const subtotal = items.reduce((s, i) => s + i.price, 0);
-  const isFreeTax = Boolean(campaign);
-  const standardTax = items.reduce((s, i) => s + Math.round(i.price * 0.11), 0); // PPN 11% per booth
-  const appliedTax = isFreeTax ? 0 : standardTax;
-  const standardFee = 50000 * items.length;
-  const serviceFee = isFreeTax ? 0 : standardFee;
+  // Same rule as book_booths in the database: PPN 11% and Rp 50.000 service fee per booth
+  const appliedTax = items.reduce((s, i) => s + Math.round(i.price * 0.11), 0);
+  const serviceFee = 50000 * items.length;
   const total = subtotal + appliedTax + serviceFee;
 
   const handlePay = async () => {
@@ -194,7 +188,10 @@ function CheckoutContent() {
         </p>
         <div className="flex flex-col gap-3">
           <Link href="/dashboard/tenant/catalog" className="btn btn-primary btn-lg" id="goto-catalog-btn">
-            Kelola Katalog Produk &amp; Mini Website
+            Isi menu &amp; katalog produk
+          </Link>
+          <Link href="/dashboard/tenant/mini-website" className="btn btn-secondary" id="goto-mini-website-btn">
+            Buat mini website booth
           </Link>
           <Link href={`/events/${eventId}/guide`} className="btn btn-secondary" id="preview-guide-btn">
             Lihat Booth Kamu di Panduan Pengunjung
@@ -265,23 +262,6 @@ function CheckoutContent() {
         <div className="card-base p-6 h-fit sticky top-24">
           <h3 className="section-title mb-4">Ringkasan pembayaran</h3>
 
-          {/* Campaign Free Tax Highlight Banner */}
-          {isFreeTax && (
-            <div className="p-3.5 rounded-xl bg-success/10 border border-emerald-500/30 text-xs mb-4 space-y-1">
-              <div className="flex items-center justify-between font-bold text-success">
-                <span className="flex items-center gap-1.5">
-                  <span><Icon name="gift" size={16} /></span> Bebas pajak (PPN 0%)
-                </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/40">
-                  Resmi Admin
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Event ini tergabung dalam <strong>{campaign?.title}</strong>. Pajak PPN 11% dan biaya layanan bebas biaya.
-              </p>
-            </div>
-          )}
-
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Subtotal ({items.length} booth)</span>
@@ -290,28 +270,12 @@ function CheckoutContent() {
 
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Pajak PPN (11%)</span>
-              {isFreeTax ? (
-                <div className="text-right">
-                  <span className="line-through text-xs text-muted-foreground mr-1.5">
-                    Rp {standardTax.toLocaleString("id-ID")}
-                  </span>
-                  <span className="font-bold text-success">Rp 0 (bebas pajak)</span>
-                </div>
-              ) : (
-                <span>Rp {appliedTax.toLocaleString("id-ID")}</span>
-              )}
+              <span>Rp {appliedTax.toLocaleString("id-ID")}</span>
             </div>
 
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Biaya Layanan</span>
-              {isFreeTax ? (
-                <div className="text-right">
-                  <span className="line-through text-xs text-muted-foreground mr-1.5">Rp {standardFee.toLocaleString("id-ID")}</span>
-                  <span className="font-bold text-success">Rp 0 (Disubsidi)</span>
-                </div>
-              ) : (
-                <span>Rp {serviceFee.toLocaleString("id-ID")}</span>
-              )}
+              <span>Rp {serviceFee.toLocaleString("id-ID")}</span>
             </div>
 
             <hr className="border-border" />

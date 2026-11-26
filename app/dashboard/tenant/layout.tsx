@@ -12,8 +12,8 @@ import {
   SidebarBrand,
   SidebarFooter,
   SidebarSection,
+  TenantSidebarNav,
   siteNav,
-  tenantNav,
 } from "../../components/RoleNav";
 
 function TenantSidebarBody({ onNavigate, onLogout }: { onNavigate?: () => void; onLogout: () => void }) {
@@ -22,9 +22,7 @@ function TenantSidebarBody({ onNavigate, onLogout }: { onNavigate?: () => void; 
     <>
       <SidebarBrand roleLabel="Tenant / brand" onNavigate={onNavigate} />
       <nav className="sidebar-nav" aria-label="Navigasi tenant">
-        <div className="space-y-1">
-          <NavLinks items={tenantNav(pathname)} onNavigate={onNavigate} />
-        </div>
+        <TenantSidebarNav pathname={pathname} onNavigate={onNavigate} idSuffix={onNavigate ? "-mobile" : ""} />
         <SidebarSection title="Jelajahi">
           <NavLinks items={siteNav("tenant", pathname)} onNavigate={onNavigate} />
         </SidebarSection>

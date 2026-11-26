@@ -7,12 +7,10 @@ import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../components/AuthContext";
 import type { FloorPlanBooth, EventTenantInfo, EventDetail } from "../../lib/event-defaults";
-import type { AdminCampaign } from "@/app/lib/admin-campaigns";
 import {
   getEvent,
   getBooths,
   getEventTenants,
-  getEventCampaign,
   getProfile,
   sendOrganizerMessage,
   errorMessage,
@@ -43,7 +41,6 @@ function EventDetailContent() {
   const { user } = useAuth();
   const [loadState, setLoadState] = useState<"loading" | "ready" | "missing">("loading");
   const [checkoutNotice, setCheckoutNotice] = useState("");
-  const [campaign, setCampaign] = useState<AdminCampaign | null>(null);
   const [loadError, setLoadError] = useState("");
   const [organizerPhone, setOrganizerPhone] = useState("");
 
@@ -107,12 +104,6 @@ function EventDetailContent() {
         setLoadState("missing");
       });
 
-    getEventCampaign(eventId)
-      .then((c) => {
-        if (!cancelled) setCampaign(c);
-      })
-      .catch(() => {});
-
     return () => {
       cancelled = true;
     };
@@ -157,7 +148,6 @@ function EventDetailContent() {
   // Only the organizer who owns this event gets the edit shortcuts
   const isEventOrganizer = Boolean(user && user.role === "organizer" && event?.organizerId === user.id);
 
-  const isCampaignApproved = Boolean(campaign);
   // Organizer's phone as a WhatsApp number (08xx becomes 628xx)
   const waNumber = organizerPhone.replace(/\D/g, "").replace(/^0/, "62");
 
@@ -216,30 +206,6 @@ function EventDetailContent() {
               </div>
             </div>
             <div className="p-6 sm:p-8">
-              {/* Official Admin Campaign Highlight Banner */}
-              {isCampaignApproved && (
-                <div className="mb-5 p-4 bg-primary/10 border-2 border-foreground flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-3">
-                    <span className="p-2 bg-foreground text-primary flex-shrink-0" aria-hidden="true">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                    </span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-foreground">
-                          Partner resmi: {campaign?.title}
-                        </span>
-                        <span className="badge bg-success/15 text-success">
-                          Bebas pajak
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted mt-1">
-                        Pameran ini telah dikurasi resmi oleh Admin Boothify. Tenant dibebaskan dari pajak transaksi (PPN 0%).
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                 <h1 className="page-header-title">{event.title}</h1>
                 <div className="flex items-center gap-2">
@@ -394,9 +360,13 @@ function EventDetailContent() {
                       }}
                     />
                   </div>
-                  <button onClick={() => setActiveTab("booths")} className="btn btn-primary w-full" id="goto-booth-picker">
-                    Pilih &amp; sewa booth
-                  </button>
+                  {!user || user.role === "guest" || user.role === "tenant" ? (
+                    <button onClick={() => setActiveTab("booths")} className="btn btn-primary w-full" id="goto-booth-picker">
+                      Pilih &amp; sewa booth
+                    </button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center">Sewa booth hanya untuk akun tenant.</p>
+                  )}
                 </div>
                 <Link
                   href={`/events/${eventId}/guide`}
@@ -596,12 +566,6 @@ function EventDetailContent() {
                     Brand yang sudah menyewa booth di event ini.
                   </p>
                 </div>
-                <Link
-                  href={`/events/${eventId}/guide`}
-                  className="btn btn-secondary btn-sm text-xs"
-                >
-                  Lihat panduan pengunjung
-                </Link>
               </div>
 
               {registeredTenantsList.length === 0 ? (
@@ -632,10 +596,10 @@ function EventDetailContent() {
                         {tenant.desc}
                       </p>
                       <Link
-                        href={`/events/${eventId}/guide`}
+                        href={`/events/${eventId}/guide?booth=${encodeURIComponent(tenant.id)}`}
                         className="btn btn-ghost btn-sm text-xs w-full justify-center"
                       >
-                        Buka katalog / menu
+                        Lihat menu {tenant.name}
                       </Link>
                     </div>
                   ))}
