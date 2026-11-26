@@ -35,7 +35,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </div>
           <h1 className="text-xl font-bold mb-2">Akses Khusus Super Admin</h1>
           <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-            Halaman ini berada di tingkat tertinggi platform dan hanya dapat diakses oleh Administrator resmi untuk mengelola Campaign Master dan kurasi event organizer.
+            Halaman ini hanya dapat diakses oleh administrator Boothify untuk memantau event dan organizer.
           </p>
           <div className="flex flex-col gap-2.5">
             <Link
@@ -59,6 +59,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   return (
+<<<<<<< Updated upstream
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Top Admin Bar */}
       <header className="sticky top-0 z-40 border-b border-border/80 bg-card/80 backdrop-blur-md">
@@ -105,14 +106,71 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             >
               Keluar
             </button>
-          </div>
-        </div>
-      </header>
+=======
+    <>
+      {gate}
+      <div className="min-h-screen bg-background text-foreground flex flex-col" style={allowed ? undefined : { display: "none" }} aria-hidden={!allowed || undefined}>
+        {/* Top Admin Bar */}
+        <header className="sticky top-0 z-40 border-b-2 border-foreground bg-card">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Link href="/dashboard/admin" className="flex items-center gap-2 group">
+                <div className="w-9 h-9 bg-foreground text-primary flex items-center justify-center">
+                  <span className="text-lg"><Icon name="shield" size={20} /></span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="wordmark text-base">Boothify</span>
+                    <span className="badge bg-info/15 text-info">
+                      Super admin
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground hidden sm:block">
+                    Pemantauan event &amp; organizer
+                  </p>
+                </div>
+              </Link>
+            </div>
 
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-border">
+                <span className="text-xs"><Icon name="shield" size={16} /></span>
+                <span className="text-xs text-muted font-medium">Tingkat Hak Akses Tertinggi</span>
+              </div>
+
+              <Link
+                href="/events"
+                className="btn btn-secondary btn-sm text-xs py-1.5 px-3 hidden sm:inline-flex"
+              >
+                Lihat Katalog Publik
+              </Link>
+
+              <button
+                type="button"
+                onClick={logout}
+                className="btn btn-ghost btn-sm text-xs text-muted-foreground hover:text-error"
+                id="admin-logout-btn"
+              >
+                Keluar
+              </button>
+            </div>
+>>>>>>> Stashed changes
+          </div>
+        </header>
+
+<<<<<<< Updated upstream
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
         {children}
       </main>
     </div>
+=======
+        {/* Main Content Area */}
+        <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
+          {children}
+        </main>
+      </div>
+    </>
+>>>>>>> Stashed changes
   );
 }

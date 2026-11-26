@@ -4,11 +4,18 @@ import { useState, useEffect, Suspense } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/app/components/AuthContext";
+<<<<<<< Updated upstream
 import { DEFAULT_EVENTS_META } from "@/app/lib/event-defaults";
 import { getEventCategoryLabel, isFoodCategory } from "@/app/lib/event-categories";
 import { isEventInApprovedCampaign } from "@/app/lib/admin-campaigns";
 import { supabase } from "@/app/lib/supabase";
 import { getEventByIdFromSupabase } from "@/app/lib/supabase-service";
+=======
+import { getEvent, getBooths, listTenantPendingBookings, errorMessage } from "@/app/lib/db";
+import { startBoothPayment, fetchPaymentStatus, openSnap } from "@/app/lib/payments-client";
+import Icon from "../../../../../components/Icon";
+import FreshOnNavigate from "../../../../../components/FreshOnNavigate";
+>>>>>>> Stashed changes
 
 interface CheckoutItem {
   booth: string;
@@ -27,11 +34,65 @@ function CheckoutContent() {
   const [success, setSuccess] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+<<<<<<< Updated upstream
   const [eventTitle, setEventTitle] = useState("Green Fashion Expo 2026");
   const [eventDate, setEventDate] = useState("15–17 Nov 2026");
+=======
+  const [eventTitle, setEventTitle] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [eventLocation, setEventLocation] = useState("");
+  const [facilities, setFacilities] = useState<{ included: string[]; excluded: string[] }>({ included: [], excluded: [] });
+  const [payError, setPayError] = useState("");
+  // Order code of a payment that was started and is waiting for the server to confirm it
+  const [awaitingOrder, setAwaitingOrder] = useState<string | null>(null);
+>>>>>>> Stashed changes
 
   useEffect(() => {
+<<<<<<< Updated upstream
     async function loadData() {
+=======
+    let cancelled = false;
+    const wanted = boothParam.split(",").map((b) => decodeURIComponent(b).trim()).filter(Boolean);
+    Promise.all([
+      getEvent(eventId),
+      getBooths(eventId),
+      user?.id ? listTenantPendingBookings(user.id).catch(() => []) : Promise.resolve([]),
+    ])
+      .then(([ev, booths, myHolds]) => {
+        if (cancelled) return;
+        if (ev) {
+          setEventTitle(ev.title);
+          setEventDate(ev.date);
+          setEventLocation(ev.location);
+          setFacilities({ included: ev.facilitiesIncluded || [], excluded: ev.facilitiesExcluded || [] });
+        }
+        const picked = booths.filter((b) => wanted.includes(b.label));
+        // Booths this tenant is already holding for an unfinished payment can be paid for again
+        const mine = new Set(myHolds.filter((h) => h.eventId === eventId).map((h) => h.booth));
+        const taken = picked.filter((b) => b.isBooked && !mine.has(b.label)).map((b) => b.label);
+        if (taken.length > 0) {
+          setPayError(`Booth ${taken.join(", ")} sudah disewa tenant lain dan dihapus dari pesanan ini.`);
+        }
+        setItems(picked.filter((b) => !b.isBooked || mine.has(b.label)).map((b) => ({ booth: b.label, zone: getZoneDisplay(b.zone), price: b.price })));
+      })
+      .catch((err) => {
+        if (!cancelled) setPayError(errorMessage(err, "Data pesanan gagal dimuat."));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId, boothParam, user?.id]);
+
+  // After Snap is opened, only the server can say whether the payment went through
+  useEffect(() => {
+    if (!awaitingOrder) return;
+    let stopped = false;
+    let ticks = 0;
+    const check = async () => {
+>>>>>>> Stashed changes
       try {
         const stored = localStorage.getItem("boothify_checkout_items");
         if (stored) {
@@ -77,11 +138,17 @@ function CheckoutContent() {
   }
 
   const subtotal = items.reduce((s, i) => s + i.price, 0);
+<<<<<<< Updated upstream
   const campaignInfo = isEventInApprovedCampaign(eventId);
   const isFreeTax = campaignInfo.isApproved;
   const standardTax = Math.round(subtotal * 0.11); // PPN 11%
   const appliedTax = isFreeTax ? 0 : standardTax;
   const serviceFee = isFreeTax ? 0 : 50000;
+=======
+  // Same rule as book_booths in the database: PPN 11% and Rp 50.000 service fee per booth
+  const appliedTax = items.reduce((s, i) => s + Math.round(i.price * 0.11), 0);
+  const serviceFee = 50000 * items.length;
+>>>>>>> Stashed changes
   const total = subtotal + appliedTax + serviceFee;
 
   const handlePay = () => {
@@ -219,7 +286,14 @@ function CheckoutContent() {
         </p>
         <div className="flex flex-col gap-3">
           <Link href="/dashboard/tenant/catalog" className="btn btn-primary btn-lg" id="goto-catalog-btn">
+<<<<<<< Updated upstream
             Kelola Katalog Produk &amp; Mini Website →
+=======
+            Isi menu &amp; katalog produk
+          </Link>
+          <Link href="/dashboard/tenant/mini-website" className="btn btn-secondary" id="goto-mini-website-btn">
+            Buat mini website booth
+>>>>>>> Stashed changes
           </Link>
           <Link href={`/events/${eventId}/guide`} className="btn btn-secondary" id="preview-guide-btn">
             📱 Lihat Booth Kamu di Panduan Pengunjung
@@ -316,6 +390,7 @@ function CheckoutContent() {
         <div className="card-base p-6 h-fit sticky top-24">
           <h3 className="font-semibold mb-4">Ringkasan Pembayaran</h3>
 
+<<<<<<< Updated upstream
           {/* Campaign Free Tax Highlight Banner */}
           {isFreeTax && (
             <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/15 to-transparent border border-emerald-500/30 text-xs mb-4 space-y-1">
@@ -333,6 +408,8 @@ function CheckoutContent() {
             </div>
           )}
 
+=======
+>>>>>>> Stashed changes
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Subtotal ({items.length} booth)</span>
@@ -341,6 +418,7 @@ function CheckoutContent() {
 
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Pajak PPN (11%)</span>
+<<<<<<< Updated upstream
               {isFreeTax ? (
                 <div className="text-right">
                   <span className="line-through text-xs text-muted-foreground mr-1.5">
@@ -351,10 +429,14 @@ function CheckoutContent() {
               ) : (
                 <span>Rp {appliedTax.toLocaleString("id-ID")}</span>
               )}
+=======
+              <span>Rp {appliedTax.toLocaleString("id-ID")}</span>
+>>>>>>> Stashed changes
             </div>
 
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Biaya Layanan</span>
+<<<<<<< Updated upstream
               {isFreeTax ? (
                 <div className="text-right">
                   <span className="line-through text-xs text-muted-foreground mr-1.5">Rp 50.000</span>
@@ -363,6 +445,9 @@ function CheckoutContent() {
               ) : (
                 <span>Rp {serviceFee.toLocaleString("id-ID")}</span>
               )}
+=======
+              <span>Rp {serviceFee.toLocaleString("id-ID")}</span>
+>>>>>>> Stashed changes
             </div>
 
             <hr className="border-border" />
@@ -427,6 +512,10 @@ function CheckoutContent() {
                 onClick={() => setShowTermsModal(false)}
                 className="text-muted-foreground hover:text-foreground text-xl p-1"
                 id="close-terms-modal"
+<<<<<<< Updated upstream
+=======
+                aria-label="Tutup"
+>>>>>>> Stashed changes
               >
                 ✕
               </button>
@@ -434,7 +523,7 @@ function CheckoutContent() {
             <div className="space-y-3 text-xs text-muted-foreground leading-relaxed">
               <p className="font-semibold text-foreground text-sm">1. Hak &amp; Penggunaan Booth</p>
               <p>Setiap booth berhak digunakan sesuai nomor booth dan zona yang dipilih pada saat checkout. Penyewa tidak diperkenankan memindahtangankan booth tanpa persetujuan tertulis dari pihak penyelenggara.</p>
-              
+
               <p className="font-semibold text-foreground text-sm pt-2">2. Fasilitas &amp; Kelistrikan</p>
               <p>Penyewa booth standar mendapatkan alokasi daya 2A / 450 Watt, 1 meja, dan 2 kursi lipat. Penambahan daya atau fasilitas wajib dikonfirmasikan H-7 sebelum loading-in event.</p>
 
@@ -465,6 +554,10 @@ function CheckoutContent() {
                 onClick={() => setShowCancelModal(false)}
                 className="text-muted-foreground hover:text-foreground text-xl p-1"
                 id="close-cancel-modal"
+<<<<<<< Updated upstream
+=======
+                aria-label="Tutup"
+>>>>>>> Stashed changes
               >
                 ✕
               </button>
@@ -475,7 +568,7 @@ function CheckoutContent() {
               </div>
               <p className="font-semibold text-foreground text-sm">1. Pembatalan H-14 Sebelum Event</p>
               <p>Pengembalian dana 100% (dikurangi biaya administrasi payment gateway Rp 50.000).</p>
-              
+
               <p className="font-semibold text-foreground text-sm pt-2">2. Pembatalan H-7 Sebelum Event</p>
               <p>Pengembalian dana sebesar 50% dari total nilai transaksi sewa booth.</p>
 
@@ -505,3 +598,14 @@ export default function CheckoutPage() {
     </Suspense>
   );
 }
+<<<<<<< Updated upstream
+=======
+
+export default function CheckoutPage() {
+  return (
+    <FreshOnNavigate>
+      <CheckoutPageContent />
+    </FreshOnNavigate>
+  );
+}
+>>>>>>> Stashed changes

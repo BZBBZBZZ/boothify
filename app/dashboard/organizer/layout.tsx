@@ -48,6 +48,7 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
     setActiveEventId(newEventId);
     setActiveOrganizerEventId(newEventId);
 
+<<<<<<< Updated upstream
     // If currently on an event subpage (floor-plan, ai-campaign, qr-code), switch seamlessly
     if (pathname.includes("/floor-plan")) {
       router.push(`/dashboard/organizer/events/${newEventId}/floor-plan`);
@@ -55,6 +56,14 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
       router.push(`/dashboard/organizer/events/${newEventId}/ai-campaign`);
     } else if (pathname.includes("/qr-code")) {
       router.push(`/dashboard/organizer/events/${newEventId}/qr-code`);
+=======
+    // On an event tool page, open the same tool for the chosen event
+    for (const tool of ["floor-plan", "qr-code", "edit"]) {
+      if (pathname.includes(`/${tool}`)) {
+        router.push(`/dashboard/organizer/events/${newEventId}/${tool}`);
+        break;
+      }
+>>>>>>> Stashed changes
     }
     if (onNavigate) onNavigate();
   };
@@ -160,6 +169,7 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
   ];
 
   return (
+<<<<<<< Updated upstream
     <div className="space-y-4">
       {/* Event Context Switcher Widget in Sidebar */}
       <div className="px-1">
@@ -184,6 +194,40 @@ function OrganizerNavLinks({ onNavigate }: { onNavigate?: () => void }) {
             )}
           </select>
         </div>
+=======
+    <>
+      <SidebarBrand roleLabel="Organizer" onNavigate={onNavigate} />
+
+      {/* Which event the tools below work on */}
+      <div className="sidebar-event-switch">
+        {eventsList.length === 0 ? (
+          <>
+            {/* No event yet: a dropdown with one pre-selected option never fires onChange, so use a link */}
+            <p className="sidebar-event-switch-label">Acara aktif</p>
+            <Link href="/dashboard/organizer/events/new" onClick={onNavigate} className="sidebar-event-switch-select block">
+              + Buat acara pertama
+            </Link>
+          </>
+        ) : (
+          <>
+            <label htmlFor={onNavigate ? "organizer-event-switch-mobile" : "organizer-event-switch"} className="sidebar-event-switch-label">
+              Acara aktif
+            </label>
+            <select
+              id={onNavigate ? "organizer-event-switch-mobile" : "organizer-event-switch"}
+              value={activeEventId}
+              onChange={(e) => handleSwitchEvent(e.target.value)}
+              className="sidebar-event-switch-select"
+            >
+              {eventsList.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
+>>>>>>> Stashed changes
       </div>
 
       {/* Nav items */}
@@ -238,6 +282,7 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
   };
 
   return (
+<<<<<<< Updated upstream
     <div className="min-h-screen flex flex-col md:flex-row" id="organizer-dashboard">
       {/* Mobile header */}
       <div className="dashboard-mobile-header glass sticky top-0 z-40 px-4 py-3 items-center justify-between">
@@ -266,9 +311,33 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
               <OrganizerNavLinks onNavigate={() => setSidebarOpen(false)} />
             </Suspense>
           </div>
+=======
+    <>
+      {!allowed && (
+        <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground" role="status">
+          Memeriksa akun...
+>>>>>>> Stashed changes
         </div>
       )}
+      <div className="min-h-screen flex flex-col md:flex-row" id="organizer-dashboard" style={allowed ? undefined : { display: "none" }} aria-hidden={!allowed || undefined}>
+        {/* Mobile header */}
+        <div className="dashboard-mobile-header glass sticky top-0 z-40 px-4 py-3 items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="text-primary"><BrandMark size={20} /></span>
+            <span className="wordmark text-base">Boothify</span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="btn btn-ghost btn-icon"
+            aria-label={sidebarOpen ? "Tutup menu" : "Buka menu"}
+            aria-expanded={sidebarOpen}
+          >
+            {NAV_ICONS.menu}
+          </button>
+        </div>
 
+<<<<<<< Updated upstream
       {/* Desktop sidebar */}
       <div className="dashboard-desktop-sidebar sidebar">
         <Link href="/" className="flex items-center gap-2 mb-8 px-2">
@@ -311,6 +380,28 @@ function OrganizerLayoutContent({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     </div>
+=======
+        {/* Mobile nav drawer */}
+        {sidebarOpen && (
+          <div className="dashboard-mobile-drawer fixed inset-0 z-50 bg-black/50" onClick={() => setSidebarOpen(false)}>
+            <div className="sidebar-dark sidebar-drawer animate-slide-in-right" onClick={(e) => e.stopPropagation()}>
+              <OrganizerSidebarBody onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
+            </div>
+          </div>
+        )}
+
+        {/* Desktop sidebar: stays in view so "Keluar" is always at its foot */}
+        <aside className="dashboard-desktop-sidebar sidebar sidebar-sticky">
+          <OrganizerSidebarBody onLogout={handleLogout} />
+        </aside>
+
+        {/* Main content */}
+        <div className="flex-1 min-w-0 min-h-screen">
+          <div className="w-full max-w-6xl p-4 sm:p-8">{children}</div>
+        </div>
+      </div>
+    </>
+>>>>>>> Stashed changes
   );
 }
 

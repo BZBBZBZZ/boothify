@@ -1,5 +1,6 @@
 "use client";
 
+<<<<<<< Updated upstream
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/app/components/AuthContext";
 
@@ -277,9 +278,154 @@ export default function CatalogPage() {
         <div className="fixed top-20 right-6 z-50 p-4 rounded-xl bg-card border border-primary/40 shadow-xl flex items-center gap-3 animate-fade-in text-sm font-medium text-foreground">
           <div className="w-6 h-6 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-xs font-bold">✓</div>
           {notificationToast}
+=======
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { useTenantActiveEvent } from "@/app/lib/tenant-active-event";
+import { Notice, Tabs, PaymentBadge } from "@/app/components/ui";
+import Link from "next/link";
+import { useAuth } from "../../../components/AuthContext";
+
+import {
+  listTenantBookings,
+  listTenantPendingBookings,
+  listTenantOrders,
+  updateOrderStatus as saveOrderStatus,
+  errorMessage,
+  type Booking,
+  type VisitorOrder as DbVisitorOrder,
+  type OrderStatus,
+} from "@/app/lib/db";
+import Icon from "../../../components/Icon";
+
+type VisitorOrder = DbVisitorOrder & { time: string };
+type BookingItem = Booking;
+
+const orderTime = (iso: string) =>
+  iso ? new Date(iso).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+
+export default function TenantBookingsAndOrdersPage() {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<"orders" | "booths">("orders");
+  // Everything for this tenant; the page shows the part for the event picked in the sidebar
+  const [allOrders, setOrders] = useState<VisitorOrder[]>([]);
+  const [allBookings, setBookings] = useState<BookingItem[]>([]);
+  // Booths held while a payment is still open
+  const [allHolds, setHolds] = useState<BookingItem[]>([]);
+  const { eventId, event: activeEvent, events, loaded: eventsLoaded, setEventId } = useTenantActiveEvent(user?.role === "tenant" ? user.id : "");
+
+  // /dashboard/tenant/bookings/[eventId] opens with that event picked
+  const params = useParams();
+  const routeEventId = typeof params?.eventId === "string" ? params.eventId : "";
+  useEffect(() => {
+    if (routeEventId && eventsLoaded && events.some((e) => e.id === routeEventId)) setEventId(routeEventId);
+  }, [routeEventId, eventsLoaded, events, setEventId]);
+
+  const orders = allOrders.filter((o) => o.eventId === eventId);
+  const bookings = allBookings.filter((b) => b.eventId === eventId);
+  const holds = allHolds.filter((h) => h.eventId === eventId);
+  const otherEventHolds = allHolds.filter((h) => h.eventId !== eventId);
+  const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
+  const [selectedPass, setSelectedPass] = useState<BookingItem | null>(null);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    const tenantId = user?.id || "";
+    if (!tenantId || user?.role !== "tenant") return;
+    let cancelled = false;
+
+    listTenantBookings(tenantId)
+      .then((list) => {
+        if (!cancelled) setBookings(list);
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(errorMessage(err, "Booking gagal dimuat."));
+      });
+
+    listTenantPendingBookings(tenantId)
+      .then((list) => {
+        if (!cancelled) setHolds(list);
+      })
+      .catch(() => { });
+
+    const loadOrders = () =>
+      listTenantOrders(tenantId)
+        .then((list) => {
+          if (!cancelled) setOrders(list.map((o) => ({ ...o, time: orderTime(o.createdAt) })));
+        })
+        .catch((err) => {
+          if (!cancelled) setLoadError(errorMessage(err, "Pesanan gagal dimuat."));
+        });
+    loadOrders();
+    // The kitchen display refreshes itself so new orders appear on their own
+    const interval = window.setInterval(loadOrders, 8000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [user]);
+
+  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    // Roll back to the full list (all events), not just the filtered one
+    const previous = allOrders;
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
+    try {
+      await saveOrderStatus(orderId, newStatus);
+    } catch (err) {
+      setOrders(previous);
+      setLoadError(errorMessage(err, "Status pesanan gagal diubah."));
+    }
+  };
+
+  // The kitchen queue only holds orders the server has confirmed as paid; unpaid ones wait outside it
+  const paidOrders = orders.filter((o) => o.paymentStatus === "paid");
+  const awaitingPaymentCount = orders.filter((o) => o.paymentStatus === "pending").length;
+  const filteredOrders = statusFilter === "all" ? paidOrders : paidOrders.filter((o) => (o.status || "pending") === statusFilter);
+
+  const pendingCount = paidOrders.filter((o) => (o.status || "pending") === "pending").length;
+  const makingCount = paidOrders.filter((o) => o.status === "making").length;
+  const readyCount = paidOrders.filter((o) => o.status === "ready").length;
+  const doneCount = paidOrders.filter((o) => o.status === "done").length;
+
+  const holdGroups = Object.values(
+    holds.reduce<Record<string, BookingItem[]>>((acc, h) => {
+      (acc[h.eventId] ||= []).push(h);
+      return acc;
+    }, {})
+  );
+
+  return (
+    <div className="animate-fade-in" id="tenant-orders-and-booths">
+      {/* Header */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="page-header-title mb-1">Pesanan Pengunjung &amp; Kelola Booth</h1>
+          <p className="text-muted-foreground text-sm">
+            {activeEvent ? (
+              <>
+                Event: <span className="text-foreground font-semibold">{activeEvent.title}</span>
+                {activeEvent.date ? ` (${activeEvent.date})` : ""}. Ganti event lewat &quot;Event dipilih&quot; di menu samping.
+              </>
+            ) : eventsLoaded ? (
+              "Belum ada event. Sewa booth dulu lewat Cari Event."
+            ) : (
+              "Memuat event..."
+            )}
+          </p>
+>>>>>>> Stashed changes
         </div>
+      </div>
+
+      {loadError && <Notice tone="error" className="mb-6">{loadError}</Notice>}
+
+      {otherEventHolds.length > 0 && (
+        <Notice tone="info" className="mb-6">
+          Ada {otherEventHolds.length} booth di event lain yang masih menunggu pembayaran
+          ({Array.from(new Set(otherEventHolds.map((h) => h.event))).join(", ")}). Pilih event itu di menu samping untuk melanjutkan.
+        </Notice>
       )}
 
+<<<<<<< Updated upstream
       {/* Hidden file inputs */}
       <input
         type="file"
@@ -575,6 +721,206 @@ export default function CatalogPage() {
                         <button onClick={() => removeMediaItem(item.id)} className="btn btn-ghost btn-sm text-xs text-error">
                           Hapus
                         </button>
+=======
+      {/* Tabs */}
+      <Tabs<"orders" | "booths">
+        label="Bagian pesanan dan booth"
+        idPrefix="bookings"
+        active={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { key: "orders", label: "Pesanan pengunjung", count: paidOrders.length },
+          { key: "booths", label: "Booth saya", count: bookings.length },
+        ]}
+      />
+
+      {/* ========== TAB 1: VISITOR ORDERS MANAGER ========== */}
+      {activeTab === "orders" && (
+        <div className="space-y-6">
+          {/* Status Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setStatusFilter("all")}
+              className={`btn btn-sm ${statusFilter === "all" ? "btn-primary" : "btn-secondary"}`}
+            >
+              Semua ({paidOrders.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter("pending")}
+              className={`btn btn-sm ${statusFilter === "pending" ? "btn-primary" : "btn-secondary"}`}
+            >
+              Menunggu ({pendingCount})
+            </button>
+            <button
+              onClick={() => setStatusFilter("making")}
+              className={`btn btn-sm ${statusFilter === "making" ? "btn-primary" : "btn-secondary"}`}
+            >
+              Sedang Dibuat ({makingCount})
+            </button>
+            <button
+              onClick={() => setStatusFilter("ready")}
+              className={`btn btn-sm ${statusFilter === "ready" ? "btn-primary" : "btn-secondary"}`}
+            >
+              Siap Diambil ({readyCount})
+            </button>
+            <button
+              onClick={() => setStatusFilter("done")}
+              className={`btn btn-sm ${statusFilter === "done" ? "btn-primary" : "btn-secondary"}`}
+            >
+              Selesai ({doneCount})
+            </button>
+          </div>
+
+          {awaitingPaymentCount > 0 && (
+            <Notice tone="info" className="mb-4">
+              {awaitingPaymentCount} pesanan menunggu pembayaran dan belum masuk antrean. Pesanan muncul di sini setelah pembayaran dikonfirmasi server.
+            </Notice>
+          )}
+
+          {filteredOrders.length === 0 ? (
+            <div className="card-base p-12 text-center text-muted-foreground">
+              <span className="text-4xl block mb-2"><Icon name="utensils" size={32} /></span>
+              <p className="font-semibold text-foreground mb-1">Belum ada pesanan pada status ini</p>
+              <p className="text-xs">
+                Pesanan yang dibuat oleh pengunjung melalui scan QR di booth kamu akan otomatis muncul di sini.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredOrders.map((order) => {
+                const currentStatus = order.status || "pending";
+
+                return (
+                  <div
+                    key={order.id}
+                    className={`card-base p-5 flex flex-col justify-between transition border ${currentStatus === "making"
+                        ? "border-sky-500/40 bg-sky-500/[0.03]"
+                        : currentStatus === "ready"
+                          ? "border-emerald-500/50 bg-emerald-500/[0.04]"
+                          : currentStatus === "done"
+                            ? "border-foreground/5 opacity-70"
+                            : "border-amber-500/30 bg-amber-500/[0.02]"
+                      }`}
+                    id={`order-card-${order.id}`}
+                  >
+                    <div>
+                      {/* Top Bar */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-sm text-primary-light">
+                            {order.id}
+                          </span>
+                          <span className="badge badge-secondary text-[10px] font-semibold">
+                            Booth {order.booth || order.items[0]?.boothId || "-"}
+                          </span>
+                          <PaymentBadge status={order.paymentStatus} />
+                        </div>
+                        {currentStatus === "pending" && (
+                          <span className="badge text-[10px] bg-amber-500/15 text-amber-700 border border-amber-500/30">
+                            Baru Masuk
+                          </span>
+                        )}
+                        {currentStatus === "making" && (
+                          <span className="badge text-[10px] bg-sky-500/15 text-sky-700 border border-sky-500/30 animate-pulse">
+                            Sedang Dibuat
+                          </span>
+                        )}
+                        {currentStatus === "ready" && (
+                          <span className="badge text-[10px] bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
+                            Siap Diambil
+                          </span>
+                        )}
+                        {currentStatus === "done" && (
+                          <span className="badge text-[10px] bg-foreground/10 text-muted-foreground border border-foreground/10">
+                            Selesai
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Customer Info */}
+                      <div className="mb-3 pb-3 border-b border-foreground/5 text-xs">
+                        <p className="font-semibold text-foreground text-sm">{order.customer}</p>
+                        <div className="flex items-center gap-2 text-muted-foreground text-[11px] mt-0.5">
+                          {order.phone && <span>{order.phone}</span>}
+                          <span>• {order.method}</span>
+                          <span>• {order.time}</span>
+                        </div>
+                        {order.event && (
+                          <p className="text-[10px] text-primary-light font-medium mt-1">
+                            {order.event}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Order Items */}
+                      <div className="space-y-1.5 mb-4 text-xs">
+                        {order.items && order.items.length > 0 ? (
+                          order.items.map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between">
+                              <span className="text-foreground">
+                                <strong>{item.qty}x</strong> {item.name}
+                              </span>
+                              <span className="text-muted-foreground text-[11px]">
+                                Rp {(item.price * item.qty).toLocaleString("id-ID")}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>1x Menu / Produk Tenant</span>
+                            <span className="text-[11px]">Rp {(order.total || 0).toLocaleString("id-ID")}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Bottom: Total & Status Actions */}
+                    <div>
+                      <div className="flex items-center justify-between pt-3 border-t border-foreground/5 mb-4 text-xs">
+                        <span className="text-muted-foreground">Total Pembayaran:</span>
+                        <span className="font-bold text-foreground text-sm">
+                          Rp {(order.total || 0).toLocaleString("id-ID")}
+                        </span>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2">
+                        {currentStatus === "pending" && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, "making")}
+                            className="btn btn-primary btn-sm w-full text-xs"
+                            id={`btn-make-${order.id}`}
+                          >
+                            Mulai Buat (In Making)
+                          </button>
+                        )}
+                        {currentStatus === "making" && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, "ready")}
+                            className="btn btn-primary btn-sm w-full"
+                            id={`btn-ready-${order.id}`}
+                          >
+                            Tandai Siap Diambil
+                          </button>
+                        )}
+                        {currentStatus === "ready" && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, "done")}
+                            className="btn btn-secondary btn-sm w-full text-xs"
+                            id={`btn-done-${order.id}`}
+                          >
+                            Serahkan &amp; Selesai
+                          </button>
+                        )}
+                        {currentStatus === "done" && (
+                          <button
+                            onClick={() => updateOrderStatus(order.id, "ready")}
+                            className="btn btn-ghost btn-sm w-full text-xs text-muted-foreground"
+                          >
+                            Kembalikan ke Siap
+                          </button>
+                        )}
+>>>>>>> Stashed changes
                       </div>
                     )}
                   </div>
@@ -703,6 +1049,7 @@ export default function CatalogPage() {
                       {websiteConfig.headline.slice(0, 2).toUpperCase()}
                     </div>
                   </div>
+<<<<<<< Updated upstream
                   <div className="p-5 text-center">
                     <h3 className="font-bold text-lg mb-1">{websiteConfig.headline}</h3>
                     <p className="text-sm mb-3 font-medium" style={{ color: websiteConfig.primaryColor }}>
@@ -787,9 +1134,153 @@ export default function CatalogPage() {
                 </button>
               </div>
             </form>
+=======
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========== TAB 2: BOOTH SAYA & RIWAYAT SEWA ========== */}
+      {activeTab === "booths" && (
+        <div className="space-y-6">
+          {holdGroups.map((group) => {
+            const eventId = group[0].eventId;
+            const labels = group.map((h) => h.booth);
+            const until = group[0].reservedUntil ? new Date(group[0].reservedUntil).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "";
+            return (
+              <div key={eventId} className="card-base p-5 border border-amber-500/30 bg-amber-500/[0.03] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <PaymentBadge status="pending" />
+                    <span className="font-semibold text-sm">{group[0].event}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Booth {labels.join(", ")} ditahan{until ? ` sampai ${until}` : ""}. Booth baru menjadi milikmu setelah pembayaran dikonfirmasi.
+                  </p>
+                </div>
+                <Link
+                  href={`/dashboard/tenant/bookings/${eventId}/checkout?booths=${labels.map(encodeURIComponent).join(",")}`}
+                  className="btn btn-primary btn-sm"
+                >
+                  Lanjutkan Pembayaran
+                </Link>
+              </div>
+            );
+          })}
+
+          {bookings.length === 0 ? (
+            <div className="card-base p-8 text-center border-dashed border-foreground/10">
+              <span className="text-4xl block mb-2"><Icon name="store" size={32} /></span>
+              <h3 className="font-bold text-sm mb-1 text-foreground">Belum Ada Booth yang Disewa</h3>
+              <p className="text-xs text-muted-foreground mb-4 max-w-sm mx-auto">
+                Akun brand ini belum memiliki sewa booth aktif di event mana pun. Cari event dan daftarkan booth impianmu sekarang!
+              </p>
+              <Link href="/dashboard/tenant/events" className="btn btn-primary btn-sm">
+                Jelajahi Event Pameran
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {bookings.map((booking) => (
+                <div key={booking.id} className="card-base p-6 border border-foreground/5 hover:border-primary/30 transition flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center font-bold text-secondary text-base">
+                        {booking.booth}
+                      </div>
+                      <PaymentBadge status={booking.payment} />
+                    </div>
+
+                    <h3 className="font-bold text-base text-foreground mb-1">{booking.event}</h3>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      {booking.date} • Booth {booking.booth}
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed mb-4">
+                      Status sewa aktif. Booth ini telah terpetakan di Denah Pengunjung digital event.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-3 border-t border-foreground/5">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        href={`/events/${booking.eventId}/guide`}
+                        className="btn btn-secondary btn-sm text-xs flex items-center justify-center gap-1"
+                      >
+                        Buka Denah
+                      </Link>
+                      <Link
+                        href="/dashboard/tenant/catalog"
+                        className="btn btn-secondary btn-sm text-xs flex items-center justify-center gap-1"
+                      >
+                        Atur Menu
+                      </Link>
+                    </div>
+                    <button
+                      onClick={() => setSelectedPass(booking)}
+                      className="btn btn-primary btn-sm w-full text-xs flex items-center justify-center gap-1"
+                      id={`open-pass-${booking.booth}`}
+                    >
+                      Lihat kartu tenant
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========== MODAL E-PASS BOOTH ========== */}
+      {selectedPass && (
+        <div className="modal-overlay" onClick={() => setSelectedPass(null)}>
+          <div className="card-base max-w-sm w-full p-6 text-center border-primary/30 shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setSelectedPass(null)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground text-lg"
+              aria-label="Tutup"
+            >
+              <Icon name="x" size={20} />
+            </button>
+
+            <span className="badge badge-primary text-[10px] mb-2">Kartu tenant resmi</span>
+            <h3 className="font-bold text-lg text-foreground mb-1">{selectedPass.event}</h3>
+            <p className="text-xs text-muted-foreground mb-4">{selectedPass.date}</p>
+
+            <div className="p-6 rounded-2xl bg-foreground/[0.03] border border-foreground/10 my-4 inline-block w-full">
+              <div className="w-20 h-20 rounded-2xl gradient-primary mx-auto flex items-center justify-center text-3xl font-semibold text-secondary shadow-xl mb-3">
+                {selectedPass.booth}
+              </div>
+              <p className="text-xs font-semibold text-foreground">
+                Nomor booth: {selectedPass.booth}
+              </p>
+              <p className={`text-[11px] font-medium mt-1 ${selectedPass.payment === "paid" ? "text-emerald-700" : "text-amber-700"}`}>
+                {selectedPass.payment === "paid" ? "Terverifikasi & Lunas" : "Pembayaran belum terverifikasi"}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1 font-mono">
+                Kode booking: {selectedPass.id.slice(0, 8).toUpperCase()}
+              </p>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground mb-4">
+              Tunjukkan kartu ini ke panitia saat registrasi ulang dan saat memasukkan perlengkapan booth di lokasi acara.
+            </p>
+
+            <button
+              onClick={() => setSelectedPass(null)}
+              className="btn btn-primary btn-sm w-full"
+            >
+              Tutup
+            </button>
+>>>>>>> Stashed changes
           </div>
         </div>
       )}
     </div>
   );
+<<<<<<< Updated upstream
 }
+=======
+}
+>>>>>>> Stashed changes

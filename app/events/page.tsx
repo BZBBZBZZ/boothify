@@ -4,9 +4,15 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+<<<<<<< Updated upstream
 import { isEventInApprovedCampaign } from "@/app/lib/admin-campaigns";
 
 import { getEventsFromSupabase } from "@/app/lib/supabase-service";
+=======
+import { listPublishedEvents, errorMessage } from "@/app/lib/db";
+import Icon from "../components/Icon";
+import CategoryPopover from "../components/CategoryPopover";
+>>>>>>> Stashed changes
 
 export default function EventsPage() {
   const [eventsList, setEventsList] = useState<Array<{
@@ -25,6 +31,7 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
+<<<<<<< Updated upstream
   useEffect(() => {
     // Ambil data event langsung dari tabel events di Supabase & merge dengan local
     getEventsFromSupabase().then((data) => {
@@ -84,6 +91,48 @@ export default function EventsPage() {
       const bCamp = isEventInApprovedCampaign(b.id).isApproved ? 1 : 0;
       return bCamp - aCamp;
     });
+=======
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    listPublishedEvents()
+      .then((data) => {
+        if (cancelled) return;
+        setEventsList(
+          data.map((e) => ({
+            id: e.id,
+            title: e.title,
+            date: e.date,
+            location: e.location,
+            category: e.category,
+            categories: e.categories && e.categories.length > 0 ? e.categories : [e.category],
+            boothsFilled: e.boothsFilled,
+            boothsTotal: e.boothsTotal,
+            price: e.priceRange?.split("–")[0]?.trim() || "",
+            image: e.image,
+            gradient: "",
+          }))
+        );
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(errorMessage(err, "Daftar event gagal dimuat."));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filtered = eventsList.filter((event) => {
+    const matchesSearch =
+      event.title.toLowerCase().includes(search.toLowerCase()) ||
+      event.location.toLowerCase().includes(search.toLowerCase());
+    return matchesSearch;
+  });
+>>>>>>> Stashed changes
 
   return (
     <>
@@ -101,13 +150,13 @@ export default function EventsPage() {
           {/* Search & Filters */}
           <div className="flex flex-col lg:flex-row gap-4 mb-8">
             <div className="relative flex-1 flex items-center">
-              <svg 
-                className="absolute left-4 z-10 pointer-events-none text-muted-foreground" 
-                width="18" 
-                height="18" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
+              <svg
+                className="absolute left-4 z-10 pointer-events-none text-muted-foreground"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
                 strokeWidth="2"
               >
                 <circle cx="11" cy="11" r="8" />
@@ -130,13 +179,17 @@ export default function EventsPage() {
           {/* Events Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filtered.map((event, i) => {
+<<<<<<< Updated upstream
               const campInfo = isEventInApprovedCampaign(event.id);
               const isHighlight = campInfo.isApproved;
 
+=======
+>>>>>>> Stashed changes
               return (
                 <Link
                   key={event.id}
                   href={`/events/${event.id}`}
+<<<<<<< Updated upstream
                   className={`card-interactive p-0 overflow-hidden animate-fade-in-up opacity-0 relative transition-all ${
                     isHighlight
                       ? "border border-purple-500/40 shadow-[0_0_20px_rgba(168,85,247,0.15)] ring-1 ring-purple-500/30"
@@ -160,6 +213,18 @@ export default function EventsPage() {
                     {isHighlight && (
                       <span className="absolute bottom-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-900/90 text-emerald-200 border border-emerald-400/40 backdrop-blur-md">
                         🎁 Free Tax 0%
+=======
+                  className="card-interactive p-0 overflow-hidden animate-fade-in-up opacity-0 relative transition-colors"
+                  style={{ animationDelay: `${Math.min(i, 6) * 50}ms` }}
+                  id={`event-listing-${event.id}`}
+                >
+                  <div className="event-cover event-cover--card h-36 relative overflow-hidden">
+                    {event.image ? (
+                      <img src={event.image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                      <span className="event-cover-mark" aria-hidden="true">
+                        {event.title.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
+>>>>>>> Stashed changes
                       </span>
                     )}
                   </div>

@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../components/AuthContext";
+<<<<<<< Updated upstream
 import {
   ensureEventFloorPlanInitialized,
   DEFAULT_EVENTS_META,
@@ -19,6 +20,22 @@ import {
   getBoothsByEventFromSupabase,
   getTenantsByEventFromSupabase,
 } from "@/app/lib/supabase-service";
+=======
+import type { FloorPlanBooth, EventTenantInfo, EventDetail } from "../../lib/event-defaults";
+import {
+  getEvent,
+  getBooths,
+  getEventTenants,
+  getProfile,
+  sendOrganizerMessage,
+  errorMessage,
+} from "@/app/lib/db";
+import { loginUrlFor } from "@/app/lib/auth-redirect";
+import CategoryPopover from "../../components/CategoryPopover";
+import FreshOnNavigate from "../../components/FreshOnNavigate";
+import { FacilityList } from "../../components/BoothFacilities";
+import { Field, Notice, TabPanel, Tabs } from "../../components/ui";
+>>>>>>> Stashed changes
 
 const getZoneBadgeColor = (zone: string) => {
   const z = zone.toLowerCase();
@@ -45,6 +62,13 @@ function EventDetailContent() {
   const params = useParams();
   const eventId = (params?.eventId as string) || "1";
   const { user } = useAuth();
+<<<<<<< Updated upstream
+=======
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "missing">("loading");
+  const [checkoutNotice, setCheckoutNotice] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [organizerPhone, setOrganizerPhone] = useState("");
+>>>>>>> Stashed changes
 
   const [event, setEvent] = useState<EventDetail>(
     DEFAULT_EVENTS_META[eventId] || DEFAULT_EVENTS_META["1"]
@@ -63,6 +87,7 @@ function EventDetailContent() {
     getEventByIdFromSupabase(eventId).then((ev) => {
       if (ev) {
         setEvent(ev);
+<<<<<<< Updated upstream
       } else {
         try {
           const storedEvents = JSON.parse(localStorage.getItem("boothify_events") || "[]");
@@ -84,6 +109,20 @@ function EventDetailContent() {
         const booked = supabaseBooths.filter((b) => b.isBooked).map((b) => b.label);
         if (booked.length > 0) {
           setTakenBooths((prev) => Array.from(new Set([...prev, ...booked])));
+=======
+        setBooths(boothList);
+        setTenantsMap(tenants);
+        setTakenBooths(boothList.filter((b) => b.isBooked).map((b) => b.label));
+        // Booths taken since they were picked are dropped from the selection
+        setSelectedBoothLabels((prev) => prev.filter((label) => boothList.some((b) => b.label === label && !b.isBooked)));
+        setLoadState("ready");
+        if (ev.organizerId) {
+          getProfile(ev.organizerId)
+            .then((p) => {
+              if (!cancelled) setOrganizerPhone(p?.phone || "");
+            })
+            .catch(() => { });
+>>>>>>> Stashed changes
         }
       } else {
         // Cek apakah ada denah booth custom di localStorage
@@ -95,6 +134,7 @@ function EventDetailContent() {
           }
         } catch { /* ignore */ }
 
+<<<<<<< Updated upstream
         const initialized = ensureEventFloorPlanInitialized(eventId);
         setBooths(initialized.booths);
       }
@@ -111,6 +151,11 @@ function EventDetailContent() {
         setTakenBooths(Array.from(new Set([...initialized.booked, ...eventTaken])));
       }
     });
+=======
+    return () => {
+      cancelled = true;
+    };
+>>>>>>> Stashed changes
   }, [eventId]);
 
   const toggleBooth = (label: string) => {
@@ -158,8 +203,37 @@ function EventDetailContent() {
     )
   );
 
+<<<<<<< Updated upstream
   const campInfo = isEventInApprovedCampaign(eventId);
   const isCampaignApproved = campInfo.isApproved;
+=======
+  // Organizer's phone as a WhatsApp number (08xx becomes 628xx)
+  const waNumber = organizerPhone.replace(/\D/g, "").replace(/^0/, "62");
+
+  if (loadState !== "ready" || !event) {
+    return (
+      <>
+        <Navbar />
+        <main className="flex-1 pt-24 pb-16">
+          <div className="max-w-xl mx-auto px-4 py-16 text-center">
+            {loadState === "loading" ? (
+              <p className="text-sm text-muted-foreground">Memuat event...</p>
+            ) : (
+              <div className="card-base p-8">
+                <h1 className="page-header-title mb-2">{loadError ? "Event gagal dimuat" : "Event tidak ditemukan"}</h1>
+                <p className="text-sm text-muted-foreground mb-6">
+                  {loadError || "Event ini mungkin sudah dihapus, belum diterbitkan, atau tautannya salah."}
+                </p>
+                <Link href="/events" className="btn btn-primary">Lihat Semua Event</Link>
+              </div>
+            )}
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+>>>>>>> Stashed changes
 
   return (
     <>
@@ -193,6 +267,7 @@ function EventDetailContent() {
               </div>
             </div>
             <div className="p-6 sm:p-8">
+<<<<<<< Updated upstream
               {/* Official Admin Campaign Highlight Banner */}
               {isCampaignApproved && (
                 <div className="mb-5 p-4 rounded-xl bg-gradient-to-r from-purple-950/40 via-card to-emerald-950/30 border border-purple-500/40 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
@@ -217,6 +292,8 @@ function EventDetailContent() {
                 </div>
               )}
 
+=======
+>>>>>>> Stashed changes
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                 <h1 className="text-2xl sm:text-3xl font-bold">{event.title}</h1>
                 <div className="flex items-center gap-2">
@@ -303,6 +380,7 @@ function EventDetailContent() {
                   <h2 className="text-lg font-semibold mb-4">Tentang Event</h2>
                   <p className="text-muted leading-relaxed">{event.description}</p>
                 </div>
+<<<<<<< Updated upstream
                 <div className="card-base p-6">
                   <h2 className="text-lg font-semibold mb-4">Zona Booth</h2>
                   <div className="space-y-3">
@@ -326,6 +404,46 @@ function EventDetailContent() {
                     ))}
                   </ul>
                 </div>
+=======
+                <section className="card-base p-6" id="booth-facilities">
+                  <h2 className="section-title">Fasilitas booth</h2>
+                  <p className="section-desc mb-4">Yang sudah termasuk harga sewa dan yang perlu kamu bawa sendiri.</p>
+                  <FacilityList included={event.facilitiesIncluded} excluded={event.facilitiesExcluded} />
+                </section>
+                {event.guidelines && (
+                  <section className="card-base p-6">
+                    <h2 className="section-title mb-4">Panduan untuk tenant</h2>
+                    <p className="text-sm text-muted leading-relaxed whitespace-pre-line">{event.guidelines}</p>
+                  </section>
+                )}
+                {(event.zones || []).length > 0 && (
+                  <div className="card-base p-6">
+                    <h2 className="section-title mb-4">Zona booth</h2>
+                    <div className="space-y-3">
+                      {(event.zones || []).map((zone) => (
+                        <div key={zone.name} className="flex items-center gap-3 p-3 rounded-xl bg-foreground/3">
+                          <div className="w-3 h-3 rounded-full bg-primary" />
+                          <span className="text-sm flex-1">{zone.name}</span>
+                          <span className="text-xs text-muted-foreground">{zone.booths} booth</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {(event.highlights || []).length > 0 && (
+                  <div className="card-base p-6">
+                    <h2 className="section-title mb-4">Sorotan acara</h2>
+                    <ul className="space-y-2">
+                      {(event.highlights || []).map((h) => (
+                        <li key={h} className="flex items-center gap-2 text-sm text-muted">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                          {h}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+>>>>>>> Stashed changes
               </div>
               <div className="space-y-6">
                 <div className="card-base p-6">
@@ -364,9 +482,19 @@ function EventDetailContent() {
                       }}
                     />
                   </div>
+<<<<<<< Updated upstream
                   <button onClick={() => setActiveTab("booths")} className="btn btn-primary w-full" id="goto-booth-picker">
                     Pilih &amp; Sewa Booth Sekarang →
                   </button>
+=======
+                  {!user || user.role === "guest" || user.role === "tenant" ? (
+                    <button onClick={() => setActiveTab("booths")} className="btn btn-primary w-full" id="goto-booth-picker">
+                      Pilih &amp; sewa booth
+                    </button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center">Sewa booth hanya untuk akun tenant.</p>
+                  )}
+>>>>>>> Stashed changes
                 </div>
               </div>
             </div>
@@ -415,6 +543,7 @@ function EventDetailContent() {
                     <div className="overflow-auto rounded-2xl w-full" id="public-floor-plan-scroll-area">
                       {/* PERUBAHAN: min-w-[900px] membuat semua kotak 1.5x lebih besar, aspect ratio menjaga skala layout */}
                       <div className="floor-plan-canvas relative w-full min-w-[900px] aspect-[600/460]">
+<<<<<<< Updated upstream
                       {booths.map((b) => {
                         const isTaken = takenBooths.includes(b.label);
                         const isSelected = selectedBoothLabels.includes(b.label);
@@ -477,6 +606,65 @@ function EventDetailContent() {
                           </div>
                         );
                       })}
+=======
+                        {booths.map((b) => {
+                          const isTaken = takenBooths.includes(b.label);
+                          const isSelected = selectedBoothLabels.includes(b.label);
+                          const tenant = tenantsMap[b.label];
+
+                          return (
+                            <div
+                              key={b.id || b.label}
+                              onClick={() => !isTaken && toggleBooth(b.label)}
+                              // PERUBAHAN: Tambah `flex flex-col overflow-hidden` dan kurangi padding ke p-1.5/p-2
+                              className={`public-floor-plan-booth absolute p-1.5 sm:p-2 flex flex-col overflow-hidden border text-left transition-colors ${isTaken
+                                  ? "bg-foreground/[0.02] border-foreground/5 opacity-60 cursor-not-allowed"
+                                  : isSelected
+                                    ? "bg-primary/25 border-2 border-foreground cursor-pointer"
+                                    : "bg-card hover:bg-foreground/[0.04] border-border hover:border-primary/50 cursor-pointer"
+                                }`}
+                              style={{
+                                left: `${(b.x / 600) * 100}%`,
+                                top: `${(b.y / 460) * 100}%`,
+                                width: `${(b.width / 600) * 100}%`,
+                                height: `${(b.height / 460) * 100}%`,
+                                transform: `rotate(${b.rotation || 0}deg)`,
+                              }}
+                              id={`booth-card-${b.label}`}
+                            >
+                              <div className="public-floor-plan-booth-header w-full min-w-0 mb-0.5">
+                                <span className="public-floor-plan-booth-label block font-bold text-xs sm:text-sm text-foreground truncate">{b.label}</span>
+                                <span className="public-floor-plan-booth-zone-text">{getZoneDisplay(b.zone)}</span>
+                              </div>
+
+                              {/* PERUBAHAN: Penambahan truncate, w-full, dan leading-tight agar teks rapat dan tidak meluber */}
+                              <p className="public-floor-plan-booth-price text-[10px] sm:text-xs font-semibold text-primary-light mb-0.5 truncate w-full leading-tight">
+                                Rp {(b.price || 0).toLocaleString("id-ID")}
+                              </p>
+                              <p className="public-floor-plan-booth-size text-[8px] sm:text-[9px] text-muted-foreground truncate w-full leading-tight">
+                                Ukuran: {b.sizeCm || "-"}
+                              </p>
+
+                              {/* PERUBAHAN: mt-auto memastikan status selalu nempel di bawah kotak */}
+                              {isTaken ? (
+                                <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-foreground/5 w-full min-w-0">
+                                  <span className="text-[8px] sm:text-[9px] text-muted-foreground block truncate w-full leading-tight">
+                                    Terisi: {tenant?.name || "Tenant"}
+                                  </span>
+                                </div>
+                              ) : isSelected ? (
+                                <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-primary/30 flex items-center justify-between text-[9px] sm:text-[10px] font-bold text-foreground w-full min-w-0 leading-tight">
+                                  <span>Dipilih</span>
+                                </div>
+                              ) : (
+                                <div className="public-floor-plan-booth-status mt-auto pt-1 border-t border-foreground/5 text-[8px] sm:text-[9px] text-muted-foreground truncate w-full leading-tight">
+                                  Pilih booth
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+>>>>>>> Stashed changes
                       </div>
                     </div>
                   </div>
@@ -548,12 +736,15 @@ function EventDetailContent() {
                     Daftar brand yang telah resmi mengonfirmasi penyewaan booth di event ini.
                   </p>
                 </div>
+<<<<<<< Updated upstream
                 <Link
                   href={`/events/${eventId}/guide`}
                   className="btn btn-secondary btn-sm text-xs"
                 >
                   📱 Lihat Tampilan Panduan Pengunjung →
                 </Link>
+=======
+>>>>>>> Stashed changes
               </div>
 
               {registeredTenantsList.length === 0 ? (
@@ -585,10 +776,14 @@ function EventDetailContent() {
                         {tenant.desc}
                       </p>
                       <Link
-                        href={`/events/${eventId}/guide`}
+                        href={`/events/${eventId}/guide?booth=${encodeURIComponent(tenant.id)}`}
                         className="btn btn-ghost btn-sm text-xs w-full justify-center"
                       >
+<<<<<<< Updated upstream
                         Buka Katalog / Menu →
+=======
+                        Lihat menu {tenant.name}
+>>>>>>> Stashed changes
                       </Link>
                     </div>
                   ))}
@@ -627,6 +822,7 @@ function EventDetailContent() {
               </p>
 
               {/* Quick Contact Buttons */}
+<<<<<<< Updated upstream
               <div className="grid grid-cols-2 gap-3 mb-5">
                 <a
                   href={`https://wa.me/6281234567890?text=${encodeURIComponent(`Halo Organizer ${event.title}, saya tertarik seputar sewa booth`)}`}
@@ -647,6 +843,34 @@ function EventDetailContent() {
                   Kirim Email
                 </a>
               </div>
+=======
+              {(waNumber || event.organizerEmail) && (
+                <div className={`grid gap-3 mb-5 ${waNumber && event.organizerEmail ? "grid-cols-2" : "grid-cols-1"}`}>
+                  {waNumber && (
+                    <a
+                      href={`https://wa.me/${waNumber}?text=${encodeURIComponent(`Halo Organizer ${event.title}, saya tertarik seputar sewa booth`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2.5 border-emerald-500/30 hover:border-emerald-500 hover:bg-emerald-500/10 text-emerald-700"
+                      id="contact-whatsapp"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
+                      WhatsApp
+                    </a>
+                  )}
+                  {event.organizerEmail && (
+                    <a
+                      href={`mailto:${event.organizerEmail}?subject=${encodeURIComponent(`Pertanyaan Sewa Booth - ${event.title}`)}`}
+                      className="btn btn-secondary text-xs flex items-center justify-center gap-2 py-2.5"
+                      id="contact-email"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
+                      Email
+                    </a>
+                  )}
+                </div>
+              )}
+>>>>>>> Stashed changes
 
               {/* In-app Message Form */}
               <div className="pt-4 border-t border-border">
@@ -737,3 +961,14 @@ export default function EventDetailPage() {
     </Suspense>
   );
 }
+<<<<<<< Updated upstream
+=======
+
+export default function EventDetailPage() {
+  return (
+    <FreshOnNavigate>
+      <EventDetailPageContent />
+    </FreshOnNavigate>
+  );
+}
+>>>>>>> Stashed changes

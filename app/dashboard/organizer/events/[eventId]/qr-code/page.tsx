@@ -1,19 +1,24 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import QRCode from "qrcode";
+<<<<<<< Updated upstream
 import {
   getEventMeta,
   getAllOrganizerEvents,
   setActiveOrganizerEventId,
 } from "@/app/lib/event-defaults";
 import { useAuth } from "@/app/components/AuthContext";
+=======
+import { setActiveOrganizerEventId } from "@/app/lib/event-defaults";
+import { getEvent } from "@/app/lib/db";
+>>>>>>> Stashed changes
 
 function QRCodeContent() {
-  const router = useRouter();
   const params = useParams();
+<<<<<<< Updated upstream
   const eventId = (params?.eventId as string) || "1";
   const { user } = useAuth();
   const [copied, setCopied] = useState(false);
@@ -24,12 +29,21 @@ function QRCodeContent() {
   const [eventTitle, setEventTitle] = useState("Green Fashion Expo 2026");
   const [eventDate, setEventDate] = useState("15–17 November 2026");
   const [allEvents, setAllEvents] = useState<Array<{ id: string; title: string }>>([]);
+=======
+  const eventId = (params?.eventId as string) || "";
+  const [copied, setCopied] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const [eventTitle, setEventTitle] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [eventStatus, setEventStatus] = useState<string>("");
+>>>>>>> Stashed changes
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const eventPath = `/events/${eventId}/guide`;
   const [eventUrl, setEventUrl] = useState("");
 
   useEffect(() => {
+<<<<<<< Updated upstream
     try {
       setActiveOrganizerEventId(eventId);
       const meta = getEventMeta(eventId);
@@ -38,6 +52,22 @@ function QRCodeContent() {
       setAllEvents(getAllOrganizerEvents(user?.email));
     } catch { /* ignore */ }
   }, [eventId, user?.email]);
+=======
+    let cancelled = false;
+    setActiveOrganizerEventId(eventId);
+    getEvent(eventId)
+      .then((meta) => {
+        if (cancelled || !meta) return;
+        setEventTitle(meta.title);
+        setEventDate(meta.date);
+        setEventStatus(meta.status || "");
+      })
+      .catch(() => { });
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId]);
+>>>>>>> Stashed changes
 
   useEffect(() => {
     // Set URL based on actual origin (works with port forwarding)
@@ -110,6 +140,7 @@ function QRCodeContent() {
           <p className="text-sm text-primary-light font-medium">
             🎯 {eventTitle} <span className="text-muted-foreground text-xs font-normal">({eventDate})</span>
           </p>
+<<<<<<< Updated upstream
           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
             <span>Ganti Acara:</span>
             <select
@@ -127,6 +158,8 @@ function QRCodeContent() {
               ))}
             </select>
           </div>
+=======
+>>>>>>> Stashed changes
         </div>
         <div className="flex items-center gap-2">
           <Link

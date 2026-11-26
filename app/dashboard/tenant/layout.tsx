@@ -4,6 +4,20 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, Suspense } from "react";
 import { useAuth } from "../../components/AuthContext";
+<<<<<<< Updated upstream
+=======
+import BrandMark from "../../components/BrandMark";
+import { homeForRole, loginUrlFor } from "../../lib/auth-redirect";
+import {
+  NAV_ICONS,
+  NavLinks,
+  SidebarBrand,
+  SidebarFooter,
+  SidebarSection,
+  TenantSidebarNav,
+  siteNav,
+} from "../../components/RoleNav";
+>>>>>>> Stashed changes
 
 const NAV_ITEMS = [
   { href: "/dashboard/tenant", label: "Dashboard", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg> },
@@ -17,6 +31,7 @@ function TenantNavLinks({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
     <>
+<<<<<<< Updated upstream
       {NAV_ITEMS.map((item) => (
         <Link
           key={item.href}
@@ -27,6 +42,16 @@ function TenantNavLinks({ onNavigate }: { onNavigate?: () => void }) {
           {item.icon} {item.label}
         </Link>
       ))}
+=======
+      <SidebarBrand roleLabel="Tenant / brand" onNavigate={onNavigate} />
+      <nav className="sidebar-nav" aria-label="Navigasi tenant">
+        <TenantSidebarNav pathname={pathname} onNavigate={onNavigate} idSuffix={onNavigate ? "-mobile" : ""} />
+        <SidebarSection title="Jelajahi">
+          <NavLinks items={siteNav("tenant", pathname)} onNavigate={onNavigate} />
+        </SidebarSection>
+      </nav>
+      <SidebarFooter onLogout={onLogout} />
+>>>>>>> Stashed changes
     </>
   );
 }
@@ -60,6 +85,7 @@ function TenantLayoutContent({ children }: { children: React.ReactNode }) {
   };
 
   return (
+<<<<<<< Updated upstream
     <div className="min-h-screen flex flex-col md:flex-row" id="tenant-dashboard">
       {/* Mobile header */}
       <div className="dashboard-mobile-header glass sticky top-0 z-40 px-4 py-3 items-center justify-between">
@@ -88,9 +114,33 @@ function TenantLayoutContent({ children }: { children: React.ReactNode }) {
               <TenantNavLinks onNavigate={() => setSidebarOpen(false)} />
             </Suspense>
           </div>
+=======
+    <>
+      {!allowed && (
+        <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground" role="status">
+          Memeriksa akun...
+>>>>>>> Stashed changes
         </div>
       )}
+      <div className="min-h-screen flex flex-col md:flex-row" id="tenant-dashboard" style={allowed ? undefined : { display: "none" }} aria-hidden={!allowed || undefined}>
+        {/* Mobile header */}
+        <div className="dashboard-mobile-header glass sticky top-0 z-40 px-4 py-3 items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="text-primary"><BrandMark size={20} /></span>
+            <span className="wordmark text-base">Boothify</span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="btn btn-ghost btn-icon"
+            aria-label={sidebarOpen ? "Tutup menu" : "Buka menu"}
+            aria-expanded={sidebarOpen}
+          >
+            {NAV_ICONS.menu}
+          </button>
+        </div>
 
+<<<<<<< Updated upstream
       {/* Desktop sidebar */}
       <div className="dashboard-desktop-sidebar sidebar">
         <Link href="/" className="flex items-center gap-2 mb-8 px-2">
@@ -123,11 +173,31 @@ function TenantLayoutContent({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </div>
+=======
+        {/* Mobile nav drawer */}
+        {sidebarOpen && (
+          <div className="dashboard-mobile-drawer fixed inset-0 z-50 bg-black/50" onClick={() => setSidebarOpen(false)}>
+            <div className="sidebar-dark sidebar-drawer animate-slide-in-right" onClick={(e) => e.stopPropagation()}>
+              <TenantSidebarBody onNavigate={() => setSidebarOpen(false)} onLogout={handleLogout} />
+            </div>
+          </div>
+        )}
+>>>>>>> Stashed changes
 
-      <div className="flex-1 min-w-0 min-h-screen">
-        <div className="w-full max-w-6xl p-4 sm:p-8">{children}</div>
+        {/* Desktop sidebar: stays in view so "Keluar" is always at its foot */}
+        <aside className="dashboard-desktop-sidebar sidebar sidebar-sticky">
+          <TenantSidebarBody onLogout={handleLogout} />
+        </aside>
+
+        <div className="flex-1 min-w-0 min-h-screen">
+          <div className="w-full max-w-6xl p-4 sm:p-8">{children}</div>
+        </div>
       </div>
+<<<<<<< Updated upstream
     </div>
+=======
+    </>
+>>>>>>> Stashed changes
   );
 }
 

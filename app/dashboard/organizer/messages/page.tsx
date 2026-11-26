@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../../components/AuthContext";
 
@@ -85,11 +84,15 @@ export default function OrganizerMessagesPage() {
     <div className="animate-fade-in max-w-5xl" id="organizer-messages">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 mb-8 pb-6 border-b border-border">
         <div>
+<<<<<<< Updated upstream
           <Link href="/dashboard/organizer" className="text-xs text-muted-foreground hover:text-primary-light transition inline-flex items-center gap-2 mb-4">
             <span aria-hidden="true">←</span> Kembali ke dashboard
           </Link>
           <p className="text-xs uppercase tracking-[0.12em] text-primary-light font-semibold mb-2">Communication</p>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Pesan masuk</h1>
+=======
+          <h1 className="page-header-title">Pesan masuk</h1>
+>>>>>>> Stashed changes
           <p className="text-sm text-muted-foreground mt-2 max-w-xl">Kelola pertanyaan tenant dan pengunjung dari satu tempat.</p>
         </div>
         <div className="flex items-center gap-3 text-sm shrink-0">

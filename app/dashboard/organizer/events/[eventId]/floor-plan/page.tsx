@@ -12,7 +12,13 @@ import {
   EventZone,
 } from "@/app/lib/event-defaults";
 import { useAuth } from "@/app/components/AuthContext";
+<<<<<<< Updated upstream
 import { saveFloorPlanBoothsToSupabase } from "@/app/lib/supabase-service";
+=======
+import { getEvent, getBooths, saveFloorPlan as saveFloorPlanToDb, errorMessage } from "@/app/lib/db";
+import Icon from "../../../../../components/Icon";
+import CategoryPopover from "../../../../../components/CategoryPopover";
+>>>>>>> Stashed changes
 
 type Booth = {
   id: string;
@@ -82,8 +88,15 @@ function FloorPlanContent() {
   const params = useParams();
   const eventId = (params?.eventId as string) || "1";
   const { user, isLoading: authLoading } = useAuth();
+<<<<<<< Updated upstream
   const [eventMeta, setEventMeta] = useState<EventDetail>(getEventMeta(eventId));
   const [allEvents, setAllEvents] = useState<Array<{ id: string; title: string; category: string }>>([]);
+=======
+  const [eventMeta, setEventMeta] = useState<EventDetail | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [saving, setSaving] = useState(false);
+>>>>>>> Stashed changes
   const [booths, setBooths] = useState<Booth[]>(INITIAL_BOOTHS);
   const [selectedBooth, setSelectedBooth] = useState<Booth | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
@@ -99,8 +112,60 @@ function FloorPlanContent() {
   const [saved, setSaved] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
 
+<<<<<<< Updated upstream
   // Load from localStorage on mount & when eventId changes
   useEffect(() => {
+=======
+  // Load the event and its saved layout
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    setActiveOrganizerEventId(eventId);
+    Promise.all([getEvent(eventId), getBooths(eventId)])
+      .then(([ev, saved]) => {
+        if (cancelled) return;
+        if (ev) {
+          setEventMeta(ev);
+          setEventStatus(ev.status === "draft" ? "draft" : "active");
+          setZones(Array.isArray(ev.floorZones) && ev.floorZones.length > 0 ? ev.floorZones : ZONES);
+          setLayoutObjects(Array.isArray(ev.floorObjects) ? (ev.floorObjects as LayoutObject[]) : []);
+          // A new event starts from a starter grid; nothing is saved until the organizer saves
+          setBooths(saved.length > 0 ? saved.map((b) => ({ ...b, id: b.label })) : INITIAL_BOOTHS);
+        }
+        setMetaLoaded(true);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setLoadError(errorMessage(err, "Denah gagal dimuat."));
+        setMetaLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId, user?.id]);
+
+  const isDraft = eventStatus === "draft";
+
+  // Save the layout to the database. Publishing also makes the event public.
+  const saveFloorPlan = async (publish = false): Promise<boolean> => {
+    if (saving) return false;
+    setSaveError("");
+    if (booths.length === 0) {
+      setSaveError("Tambahkan minimal satu booth sebelum menyimpan denah.");
+      return false;
+    }
+    const labels = booths.map((b) => b.label.trim());
+    const duplicate = labels.find((label, i) => labels.indexOf(label) !== i);
+    if (labels.some((label) => !label)) {
+      setSaveError("Setiap booth harus punya label.");
+      return false;
+    }
+    if (duplicate) {
+      setSaveError(`Label booth ${duplicate} dipakai lebih dari sekali. Ganti salah satunya.`);
+      return false;
+    }
+    setSaving(true);
+>>>>>>> Stashed changes
     try {
       setActiveOrganizerEventId(eventId);
       setEventMeta(getEventMeta(eventId));
@@ -292,10 +357,10 @@ function FloorPlanContent() {
     if (!rect) return;
     setDragging(booth.id);
     setDragOffset({ x: e.clientX - rect.left - booth.x, y: e.clientY - rect.top - booth.y });
-    
+
     setSelectedBooth(booth);
     setSelectedObject(null);
-    
+
     setOpenPanels(prev => ({
       ...prev,
       editBooth: true
@@ -363,7 +428,7 @@ function FloorPlanContent() {
               Lihat Halaman Publik Acara ↗
             </Link>
             <Link href="/dashboard/organizer" className="btn btn-secondary btn-sm text-xs">
-              Dashboard Organizer
+              Dasbor Organizer
             </Link>
           </div>
         </div>
@@ -389,6 +454,7 @@ function FloorPlanContent() {
             🎯 {eventMeta.title} <span className="text-muted-foreground font-normal text-xs">({eventMeta.location} • {eventMeta.date})</span>
           </p>
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-2">
+<<<<<<< Updated upstream
             <span>Ganti Event yang Diedit:</span>
             <select
               value={eventId}
@@ -405,6 +471,9 @@ function FloorPlanContent() {
               ))}
             </select>
             <span className="text-emerald-400 font-medium">● Perubahan denah langsung sinkron ke halaman Tenant & Pengunjung</span>
+=======
+            <span>Ganti event lewat &quot;Acara aktif&quot; di menu samping. Perubahan denah tampil ke tenant &amp; pengunjung setelah kamu tekan Simpan.</span>
+>>>>>>> Stashed changes
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -415,8 +484,12 @@ function FloorPlanContent() {
             id="btn-preview-tenant-view"
             title={`Lihat halaman pemesanan booth untuk ${eventMeta.title}`}
           >
+<<<<<<< Updated upstream
             <span>👁️ Tampilan Tenant (#{eventId})</span>
             <span className="text-[10px] text-muted-foreground">↗</span>
+=======
+            <span>Lihat sebagai tenant</span>
+>>>>>>> Stashed changes
           </Link>
           <Link
             href={`/events/${eventId}/guide`}
@@ -425,8 +498,12 @@ function FloorPlanContent() {
             id="btn-preview-guide-view"
             title={`Lihat panduan digital pengunjung untuk ${eventMeta.title}`}
           >
+<<<<<<< Updated upstream
             <span>📱 Panduan Pengunjung (#{eventId})</span>
             <span className="text-[10px] text-muted-foreground">↗</span>
+=======
+            <span>Lihat sebagai pengunjung</span>
+>>>>>>> Stashed changes
           </Link>
         </div>
       </div>
@@ -486,30 +563,30 @@ function FloorPlanContent() {
               Template Tata Letak <span>{openPanels.templates ? "⌃" : "⌄"}</span>
             </button>
             {openPanels.templates && <div>
-            <p className="text-[11px] text-muted-foreground mb-3"></p>
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => applyTemplate("cinema")}
-                className="btn btn-secondary w-full btn-sm text-xs justify-start"
-              >
-                Grid Rapi
-              </button>
-              <button
-                type="button"
-                onClick={() => applyTemplate("expo")}
-                className="btn btn-secondary w-full btn-sm text-xs justify-start"
-              >
-                Melingkar
-              </button>
-              <button
-                type="button"
-                onClick={() => applyTemplate("cluster")}
-                className="btn btn-ghost w-full btn-sm text-xs justify-start"
-              >
-                Reset Template
-              </button>
-            </div></div>}
+              <p className="text-[11px] text-muted-foreground mb-3"></p>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => applyTemplate("cinema")}
+                  className="btn btn-secondary w-full btn-sm text-xs justify-start"
+                >
+                  Grid Rapi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyTemplate("expo")}
+                  className="btn btn-secondary w-full btn-sm text-xs justify-start"
+                >
+                  Melingkar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyTemplate("cluster")}
+                  className="btn btn-ghost w-full btn-sm text-xs justify-start"
+                >
+                  Reset Template
+                </button>
+              </div></div>}
           </div>
 
           {/* Zone CRUD */}
@@ -518,6 +595,7 @@ function FloorPlanContent() {
               Kategori Zona <span>{openPanels.zones ? "⌃" : "⌄"}</span>
             </button>
             {openPanels.zones && <div>
+<<<<<<< Updated upstream
             <p className="text-[11px] text-muted-foreground mb-3 mt-2">Kelola kategori zona yang dipakai booth event ini.</p>
             <div className="space-y-2 mb-3">
               {zones.map((zone) => (
@@ -535,6 +613,25 @@ function FloorPlanContent() {
               <input className="w-10 h-10 rounded-lg bg-card border border-border p-1" type="color" value={newZone.color} onChange={(e) => setNewZone({ ...newZone, color: e.target.value })} aria-label="Warna zona" />
             </div>
             <button type="button" onClick={addZone} className="btn btn-secondary btn-sm w-full mt-2">+ Tambah Zona</button>
+=======
+              <p className="text-[11px] text-muted-foreground mb-3 mt-2">Kelola kategori zona yang dipakai booth event ini.</p>
+              <div className="space-y-2 mb-3">
+                {zones.map((zone) => (
+                  <div key={zone.value} className="flex items-center gap-2 p-2 rounded-lg bg-foreground/[0.03] border border-foreground/5">
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: zone.color }} />
+                    <span className="text-xs flex-1 truncate">{zone.label}</span>
+                    <button type="button" onClick={() => removeZone(zone.value)} className="text-[10px] text-error disabled:opacity-40" disabled={zones.length <= 1 || booths.some((booth) => booth.zone === zone.value)} aria-label={`Hapus zona ${zone.label}`}>
+                      Hapus
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                <input className="input-base text-xs px-2 col-span-2" placeholder="Nama zona" value={newZone.label} onChange={(e) => setNewZone({ ...newZone, label: e.target.value })} />
+                <input className="w-10 h-10 rounded-lg bg-card border border-border p-1" type="color" value={newZone.color} onChange={(e) => setNewZone({ ...newZone, color: e.target.value })} aria-label="Warna zona" />
+              </div>
+              <button type="button" onClick={addZone} className="btn btn-secondary btn-sm w-full mt-2">+ Tambah Zona</button>
+>>>>>>> Stashed changes
             </div>}
           </div>
 
@@ -544,28 +641,28 @@ function FloorPlanContent() {
               Zona Warna <span>{openPanels.legend ? "⌃" : "⌄"}</span>
             </button>
             {openPanels.legend && <div className="mt-3">
-            <div className="space-y-2">
-              {zones.map((z) => (
-                <div key={z.value} className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded" style={{ backgroundColor: z.color }} />
-                  <span className="text-xs">{z.label}</span>
-                </div>
-              ))}
-            </div></div>}
+              <div className="space-y-2">
+                {zones.map((z) => (
+                  <div key={z.value} className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: z.color }} />
+                    <span className="text-xs">{z.label}</span>
+                  </div>
+                ))}
+              </div></div>}
           </div>
 
           {/* Selected booth editor */}
           {/* Selected booth editor */}
           {selectedBooth && (
             <div className="card-base p-4 border-primary/30">
-              <button 
-                type="button" 
-                onClick={() => togglePanel("editBooth")} 
+              <button
+                type="button"
+                onClick={() => togglePanel("editBooth")}
                 className="w-full flex items-center justify-between font-semibold text-sm"
               >
                 Edit Booth {selectedBooth.label} <span>{openPanels.editBooth ? "⌃" : "⌄"}</span>
               </button>
-              
+
               {openPanels.editBooth && (
                 <div className="space-y-3 mt-3">
                   <div>
@@ -615,14 +712,14 @@ function FloorPlanContent() {
           {/* Selected object editor */}
           {selectedObject && (
             <div className="card-base p-4 border-secondary/30">
-              <button 
-                type="button" 
-                onClick={() => togglePanel("editObject")} 
+              <button
+                type="button"
+                onClick={() => togglePanel("editObject")}
                 className="w-full flex items-center justify-between font-semibold text-sm"
               >
                 Edit Object <span>{openPanels.editObject ? "⌃" : "⌄"}</span>
               </button>
-              
+
               {openPanels.editObject && (
                 <div className="mt-3">
                   <div className="grid grid-cols-2 gap-2">
@@ -688,10 +785,10 @@ function FloorPlanContent() {
                         if (!rect) return;
                         setDraggingObject(object.id);
                         setDragOffset({ x: event.clientX - rect.left - object.x, y: event.clientY - rect.top - object.y });
-                        
+
                         setSelectedObject(object);
                         setSelectedBooth(null);
-                        
+
                         setOpenPanels(prev => ({
                           ...prev,
                           editObject: true
@@ -715,27 +812,27 @@ function FloorPlanContent() {
                     </div>
                   ))}
                   {booths.map((booth) => (
-                <div
-                  key={booth.id}
-                  className={`floor-plan-booth touch-none ${dragging === booth.id ? "dragging" : ""} ${selectedBooth?.id === booth.id ? "ring-2 ring-primary" : ""}`}
-                  style={{
-                    left: booth.x,
-                    top: booth.y,
-                    width: booth.width,
-                    height: booth.height,
-                    transform: `rotate(${booth.rotation || 0}deg)`,
-                    borderColor: getZoneColor(booth.zone),
-                    backgroundColor: `color-mix(in srgb, ${getZoneColor(booth.zone)} 15%, transparent)`,
-                    color: getZoneColor(booth.zone),
-                  }}
-                  onPointerDown={(e) => handlePointerDown(e, booth)}
-                  onClick={() => setSelectedBooth(booth)}
-                >
-                  <div className="text-center">
-                    <div className="font-bold text-xs">{booth.label}</div>
-                    <div className="text-[9px] opacity-70">{zones.find((z) => z.value === booth.zone)?.label}</div>
-                  </div>
-                </div>
+                    <div
+                      key={booth.id}
+                      className={`floor-plan-booth touch-none ${dragging === booth.id ? "dragging" : ""} ${selectedBooth?.id === booth.id ? "ring-2 ring-primary" : ""}`}
+                      style={{
+                        left: booth.x,
+                        top: booth.y,
+                        width: booth.width,
+                        height: booth.height,
+                        transform: `rotate(${booth.rotation || 0}deg)`,
+                        borderColor: getZoneColor(booth.zone),
+                        backgroundColor: `color-mix(in srgb, ${getZoneColor(booth.zone)} 15%, transparent)`,
+                        color: getZoneColor(booth.zone),
+                      }}
+                      onPointerDown={(e) => handlePointerDown(e, booth)}
+                      onClick={() => setSelectedBooth(booth)}
+                    >
+                      <div className="text-center">
+                        <div className="font-bold text-xs">{booth.label}</div>
+                        <div className="text-[9px] opacity-70">{zones.find((z) => z.value === booth.zone)?.label}</div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>

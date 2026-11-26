@@ -68,9 +68,9 @@ function EventGuideContent() {
   const [showMiniWebsite, setShowMiniWebsite] = useState(false);
   const [activeMiniWebsite, setActiveMiniWebsite] = useState<
     | (EventTenantInfo["branding"] & {
-        menu?: Array<{ name: string; price: number; image?: string; description?: string }>;
-        boothId?: string;
-      })
+      menu?: Array<{ name: string; price: number; image?: string; description?: string }>;
+      boothId?: string;
+    })
     | null
   >(null);
 
@@ -141,6 +141,12 @@ function EventGuideContent() {
       isMounted = false;
     };
   }, [eventId]);
+
+  // ?booth=A1 opens that tenant's booth straight away (link from the event page's tenant list)
+  const boothParam = searchParams.get("booth");
+  useEffect(() => {
+    if (loadState === "ready" && boothParam && tenantsMap[boothParam]) setSelectedBooth(tenantsMap[boothParam]);
+  }, [loadState, boothParam, tenantsMap]);
 
   const handleProceedToPayment = () => {
     if (!user) {
@@ -341,9 +347,47 @@ function EventGuideContent() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 pt-5">
+<<<<<<< Updated upstream
+=======
+        {/* Payment status: the kitchen only starts after the server confirms payment */}
+        {activeOrder && activeOrder.paymentStatus !== "paid" && (
+          <div className="p-4 rounded-2xl mb-6 border bg-amber-500/10 border-amber-500/30 animate-fade-in" id="visitor-payment-tracker" role="status">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <p className="text-[10px] font-semibold text-muted-foreground">Pesanan #{activeOrder.id}</p>
+              <span className="badge badge-accent text-[10px]">
+                {PAYMENT_STATUS_LABEL[(activeOrder.paymentStatus || "unpaid") as keyof typeof PAYMENT_STATUS_LABEL] || activeOrder.paymentStatus}
+              </span>
+            </div>
+            <p className="text-sm font-bold text-foreground">
+              {activeOrder.paymentStatus === "pending"
+                ? "Menunggu konfirmasi pembayaran"
+                : activeOrder.paymentStatus === "refunded"
+                  ? "Pembayaran dikembalikan"
+                  : activeOrder.paymentStatus === "unpaid"
+                    ? "Pesanan ini belum dibayar"
+                    : "Pembayaran tidak selesai, pesanan dibatalkan"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {activeOrder.paymentStatus === "pending"
+                ? "Tenant baru memproses pesanan setelah pembayaran dikonfirmasi Midtrans. Halaman ini diperbarui otomatis."
+                : activeOrder.paymentStatus === "refunded"
+                  ? "Hubungi tenant jika ada pertanyaan."
+                  : "Silakan buat pesanan baru dari menu tenant."}
+            </p>
+            {payNotice && <p className="text-xs text-error mt-2" role="alert">{payNotice}</p>}
+            {activeOrder.paymentStatus === "pending" && resumeToken && (
+              <button onClick={handleResumePayment} className="btn btn-primary btn-sm mt-3" id="resume-payment-btn">
+                Lanjutkan Pembayaran
+              </button>
+            )}
+          </div>
+        )}
+
+>>>>>>> Stashed changes
         {/* Live Order Tracker Banner */}
         {activeOrder && (
           <div
+<<<<<<< Updated upstream
             className={`p-4 rounded-2xl mb-6 border transition-all animate-fade-in ${
               activeOrder.status === "making"
                 ? "bg-sky-500/10 border-sky-500/40"
@@ -353,10 +397,21 @@ function EventGuideContent() {
                 ? "bg-white/[0.02] border-white/10"
                 : "bg-amber-500/10 border-amber-500/30"
             }`}
+=======
+            className={`p-4 rounded-2xl mb-6 border transition-colors animate-fade-in ${activeOrder.status === "making"
+                ? "bg-sky-500/10 border-sky-500/40"
+                : activeOrder.status === "ready"
+                  ? "bg-emerald-500/15 border-emerald-500/50 shadow-lg shadow-emerald-500/10"
+                  : activeOrder.status === "done"
+                    ? "bg-foreground/[0.02] border-foreground/10"
+                    : "bg-amber-500/10 border-amber-500/30"
+              }`}
+>>>>>>> Stashed changes
             id="visitor-order-tracker"
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
+<<<<<<< Updated upstream
                 <span className="text-xl">
                   {activeOrder.status === "making"
                     ? "🍳"
@@ -365,6 +420,19 @@ function EventGuideContent() {
                     : activeOrder.status === "done"
                     ? "✅"
                     : "⏳"}
+=======
+                <span className="text-foreground">
+                  <Icon
+                    name={activeOrder.status === "making"
+                      ? "flame"
+                      : activeOrder.status === "ready"
+                        ? "bell"
+                        : activeOrder.status === "done"
+                          ? "check-circle"
+                          : "clock"}
+                    size={24}
+                  />
+>>>>>>> Stashed changes
                 </span>
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -374,37 +442,48 @@ function EventGuideContent() {
                     {activeOrder.status === "making"
                       ? "Sedang Dibuat oleh Merchant"
                       : activeOrder.status === "ready"
+<<<<<<< Updated upstream
                       ? "🎉 SIAP DIAMBIL DI BOOTH!"
                       : activeOrder.status === "done"
                       ? "Pesanan Telah Selesai"
                       : "Menunggu Antrean Pembuatan"}
+=======
+                        ? "Siap diambil di booth"
+                        : activeOrder.status === "done"
+                          ? "Pesanan Telah Selesai"
+                          : "Menunggu Antrean Pembuatan"}
+>>>>>>> Stashed changes
                   </p>
                 </div>
               </div>
               <span
-                className={`badge text-[10px] ${
-                  activeOrder.status === "ready"
+                className={`badge text-[10px] ${activeOrder.status === "ready"
                     ? "badge-primary animate-pulse"
                     : activeOrder.status === "making"
-                    ? "badge-secondary"
-                    : "badge-accent"
-                }`}
+                      ? "badge-secondary"
+                      : "badge-accent"
+                  }`}
               >
                 {activeOrder.status === "ready"
                   ? "SIAP!"
                   : activeOrder.status === "making"
-                  ? "IN MAKING"
-                  : activeOrder.status === "done"
-                  ? "DONE"
-                  : "PENDING"}
+                    ? "IN MAKING"
+                    : activeOrder.status === "done"
+                      ? "DONE"
+                      : "PENDING"}
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
               {activeOrder.status === "ready"
                 ? "Silakan datangi meja booth Anda dan tunjukkan nomor pesanan untuk mengambil hidangan."
                 : activeOrder.status === "making"
+<<<<<<< Updated upstream
                 ? "Pesanan Anda sedang dipersiapkan di booth tenant. Mohon bersabar."
                 : "Merchant telah menerima pesanan Anda dan akan segera memprosesnya."}
+=======
+                  ? "Pesanan kamu sedang dipersiapkan di booth tenant. Mohon bersabar."
+                  : "Tenant sudah menerima pesanan kamu dan akan segera memprosesnya."}
+>>>>>>> Stashed changes
             </p>
           </div>
         )}
@@ -441,11 +520,18 @@ function EventGuideContent() {
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
+<<<<<<< Updated upstream
                 className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-xs font-medium transition ${
                   categoryFilter === cat
                     ? "bg-primary text-white"
                     : "bg-white/5 text-muted-foreground hover:bg-white/10"
                 }`}
+=======
+                className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-xs font-medium transition ${categoryFilter === cat
+                    ? "bg-primary text-secondary"
+                    : "bg-foreground/5 text-muted-foreground hover:bg-foreground/10"
+                  }`}
+>>>>>>> Stashed changes
               >
                 {cat}
               </button>
@@ -461,6 +547,7 @@ function EventGuideContent() {
                 dan bisa di-scroll (pan) dengan nyaman di mobile.
             */}
             <div className="floor-plan-canvas relative w-full min-w-[800px] aspect-[600/460]">
+<<<<<<< Updated upstream
             {booths.map((b) => {
               const tenant = tenantsMap[b.label];
               const isOccupied = !!tenant;
@@ -531,6 +618,73 @@ function EventGuideContent() {
                 </button>
               );
             })}
+=======
+              {booths.map((b) => {
+                const tenant = tenantsMap[b.label];
+                const isOccupied = !!tenant;
+                const matchesFilter =
+                  categoryFilter === "Semua" ||
+                  getZoneDisplay(b.zone).toLowerCase().includes(categoryFilter.toLowerCase()) ||
+                  (tenant && tenant.category.toLowerCase().includes(categoryFilter.toLowerCase()));
+
+                return (
+                  <button
+                    key={b.id || b.label}
+                    type="button"
+                    onClick={() => {
+                      if (isOccupied) {
+                        setSelectedBooth(tenant);
+                      } else {
+                        setEmptyBoothSelected(b);
+                      }
+                    }}
+                    // PERUBAHAN: Tambah `flex flex-col overflow-hidden p-1.5` (padding sedikit dikurangi agar text punya lebih banyak ruang)
+                    className={`public-floor-plan-booth absolute p-1.5 sm:p-2 flex flex-col overflow-hidden rounded-xl border text-left transition-colors ${matchesFilter ? "opacity-100 scale-100" : "opacity-40"
+                      } ${isOccupied
+                        ? tenant.type === "fnb"
+                          ? "bg-amber-500/10 border-amber-500/30 hover:border-amber-500 hover:scale-[1.02]"
+                          : "bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500 hover:scale-[1.02]"
+                        : "bg-foreground/[0.02] border-foreground/5 hover:border-foreground/20"
+                      }`}
+                    style={{
+                      left: `${(b.x / 600) * 100}%`,
+                      top: `${(b.y / 460) * 100}%`,
+                      width: `${(b.width / 600) * 100}%`,
+                      height: `${(b.height / 460) * 100}%`,
+                      transform: `rotate(${b.rotation || 0}deg)`,
+                    }}
+                    id={`guide-booth-${b.label}`}
+                  >
+                    <div className="public-floor-plan-booth-header w-full min-w-0 mb-0.5">
+                      <span className="public-floor-plan-booth-label block font-bold text-xs sm:text-sm text-foreground truncate">
+                        {b.label}
+                      </span>
+                      <span className="public-floor-plan-booth-zone-text">{getZoneDisplay(b.zone)}</span>
+                    </div>
+
+                    {/* PERUBAHAN: Teks dipendekkan & ditambah truncate w-full */}
+                    <p className="public-floor-plan-booth-size text-[9px] sm:text-[10px] text-muted-foreground truncate w-full">
+                      Ukuran: {b.sizeCm || "-"}
+                    </p>
+
+                    {/* PERUBAHAN: mt-auto menekan status ke bawah kotak, w-full dan truncate menjaga text */}
+                    {isOccupied ? (
+                      <div className="public-floor-plan-booth-status mt-auto w-full pt-1 min-w-0">
+                        <p className="text-[10px] sm:text-xs font-semibold text-foreground truncate w-full">{tenant.name}</p>
+                        <p className="text-[8px] sm:text-[10px] text-muted-foreground truncate w-full">
+                          {tenant.type === "fnb" ? "Menu" : "Info"}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="public-floor-plan-booth-status mt-auto w-full pt-1 min-w-0">
+                        <p className="text-[10px] sm:text-xs text-muted-foreground truncate w-full">Kosong</p>
+                        <p className="text-[8px] sm:text-[10px] text-primary-light truncate w-full">Tersedia</p>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+>>>>>>> Stashed changes
             </div>
           </div>
 
@@ -585,9 +739,14 @@ function EventGuideContent() {
                   id={`tenant-dir-${t.id}`}
                 >
                   <div
+<<<<<<< Updated upstream
                     className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
                       t.type === "fnb" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400"
                     }`}
+=======
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${t.type === "fnb" ? "bg-amber-500/20 text-amber-700" : "bg-emerald-500/20 text-emerald-700"
+                      }`}
+>>>>>>> Stashed changes
                   >
                     {t.id}
                   </div>
@@ -612,9 +771,14 @@ function EventGuideContent() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div
+<<<<<<< Updated upstream
                   className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm ${
                     selectedBooth.type === "fnb" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400"
                   }`}
+=======
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-sm ${selectedBooth.type === "fnb" ? "bg-amber-500/20 text-amber-700" : "bg-emerald-500/20 text-emerald-700"
+                    }`}
+>>>>>>> Stashed changes
                 >
                   {selectedBooth.id}
                 </div>
@@ -735,7 +899,7 @@ function EventGuideContent() {
             </p>
             <div className="flex flex-col gap-2">
               <button
-                onClick={() => router.push(`/events/${eventId}`)}
+                onClick={() => router.push(`/events/${eventId}?tab=booths`)}
                 className="btn btn-primary btn-sm"
               >
                 Sewa Booth Ini Sekarang
@@ -765,6 +929,10 @@ function EventGuideContent() {
               <button
                 onClick={() => setShowMiniWebsite(false)}
                 className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center text-sm"
+<<<<<<< Updated upstream
+=======
+                aria-label="Tutup"
+>>>>>>> Stashed changes
               >
                 ✕
               </button>
@@ -1001,3 +1169,14 @@ export default function EventGuidePage() {
     </Suspense>
   );
 }
+<<<<<<< Updated upstream
+=======
+
+export default function EventGuidePage() {
+  return (
+    <FreshOnNavigate>
+      <EventGuidePageContent />
+    </FreshOnNavigate>
+  );
+}
+>>>>>>> Stashed changes

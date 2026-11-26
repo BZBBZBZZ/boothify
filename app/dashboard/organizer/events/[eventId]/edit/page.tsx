@@ -6,7 +6,32 @@ import { useAuth } from "../../../../../components/AuthContext";
 import { getEventMeta, type EventDetail } from "../../../../../lib/event-defaults";
 import { saveEventToSupabase } from "@/app/lib/supabase-service";
 
+<<<<<<< Updated upstream
 export default function EditEventPage() {
+=======
+type TabKey = "info" | "place" | "facilities";
+
+type TextField = { key: keyof EventDetail; label: string; hint?: string; placeholder?: string; multiline?: boolean; required?: boolean };
+
+/* Each tab holds one kind of information, so the form is never one long scroll. */
+const TAB_FIELDS: Record<Exclude<TabKey, "facilities">, TextField[]> = {
+  info: [
+    { key: "title", label: "Nama event", required: true },
+    { key: "description", label: "Deskripsi event", multiline: true, hint: "Tampil di tab Informasi Event pada halaman publik." },
+    { key: "theme", label: "Tema event", placeholder: "Contoh: Sustainable Fashion" },
+  ],
+  place: [
+    { key: "date", label: "Tanggal", hint: "Format: 2026-12-20 s/d 2026-12-22", placeholder: "2026-12-20 s/d 2026-12-22" },
+    { key: "time", label: "Jam operasional", hint: "Format: 10:00 - 21:00", placeholder: "10:00 - 21:00" },
+    { key: "location", label: "Nama venue", placeholder: "Contoh: Jakarta Convention Center, Hall A" },
+    { key: "address", label: "Alamat lengkap" },
+  ],
+};
+
+const sameList = (a: string[] = [], b: string[] = []) => a.length === b.length && a.every((x, i) => x === b[i]);
+
+function EditEventPageContent() {
+>>>>>>> Stashed changes
   const params = useParams();
   const router = useRouter();
   const eventId = String(params?.eventId || "1");
@@ -64,4 +89,15 @@ export default function EditEventPage() {
       </form>
     </div>
   );
+<<<<<<< Updated upstream
+=======
+}
+
+export default function EditEventPage() {
+  return (
+    <FreshOnNavigate>
+      <EditEventPageContent />
+    </FreshOnNavigate>
+  );
+>>>>>>> Stashed changes
 }

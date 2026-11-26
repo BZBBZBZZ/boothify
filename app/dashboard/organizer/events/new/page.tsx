@@ -136,9 +136,91 @@ export default function CreateEventPage() {
             Detail Event
           </h2>
 
+<<<<<<< Updated upstream
           <div>
             <label htmlFor="event-name" className="block text-sm font-medium mb-2">Nama Event *</label>
             <input id="event-name" type="text" className="input-base" placeholder="Green Fashion Expo 2026" value={formData.name} onChange={(e) => update("name", e.target.value)} required />
+=======
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+        {/* STEP 1: what the event is */}
+        {step === 0 && (
+          <div className="space-y-6 animate-fade-in">
+            <section className="card-base p-6 space-y-5">
+              <div>
+                <h2 className="section-title">Info event</h2>
+                <p className="section-desc">Nama, kategori, dan deskripsi ini tampil di halaman publik event.</p>
+              </div>
+
+              <Field label="Nama event" required id="event-name">
+                {(id) => <input id={id} type="text" className="input-base" placeholder="Contoh: Green Fashion Expo 2026" value={formData.name} onChange={(e) => update("name", e.target.value)} required />}
+              </Field>
+
+              <fieldset>
+                <legend className="field-label">Kategori event <span className="text-error" aria-hidden="true">*</span></legend>
+                <p className="field-hint mt-0 mb-3">Tenant dengan kategori yang sama akan direkomendasikan event ini.</p>
+                <label className="flex items-center gap-2 p-3 rounded-lg border border-border cursor-pointer mb-2 font-medium text-sm">
+                  <input type="checkbox" checked={formData.categories.includes("all")} onChange={(e) => update("categories", e.target.checked ? ["all", ...EVENT_CATEGORY_OPTIONS.map((category) => category.label)] : [])} />
+                  Semua kategori
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {EVENT_CATEGORY_OPTIONS.map((category) => (
+                    <label key={category.value} className="flex items-start gap-2 p-3 rounded-lg border border-border hover:border-foreground cursor-pointer text-sm leading-snug">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={formData.categories.includes("all") || formData.categories.includes(category.label)}
+                        onChange={(e) => setFormData((prev) => {
+                          const next = e.target.checked ? [...prev.categories.filter((item) => item !== "all"), category.label] : prev.categories.filter((item) => item !== category.label && item !== "all");
+                          return { ...prev, categories: next };
+                        })}
+                      />
+                      <span>{category.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              <Field label="Deskripsi event" optional id="event-desc" hint="Ceritakan konsep acara, target pengunjung, dan keunikannya.">
+                {(id) => <textarea id={id} className="input-base min-h-[120px] resize-y" value={formData.description} onChange={(e) => update("description", e.target.value)} rows={5} />}
+              </Field>
+
+              <Field label="Tema event" optional id="event-theme" hint="Contoh: Kuliner Nusantara, Fashion Lokal Berkelanjutan.">
+                {(id) => <input id={id} type="text" className="input-base" placeholder="Contoh: Sustainable Fashion" value={formData.theme} onChange={(e) => update("theme", e.target.value)} />}
+              </Field>
+            </section>
+
+            <section className="card-base p-6">
+              <h2 className="section-title">Banner event <span className="field-tag">Opsional</span></h2>
+              <p className="section-desc mb-4">Gambar utama di halaman event. Ukuran ideal 1200×400 px (JPG, PNG, atau WebP).</p>
+              <input
+                type="file"
+                ref={bannerInputRef}
+                className="visually-hidden"
+                accept="image/*"
+                id="event-banner"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (file) handleBanner(file);
+                }}
+              />
+              <button type="button" onClick={() => bannerInputRef.current?.click()} className={`upload-drop w-full ${bannerUploading ? "is-busy" : ""}`}>
+                {bannerUploading ? (
+                  <span className="text-sm">Mengunggah banner...</span>
+                ) : bannerUrl ? (
+                  <>
+                    <img src={bannerUrl} alt="Pratinjau banner event" className="w-full max-h-48 object-cover rounded-lg" />
+                    <span className="text-xs text-muted-foreground">Klik untuk mengganti banner</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="text-muted-foreground" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
+                    <span className="text-sm font-medium">Klik untuk mengunggah banner</span>
+                  </>
+                )}
+              </button>
+            </section>
+>>>>>>> Stashed changes
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -318,3 +400,14 @@ export default function CreateEventPage() {
     </div>
   );
 }
+<<<<<<< Updated upstream
+=======
+
+export default function CreateEventPage() {
+  return (
+    <FreshOnNavigate>
+      <CreateEventPageContent />
+    </FreshOnNavigate>
+  );
+}
+>>>>>>> Stashed changes

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/components/AuthContext";
-import { setActiveOrganizerEventId } from "@/app/lib/event-defaults";
+import { getActiveOrganizerEventId, setActiveOrganizerEventId } from "@/app/lib/event-defaults";
 
 type EventItem = {
   id: string;
@@ -55,6 +55,13 @@ export default function OrganizerDashboard() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [inbox, setInbox] = useState<InboxMessage[]>([]);
+<<<<<<< Updated upstream
+=======
+  const [loadError, setLoadError] = useState("");
+  // Event chosen in the sidebar ("Acara aktif"), read after mount because it lives in localStorage
+  const [storedEventId, setStoredEventId] = useState("");
+  useEffect(() => setStoredEventId(getActiveOrganizerEventId()), []);
+>>>>>>> Stashed changes
 
   useEffect(() => {
     // 1. Load Events from Supabase & Merge Local Storage
@@ -97,8 +104,16 @@ export default function OrganizerDashboard() {
         }
       } catch { /* ignore */ }
 
+<<<<<<< Updated upstream
       setEvents(isDemoOrg ? combinedEvents : combinedEvents.filter((e) => e.organizerEmail?.toLowerCase() === email.toLowerCase()));
     });
+=======
+    listOrganizerMessages(organizerId)
+      .then((msgs) => {
+        if (!cancelled) setInbox(msgs);
+      })
+      .catch(() => { });
+>>>>>>> Stashed changes
 
     // 2. Load Bookings from Supabase
     getTenantBookingsFromSupabase().then((supabaseBookings) => {
@@ -154,8 +169,12 @@ export default function OrganizerDashboard() {
   }, 0);
   const formattedRevenue = `Rp ${(totalRevenueNumber / 1000000).toLocaleString("id-ID", { maximumFractionDigits: 1 })} Jt`;
 
+  // Onboarding links follow the event chosen in the sidebar, not always the first one
+  const guideEvent = events.find((e) => e.id === storedEventId) || events[0];
+
   return (
     <div className="animate-fade-in" id="organizer-overview">
+<<<<<<< Updated upstream
       {/* Header */}
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -168,6 +187,57 @@ export default function OrganizerDashboard() {
           + Buat Event Baru
         </Link>
       </div>
+=======
+      {loadError && <Notice tone="error" className="mb-6">{loadError}</Notice>}
+      <PageHeader
+        title="Dasbor Organizer"
+        description={<>Halo, <span className="text-foreground font-semibold">{user?.businessName || user?.name || "Organizer"}</span>. Pantau event, sewa booth, dan pesan masuk di sini.</>}
+        actions={
+          <Link href="/dashboard/organizer/events/new" className="btn btn-primary" id="btn-create-event-header">
+            + Buat event baru
+          </Link>
+        }
+      />
+
+      <OnboardingGuide
+        userId={organizerId}
+        title="Mulai di sini"
+        description="Empat langkah supaya event pertamamu bisa disewa tenant dan dikunjungi pengunjung."
+        steps={[
+          {
+            key: "profile",
+            title: "Lengkapi profil organisasi",
+            text: "Nomor WhatsApp dan deskripsi tampil di halaman event, supaya tenant bisa menghubungimu.",
+            href: "/dashboard/organizer/profile",
+            cta: "Buka profil",
+            done: Boolean(user?.phone && user?.description),
+          },
+          {
+            key: "event",
+            title: "Buat event pertama",
+            text: "Isi nama, tanggal, lokasi, dan fasilitas booth yang kamu sediakan.",
+            href: "/dashboard/organizer/events/new",
+            cta: "Buat event",
+            done: events.length > 0,
+          },
+          {
+            key: "publish",
+            title: "Tata denah booth lalu terbitkan",
+            text: "Gambar posisi booth, isi harga, lalu tekan Terbitkan agar event tampil di publik.",
+            href: guideEvent ? `/dashboard/organizer/events/${guideEvent.id}/floor-plan` : "/dashboard/organizer/events/new",
+            cta: "Buka denah booth",
+            done: events.some((e) => e.status === "active"),
+          },
+          {
+            key: "qr",
+            title: "Bagikan QR Code ke pengunjung",
+            text: "Pengunjung memindai QR untuk melihat denah, daftar tenant, dan memesan makanan.",
+            href: guideEvent ? `/dashboard/organizer/events/${guideEvent.id}/qr-code` : "/dashboard/organizer/no-event/qr-code",
+            cta: "Buka QR Code",
+          },
+        ]}
+      />
+>>>>>>> Stashed changes
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -216,9 +286,6 @@ export default function OrganizerDashboard() {
           <div className="card-base p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold text-lg">Kelola Event</h2>
-              <Link href="/dashboard/organizer/events/new" className="btn btn-primary btn-sm">
-                + Buat Event
-              </Link>
             </div>
 
             {events.length === 0 ? (
@@ -254,6 +321,7 @@ export default function OrganizerDashboard() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+<<<<<<< Updated upstream
                       <Link
                         href={`/events/${event.id}/guide`}
                         onClick={() => setActiveOrganizerEventId(event.id)}
@@ -275,6 +343,57 @@ export default function OrganizerDashboard() {
                       >
                         Denah Booth →
                       </Link>
+=======
+                      {event.status === "draft" ? (
+                        <>
+                          <Link
+                            href={`/dashboard/organizer/events/${event.id}/edit`}
+                            onClick={() => setActiveOrganizerEventId(event.id)}
+                            className="btn btn-ghost btn-sm text-xs"
+                          >
+                            Edit Info
+                          </Link>
+                          <Link
+                            href={`/dashboard/organizer/events/${event.id}/floor-plan`}
+                            onClick={() => setActiveOrganizerEventId(event.id)}
+                            className="btn btn-primary btn-sm text-xs"
+                          >
+                            Lanjutkan Denah &amp; Terbitkan
+                          </Link>
+                        </>
+                      ) : (
+                        <>
+                          <Link
+                            href={`/dashboard/organizer/events/${event.id}/edit`}
+                            onClick={() => setActiveOrganizerEventId(event.id)}
+                            className="btn btn-ghost btn-sm text-xs"
+                          >
+                            Edit Info
+                          </Link>
+                          <Link
+                            href={`/events/${event.id}`}
+                            onClick={() => setActiveOrganizerEventId(event.id)}
+                            className="btn btn-ghost btn-sm text-xs"
+                          >
+                            Lihat Halaman
+                          </Link>
+                          <Link
+                            href={`/dashboard/organizer/events/${event.id}/qr-code`}
+                            onClick={() => setActiveOrganizerEventId(event.id)}
+                            className="btn btn-secondary btn-sm text-xs"
+                          >
+                            QR
+                          </Link>
+                          <Link
+                            href={`/dashboard/organizer/events/${event.id}/floor-plan`}
+                            onClick={() => setActiveOrganizerEventId(event.id)}
+                            className="btn btn-primary btn-sm text-xs"
+                          >
+                            Denah Booth
+                          </Link>
+                        </>
+                      )}
+>>>>>>> Stashed changes
                     </div>
                   </div>
                 ))}
